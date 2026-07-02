@@ -47,19 +47,20 @@ def _extract_arg_keys_from_method(method) -> dict[str, dict]:
 
     props: dict[str, dict] = {}
 
-    def _type_from_node(node) -> str:
+    def _type_from_node(node) -> dict:
+        """返回 {'type': '...'} spec，或空 dict 表示无 type 约束。"""
         if isinstance(node, ast.Constant):
             v = node.value
-            if v is None: return "string"
-            if isinstance(v, bool): return "boolean"
-            if isinstance(v, int): return "integer"
-            if isinstance(v, float): return "number"
-            if isinstance(v, str): return "string"
-            if isinstance(v, list): return "array"
-            if isinstance(v, dict): return "object"
-        if isinstance(node, ast.List):  return "array"
-        if isinstance(node, ast.Dict):  return "object"
-        return "string"
+            if v is None: return {}               # None 默认 → 无 type 约束（validate 当 any）
+            if isinstance(v, bool): return {"type": "boolean"}
+            if isinstance(v, int): return {"type": "integer"}
+            if isinstance(v, float): return {"type": "number"}
+            if isinstance(v, str): return {"type": "string"}
+            if isinstance(v, list): return {"type": "array"}
+            if isinstance(v, dict): return {"type": "object"}
+        if isinstance(node, ast.List):  return {"type": "array"}
+        if isinstance(node, ast.Dict):  return {"type": "object"}
+        return {}                                  # 兜底：无 type 约束
 
     def _is_args_get(call: ast.Call) -> bool:
         f = call.func
@@ -100,7 +101,7 @@ def _extract_arg_keys_from_method(method) -> dict[str, dict]:
                 if kw.arg == "default":
                     default_node = kw.value
                     break
-        props[key] = {"type": _type_from_node(default_node)}
+        props[key] = _type_from_node(default_node)
 
     return props
 
@@ -116,6 +117,8 @@ def derive_schema(handler_cls) -> dict[str, dict]:
         if method is None:
             continue
         props = _extract_arg_keys_from_method(method)
+        # 过滤框架注入 key（BaseHandler.dispatch 设 _index/_tool_num，非模型面）
+        props = {k: v for k, v in props.items() if not k.startswith("_")}
         # Overlay opaque/path/aliases 启发式
         for pname, spec in props.items():
             if pname in _OPAQUE_HINT_NAMES:
