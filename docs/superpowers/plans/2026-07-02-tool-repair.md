@@ -6,7 +6,18 @@
 
 **Architecture:** 新增 `core/agent/tool_repair.py`（schema 推导 + validate + shape_fix + path_clean + relational_defaults + telemetry），`BaseHandler.dispatch` 入口单点接入；`loop.py:95` 裸 `json.loads` 换成容错 `safe_parse_args`；`handler.py` 加 `_get_abs_path` 路径逃逸 + 4 处 `[Error]` 前缀改写；`tau_cli/commands/doctor.py` 新建读 `REPAIR_STATS` + jsonl fallback。每步独立 commit，可独立回滚。
 
-**Tech Stack:** Python ≥3.10,<3.14 · 现有 `core/agent/` 子包 · `inspect.signature` · `pytest` · `uv` 包管理 · 无新依赖
+**Tech Stack:** Python ≥3.10,<3.14 · 现有 `core/agent/` 子包 · `ast` 模块（解析 do_* 函数体）+ `pytest` · `uv` 包管理 · 无新依赖
+
+---
+
+## 实施发现（Task 1 已落地，需更新下游 tasks）
+
+Task 1 实施时发现 plan 假设的 `inspect.signature` 路线**不可行**：`TauHandler.do_*` 方法签名全是 `(self, args, response)`，无法从签名推 properties。已改为 AST 扫描 do_* 函数体提取 `args.get("literal_key", default)` 的字面 key，类型从 default 节点推断。Commits `58e1297` + `8bf9c18` + `428068a`。
+
+**对下游 tasks 的影响**：
+- Task 2-3 代码逻辑**不变**（消费 `SCHEMAS[tool]['properties']`，对 properties 来源无依赖）
+- Tasks 4-10 不受影响（dispatch / loop.py / handler.py 操作不依赖 schema 推导策略）
+- Task 10 测试断言时需要知道：`web_execute_js` schema 同时含 `switch_tab_id` 和 `tab_id`（都被 AST 提取）；`file_write.content` 因 handler.py:72 无默认值，`type` 字段缺失（属正常 opaque 字段，validate 跳过）；`switch_tab_id` 因默认值是 `None`，`type` 字段也缺失（validate 当 any 处理）
 
 ---
 
