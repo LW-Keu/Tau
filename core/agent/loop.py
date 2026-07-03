@@ -14,20 +14,53 @@ def try_call_generator(func, *args, **kwargs):
     if hasattr(ret, '__iter__') and not isinstance(ret, (str, bytes, dict, list)): ret = yield from ret
     return ret
 
+def _resolve_model(handler_self) -> str:
+    """从 handler.parent.llmclient.model 取模型 id；失败返回空串。"""
+    try:
+        return getattr(getattr(getattr(handler_self, 'parent', None), 'llmclient', None), 'model', '') or ''
+    except Exception:
+        return ''
+
 class BaseHandler:
     def turn_end_callback(self, response, tool_calls, tool_results, turn, next_prompt, exit_reason): return next_prompt
     def dispatch(self, tool_name, args, response, index=0, tool_num=1):
         method_name = f"do_{tool_name}"
         if hasattr(self, method_name):
+            from .tool_repair import repair_tool_input
+            model = _resolve_model(self)
+            args, ok, notes = repair_tool_input(model, tool_name, args)
+            if not ok:
+                for n in notes:
+                    yield n + "\n"
+                return StepOutcome(None, next_prompt='；'.join(notes), should_exit=False)
+            # 关系默认值产生的附注（"注意：..."）透明 yield；最后挂到 ret.data
+            relational = [n for n in notes if n.startswith('注意')]
+            for n in notes:
+                if not n.startswith('注意'):
+                    yield n + "\n"
             args['_index'] = index; args['_tool_num'] = tool_num
             _hook('tool_before', locals())
             ret = yield from try_call_generator(getattr(self, method_name), args, response)
             _hook('tool_after', locals())
+            if relational and ret is not None and ret.data is not None:
+                note_text = '\n\n'.join(relational)
+                if isinstance(ret.data, dict):
+                    ret.data.setdefault('note', note_text)
+                else:
+                    ret.data = f"{ret.data}\n\n{note_text}"
             return ret
-        elif tool_name == 'bad_json': return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)
+        elif tool_name == 'bad_json':
+            return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)
         else:
-            yield f"未知工具: {tool_name}\n"
-            return StepOutcome(None, next_prompt=f"未知工具 {tool_name}", should_exit=False)
+            import difflib
+            known = [m[3:] for m in dir(self) if m.startswith('do_')]
+            hint = difflib.get_close_matches(tool_name, known, n=1)
+            if hint:
+                msg = f"未知工具 {tool_name}。你是想用 `{hint[0]}` 吗？可用工具：{', '.join(known)}"
+            else:
+                msg = f"未知工具 {tool_name}。可用工具：{', '.join(known)}"
+            yield msg + "\n"
+            return StepOutcome(None, next_prompt=msg, should_exit=False)
 
 def exhaust(g):
     while True:
@@ -91,9 +124,17 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema,
             if cleaned: yield cleaned + '\n'
         _hook('llm_after', locals())
 
-        if not response.tool_calls: tool_calls = [{'tool_name': 'no_tool', 'args': {}}]
-        else: tool_calls = [{'tool_name': tc.function.name, 'args': json.loads(tc.function.arguments), 'id': tc.id}
-                          for tc in response.tool_calls]
+        from .tool_repair import safe_parse_args
+        tool_calls = []
+        for tc in (response.tool_calls or []):
+            args, err = safe_parse_args(tc.function.arguments)
+            if args is None:
+                tool_calls.append({'tool_name': 'bad_json', 'args': {
+                    'msg': f'工具 {tc.function.name} 的参数不是合法 JSON（{err}）。'
+                           f'请重新调用该工具，参数必须是一个 JSON 对象。'}, 'id': tc.id})
+            else:
+                tool_calls.append({'tool_name': tc.function.name, 'args': args, 'id': tc.id})
+        if not tool_calls: tool_calls = [{'tool_name': 'no_tool', 'args': {}}]
        
         tool_results = []; next_prompts = set(); exit_reason = {}
         for ii, tc in enumerate(tool_calls):
