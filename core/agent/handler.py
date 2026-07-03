@@ -40,11 +40,21 @@ class TauHandler(BaseHandler):
 
     def _get_abs_path(self, path):
         if not path: return ""
-        return os.path.abspath(os.path.join(self.cwd, path))
+        abs_path = os.path.abspath(os.path.join(self.cwd, path))
+        cwd_abs = os.path.abspath(self.cwd)
+        try:
+            if os.path.commonpath([abs_path, cwd_abs]) != cwd_abs:
+                return None
+        except ValueError:
+            return None
+        return abs_path
 
     def do_file_read(self, args, response):
         '''读取文件内容。从第start行开始读取。如有keyword则返回第一个keyword(忽略大小写)周边内容'''
         path = self._get_abs_path(args.get("path", ""))
+        if path is None:
+            yield f"[Status] ❌ 路径越界：参数 path 解析后跳出了工作目录 {self.cwd}，请提供工作目录内的相对路径后重试。\n"
+            return StepOutcome({"status": "error", "msg": "路径越界，请提供工作目录内的相对路径后重试。"}, next_prompt="\n")
         yield f"\n[Action] Reading file: {path}\n"
         start = args.get("start", 1)
         count = args.get("count", 200)
@@ -66,13 +76,16 @@ class TauHandler(BaseHandler):
         '''用于对整个文件的大量处理，精细修改要用file_patch。
         需要将要写入的内容放在<file_content>标签内，或者放在代码块中'''
         path = self._get_abs_path(args.get("path", ""))
+        if path is None:
+            yield f"[Status] ❌ 路径越界：参数 path 解析后跳出了工作目录 {self.cwd}，请提供工作目录内的相对路径后重试。\n"
+            return StepOutcome({"status": "error", "msg": "路径越界，请提供工作目录内的相对路径后重试。"}, next_prompt="\n")
         mode = args.get("mode", "overwrite")  # overwrite/append/prepend
         action_str = {"prepend": "Prepending to", "append": "Appending to"}.get(mode, "Overwriting")
         yield f"[Action] {action_str} file: {os.path.basename(path)}\n"
         content = args.get('content') or self._extract_file_content(response.content)
         if not content:
             yield f"[Status] ❌ 失败: 未在回复中找到<file_content>代码块内容\n"
-            return StepOutcome({"status": "error", "msg": "No content found. Blank is not supported. Put content inside <file_content>...</file_content> tags in your reply body before call file_write."}, next_prompt="\n")
+            return StepOutcome({"status": "error", "msg": "未找到要写入的内容。请将内容放入 file_content 标签内，或作为 content 参数传入后重试。"}, next_prompt="\n")
         try: content = expand_file_refs(content, base_dir=self.cwd)
         except ValueError as e:
             yield f"[Status] ❌ 引用展开失败: {e}\n"
@@ -85,13 +98,16 @@ class TauHandler(BaseHandler):
 
     def do_file_patch(self, args, response):
         path = self._get_abs_path(args.get("path", ""))
+        if path is None:
+            yield f"[Status] ❌ 路径越界：参数 path 解析后跳出了工作目录 {self.cwd}，请提供工作目录内的相对路径后重试。\n"
+            return StepOutcome({"status": "error", "msg": "路径越界，请提供工作目录内的相对路径后重试。"}, next_prompt="\n")
         yield f"[Action] Patching file: {path}\n"
         old_content = args.get("old_content", "")
         new_content = args.get("new_content", "")
         try: new_content = expand_file_refs(new_content, base_dir=self.cwd)
         except ValueError as e:
             yield f"[Status] ❌ 引用展开失败: {e}\n"
-            return StepOutcome({"status": "error", "msg": str(e)}, next_prompt="\n")
+            return StepOutcome({"status": "error", "msg": f"引用展开失败：{e}。请检查 @path 引用是否指向存在的文件后重试。"}, next_prompt="\n")
         result = file_patch(path, old_content, new_content)
         yield f"\n{str(result)}\n"
         next_prompt = self._get_anchor_prompt(skip=args.get('_index', 0) > 0)
@@ -114,7 +130,7 @@ class TauHandler(BaseHandler):
         code = args.get("code") or args.get("script")
         if not code:
             code = self._extract_code_block(response, code_type)
-            if not code: return StepOutcome("[Error] Code missing. Must use reply code block or 'script' arg.", next_prompt="\n")
+            if not code: return StepOutcome("未收到代码。请把代码放入 python 代码块或 code 参数后重试。", next_prompt="\n")
         try: timeout = int(args.get("timeout", 60))
         except Exception: timeout = 60
         raw_path = os.path.join(self.cwd, args.get("cwd", './'))
@@ -169,7 +185,7 @@ class TauHandler(BaseHandler):
     def do_web_execute_js(self, args, response):
         '''web情况下的优先使用工具，执行任何js达成对浏览器的*完全*控制。支持将结果保存到文件供后续读取分析。'''
         script = args.get("script", "") or self._extract_code_block(response, "javascript")
-        if not script: return StepOutcome("[Error] Script missing. Use ```javascript block or 'script' arg.", next_prompt="\n")
+        if not script: return StepOutcome("未收到脚本。请把脚本放入 javascript 代码块或 script 参数后重试。", next_prompt="\n")
         abs_path = self._get_abs_path(script.strip())
         if os.path.isfile(abs_path):
             with open(abs_path, 'r', encoding='utf-8') as f: script = f.read()
