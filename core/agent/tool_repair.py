@@ -119,6 +119,12 @@ def derive_schema(handler_cls) -> dict[str, dict]:
         props = _extract_arg_keys_from_method(method)
         # 过滤框架注入 key（BaseHandler.dispatch 设 _index/_tool_num，非模型面）
         props = {k: v for k, v in props.items() if not k.startswith("_")}
+        # 收集所有 alias 目标，稍后剔除（避免一个字段既作为主 key 又作为别名的污染）
+        alias_targets = set()
+        for pname, spec in props.items():
+            for a in _ALIAS_HINTS.get(pname, []):
+                alias_targets.add(a)
+        props = {k: v for k, v in props.items() if k not in alias_targets}
         # Overlay opaque/path/aliases 启发式
         for pname, spec in props.items():
             if pname in _OPAQUE_HINT_NAMES:
@@ -157,7 +163,15 @@ def safe_parse_args(raw: str):
 # 6) 遥测：内存 Counter（tau doctor 用）+ jsonl 落盘（reflect/ 用）
 # ======================================================================
 REPAIR_STATS: Counter = Counter()
-_TELEMETRY_FILE = Path(".tau/repair_telemetry.jsonl")
+
+
+def _get_telemetry_file() -> Path:
+    """锚到 core.paths.TEMP/.tau/，避免 `tau doctor` 在不同 CWD 下找不到 jsonl。
+
+    core.paths 懒加载，避免模块加载时循环依赖（tool_repair 是 schema 入口）。
+    """
+    from core.paths import TEMP
+    return TEMP / ".tau" / "repair_telemetry.jsonl"
 
 
 def _record(model: str, tool: str, kind: str, path: list) -> None:
@@ -169,8 +183,9 @@ def _record(model: str, tool: str, kind: str, path: list) -> None:
     except ImportError:
         pass
     try:
-        _TELEMETRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with _TELEMETRY_FILE.open("a", encoding="utf-8") as f:
+        f = _get_telemetry_file()
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a", encoding="utf-8") as f:
             f.write(json.dumps({"ts": time.time(), "model": model, "tool": tool,
                                 "repair": kind, "path": ".".join(map(str, path))},
                                ensure_ascii=False) + "\n")

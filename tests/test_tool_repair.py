@@ -11,7 +11,7 @@ def _reset_schemas_and_stats():
     tool_repair.REPAIR_STATS.clear()
     # 清掉落盘
     try:
-        tool_repair._TELEMETRY_FILE.unlink(missing_ok=True)
+        tool_repair._get_telemetry_file().unlink(missing_ok=True)
     except Exception:
         pass
     yield
@@ -134,3 +134,11 @@ def test_no_type_constraint_passthrough():
     assert ok2 is False
     assert any('switch_tab_id' in n for n in notes), f"note 应指向字段，实得 {notes}"
     assert not any('[Error]' in n for n in notes)
+
+    # 3) 整数通过（运行时类型为 int 时也兼容）
+    args3, ok3, _ = _repair('', 'web_scan', {'switch_tab_id': 0})
+    assert ok3 is True and args3['switch_tab_id'] == 0
+
+    # 4) Unicode 字符串通过
+    args4, ok4, _ = _repair('', 'web_scan', {'switch_tab_id': '会话-unicode-é'})
+    assert ok4 is True and args4['switch_tab_id'] == '会话-unicode-é'
