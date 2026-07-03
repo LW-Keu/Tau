@@ -19,6 +19,12 @@ Task 1 实施时发现 plan 假设的 `inspect.signature` 路线**不可行**：
 - Tasks 4-10 不受影响（dispatch / loop.py / handler.py 操作不依赖 schema 推导策略）
 - Task 10 测试断言时需要知道：`web_execute_js` schema 同时含 `switch_tab_id` 和 `tab_id`（都被 AST 提取）；`file_write.content` 因 handler.py:72 无默认值，`type` 字段缺失（属正常 opaque 字段，validate 跳过）；`switch_tab_id` 因默认值是 `None`，`type` 字段也缺失（validate 当 any 处理）
 
+**Task 2 实施后的 spec drift**（commit `72bb5f5` + `1a73d11`）：
+- `validate()` 加了 `stype is None` 分支：当 property 无 `type`（None 默认值产生 `{}` spec），仍递归嵌套 properties 但不强制类型。这是 AST-derived schema 的必要补丁。
+- `repair_tool_input` 修复循环里 `expected = fspec.get("type"); if expected is None: continue` —— 比 plan §4.8 原写法 `fspec.get("type", issue.expected if issue.expected in _TYPE_CHECKS else "string")` 更稳健（后者对 `"enum[...]"` 之类的 expected 会 fallback 到 "string" 错误）。
+- `repair_tool_input` 文档契约：入参 raw_args 假定 JSON-shaped（上游 `safe_parse_args` 保证），含 datetime/Decimal/set 会 raise。
+- Task 10 需补 1 个测试 `test_no_type_constraint_passthrough`：覆盖 `switch_tab_id` 的 None 默认被 `_fix_null_optional` 剔除的行为，锁定 AST-derived no-type 的契约。
+
 ---
 
 ## 全局约束
