@@ -151,3 +151,249 @@ def safe_parse_args(raw: str):
             return json.loads(s), 'lenient_json'
         except Exception as e:
             return None, str(e)
+
+
+# Stub — Task 3 will replace with jsonl + hook
+REPAIR_STATS: Counter = Counter()
+def _record(model: str, tool: str, kind: str, path: list) -> None:
+    REPAIR_STATS[(model, tool, kind)] += 1
+
+
+# ======================================================================
+# 2) 递归校验器：返回带精确路径的 Issue 列表（不短路）
+# ======================================================================
+class Issue:
+    __slots__ = ("path", "expected", "actual", "value")
+    def __init__(self, path, expected, actual, value):
+        self.path, self.expected, self.actual, self.value = path, expected, actual, value
+    def human(self):
+        return f"参数 `{'.'.join(map(str, self.path)) or '(root)'}` 期望 {self.expected}，实际收到 {self.actual}"
+
+
+_TYPE_CHECKS: dict[str, Callable[[Any], bool]] = {
+    "string":  lambda v: isinstance(v, str),
+    "path":    lambda v: isinstance(v, str),
+    "integer": lambda v: isinstance(v, int) and not isinstance(v, bool),
+    "number":  lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+    "boolean": lambda v: isinstance(v, bool),
+    "array":   lambda v: isinstance(v, list),
+    "object":  lambda v: isinstance(v, dict),
+}
+
+
+def validate(schema: dict, data: Any, path: list | None = None) -> list[Issue]:
+    path = path or []
+    issues: list[Issue] = []
+    stype = schema.get("type")
+    if schema.get("opaque"):
+        return issues
+    if stype is None:
+        # No type constraint (None default in AST extraction produced {} spec)
+        # Still recurse into object properties if any
+        if isinstance(data, dict) and schema.get("properties"):
+            for key, sub in schema["properties"].items():
+                if key in data:
+                    issues.extend(validate(sub, data[key], path + [key]))
+        return issues
+    if stype in _TYPE_CHECKS and not _TYPE_CHECKS[stype](data):
+        issues.append(Issue(path, stype, type(data).__name__, data))
+        return issues
+    if stype == "object":
+        for key in schema.get("required", []):
+            if key not in data:
+                issues.append(Issue(path + [key], "required", "missing", None))
+        for key, sub in schema.get("properties", {}).items():
+            if key in data:
+                if data[key] is None and key not in schema.get("required", []):
+                    issues.append(Issue(path + [key], sub.get("type", "any"), "null", None))
+                else:
+                    issues.extend(validate(sub, data[key], path + [key]))
+        if "enum" in schema and data not in schema["enum"]:
+            issues.append(Issue(path, f"enum{schema['enum']}", repr(data), data))
+    elif stype == "array" and "items" in schema:
+        for i, item in enumerate(data):
+            issues.extend(validate(schema["items"], item, path + [i]))
+    elif "enum" in schema and data not in schema["enum"]:
+        issues.append(Issue(path, f"enum{schema['enum']}", repr(data), data))
+    return issues
+
+
+# ======================================================================
+# 3) 形状修复（顺序即优先级，②必须在③之前，勿调换）
+# ======================================================================
+_DELETE, _NO_FIX = object(), object()
+
+
+def _fix_null_optional(v, t):
+    return _DELETE if v is None else _NO_FIX
+
+
+def _fix_stringified_array(v, t):                        # ② 先于 ③
+    if t == "array" and isinstance(v, str):
+        s = v.strip()
+        if s.startswith("[") and s.endswith("]"):
+            try:
+                parsed = json.loads(s)
+                if isinstance(parsed, list): return parsed
+            except (json.JSONDecodeError, ValueError): pass
+    return _NO_FIX
+
+
+def _fix_bare_value_wrap(v, t):                          # ③
+    if t == "array" and not isinstance(v, (list, dict)) and v is not None:
+        return [v]
+    return _NO_FIX
+
+
+def _fix_empty_object_placeholder(v, t):                 # ④
+    if t == "array" and isinstance(v, dict) and not v: return []
+    return _NO_FIX
+
+
+def _fix_coerce_bool(v, t):
+    if t == "boolean" and isinstance(v, str):
+        low = v.strip().lower()
+        if low in ("true", "1", "yes"):  return True
+        if low in ("false", "0", "no"): return False
+    return _NO_FIX
+
+
+def _fix_coerce_int(v, t):
+    if t == "integer" and isinstance(v, (str, float)):
+        try: return int(float(v))
+        except (ValueError, TypeError): pass
+    return _NO_FIX
+
+
+SHAPE_FIXES = [
+    ("null_optional",            _fix_null_optional),
+    ("stringified_array",        _fix_stringified_array),
+    ("bare_value_wrap",          _fix_bare_value_wrap),
+    ("empty_object_placeholder", _fix_empty_object_placeholder),
+    ("coerce_bool",              _fix_coerce_bool),
+    ("coerce_int",               _fix_coerce_int),
+]
+
+
+# ======================================================================
+# 4) PathString 清洗：只处理退化 markdown 自动链接
+# ======================================================================
+_MD_LINK = re.compile(r"^\[([^\]]+)\]\((?:[a-z]+://)?([^)]+)\)$")
+
+
+def clean_path_string(v: str) -> str:
+    s = v.strip().strip("`")
+    m = _MD_LINK.match(s)
+    if m and m.group(1).strip() == m.group(2).strip():
+        return m.group(1).strip()
+    return s
+
+
+# ======================================================================
+# 5) 关系不变量：语义扩展 + 透明告知（无错误前缀）
+#    注意：file_read 真实参数是 start/count（不是 offset/limit）
+# ======================================================================
+DEFAULT_READ_COUNT = 200
+
+
+def apply_relational_defaults(tool_name: str, args: dict) -> str | None:
+    if tool_name == "file_read":
+        has_start = "start" in args
+        has_count = "count" in args
+        if has_count and not has_start:
+            args["start"] = 1
+            return ("注意：start 未提供，已默认为 1。"
+                    "如需从其他行开始，请同时提供 start 与 count 重试。")
+        if has_start and not has_count:
+            args["count"] = DEFAULT_READ_COUNT
+            return (f"注意：count 未提供，已默认为 {DEFAULT_READ_COUNT} 行。"
+                    "如需读取更多或更少，请同时提供 start 与 count 重试。")
+    return None
+
+
+# ======================================================================
+# 7) 主入口：别名归一 → 校验 → 定点修复 → 复验 → 路径清洗 → 关系默认值
+# ======================================================================
+def _get_parent(data, path):
+    for p in path[:-1]: data = data[p]
+    return data, path[-1]
+
+
+def _schema_at(schema, path):
+    for p in path:
+        if isinstance(p, int):
+            schema = schema.get("items", {})
+        else:
+            schema = schema.get("properties", {}).get(p, {})
+    return schema
+
+
+def repair_tool_input(model_id: str, tool_name: str, raw_args: dict):
+    schema = SCHEMAS.get(tool_name)
+    if schema is None or not isinstance(raw_args, dict):
+        return raw_args, True, []
+
+    # 别名归一（不用 or：0 也是合法值）
+    for field, spec in schema.get("properties", {}).items():
+        if field not in raw_args:
+            for alias in spec.get("aliases", []):
+                if alias in raw_args:
+                    raw_args[field] = raw_args.pop(alias)
+                    _record(model_id, tool_name, "alias_normalize", [field]); break
+
+    issues = validate(schema, raw_args)
+    if not issues:
+        args = raw_args                                  # 快路径
+    else:
+        args = json.loads(json.dumps(raw_args))          # 深拷贝
+        for issue in issues:
+            if not issue.path or issue.expected == "required":
+                continue
+            fspec = _schema_at(schema, issue.path)
+            if fspec.get("opaque"):
+                continue
+            try:
+                parent, key = _get_parent(args, issue.path)
+            except (KeyError, IndexError, TypeError):
+                continue
+            current = parent[key] if (isinstance(parent, list) or key in parent) else None
+            # Determine expected type — handle the no-type case
+            expected = fspec.get("type")
+            if expected is None:
+                # No type constraint; cannot apply shape_fix; skip
+                continue
+            for kind, fix in SHAPE_FIXES:
+                result = fix(current, expected)
+                if result is _NO_FIX:
+                    continue
+                if result is _DELETE:
+                    if isinstance(parent, dict):
+                        parent.pop(key, None)
+                else:
+                    parent[key] = result
+                _record(model_id, tool_name, kind, issue.path)
+                break
+        remaining = validate(schema, args)
+        if remaining:
+            return args, False, [i.human() + "。请修正后重试。" for i in remaining]
+
+    # 路径字段清洗
+    def _walk_paths(sch, node, path):
+        if sch.get("type") == "path" and isinstance(node, str):
+            cleaned = clean_path_string(node)
+            if cleaned != node:
+                parent, key = _get_parent(args, path) if path else (None, None)
+                if parent is not None: parent[key] = cleaned
+                _record(model_id, tool_name, "md_link_leak", path)
+        elif sch.get("type") == "object" and isinstance(node, dict):
+            for k, sub in sch.get("properties", {}).items():
+                if k in node: _walk_paths(sub, node[k], path + [k])
+    _walk_paths(schema, args, [])
+
+    note = apply_relational_defaults(tool_name, args)
+    notes = []
+    if args is not raw_args:
+        notes.append("[工具输入已修复]")
+    if note:
+        notes.append(note)
+    return args, True, notes
