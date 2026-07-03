@@ -345,6 +345,9 @@ def repair_tool_input(model_id: str, tool_name: str, raw_args: dict):
     if not issues:
         args = raw_args                                  # 快路径
     else:
+        # 深拷贝：args 假定为 JSON-shaped（上游 safe_parse_args 保证），
+        # 若 raw_args 含 datetime/Decimal/set 等非 JSON 值，json.dumps 会 raise。
+        # 本契约是"绝不 raise"，故此处假设上游 JSON 化已保证输入是纯 JSON-shaped。
         args = json.loads(json.dumps(raw_args))          # 深拷贝
         for issue in issues:
             if not issue.path or issue.expected == "required":
