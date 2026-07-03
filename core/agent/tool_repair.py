@@ -153,10 +153,29 @@ def safe_parse_args(raw: str):
             return None, str(e)
 
 
-# Stub — Task 3 will replace with jsonl + hook
+# ======================================================================
+# 6) 遥测：内存 Counter（tau doctor 用）+ jsonl 落盘（reflect/ 用）
+# ======================================================================
 REPAIR_STATS: Counter = Counter()
+_TELEMETRY_FILE = Path(".tau/repair_telemetry.jsonl")
+
+
 def _record(model: str, tool: str, kind: str, path: list) -> None:
+    """每次修复 +1；hook 失败/落盘失败静默吞掉，不影响主流程。"""
     REPAIR_STATS[(model, tool, kind)] += 1
+    try:
+        from plugins.hooks import trigger as _hook
+        _hook("tool_repair", {"model": model, "tool": tool, "kind": kind, "path": path})
+    except ImportError:
+        pass
+    try:
+        _TELEMETRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with _TELEMETRY_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": time.time(), "model": model, "tool": tool,
+                                "repair": kind, "path": ".".join(map(str, path))},
+                               ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 # ======================================================================
