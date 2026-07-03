@@ -76,6 +76,9 @@ def bootstrap():
     _init_memory()
     _init_cdp()
     _init_plugins()
+    from .tool_repair import init_schemas
+    from .handler import TauHandler
+    init_schemas(TauHandler)
     _bootstrapped = True
 
 # ----------------------------------------------------------------------------

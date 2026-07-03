@@ -9,7 +9,7 @@ if sys.platform == "win32" and sys.stdout.encoding and sys.stdout.encoding.lower
     sys.stdout.reconfigure(errors="replace") if hasattr(sys.stdout, "reconfigure") else None
 
 from tau_cli.commands import _launchers as _launchers_mod
-from tau_cli.commands import run, list as list_cmd, status as status_cmd, update as update_cmd
+from tau_cli.commands import run, list as list_cmd, status as status_cmd, update as update_cmd, doctor as doctor_cmd
 
 
 COMMANDS = {
@@ -18,6 +18,7 @@ COMMANDS = {
     "status": status_cmd.COMMAND,
     "update": update_cmd.COMMAND,
     "run":    run.COMMAND,
+    "doctor": doctor_cmd.COMMAND,
 }
 
 
@@ -71,6 +72,9 @@ def main():
         return
     if cmd == "run":
         run.run(extra or None)
+        return
+    if cmd == "doctor":
+        doctor_cmd.run(extra or None)
         return
 
     # 启动类命令 — 委派给 _launchers.run() (内含 flags 处理 + cmd 模板选择)
