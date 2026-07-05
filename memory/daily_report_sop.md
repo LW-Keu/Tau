@@ -603,3 +603,52 @@ python memory/daily_report_fetch.py --emit-template temp/report_data.json --date
 - 任何 `build_bing_url` 改动都需双通道同时跑通测试
 - Bing 改版 → 优先改 urllib 通道 regex (Playwright 可再升级 chrome)
 - 60 条阈值是 R8 实测,8 类目 × 8-12 条/类目是当前水位
+
+---
+
+## Phase 8 · v3.3 实测踩坑 (2026-06-30 17项 E.4 一次过验证)
+
+构建 `report_data.json` 反复踩坑后的硬经验(节省未来 5+ 轮重试):
+
+### 8.1 JSON 构造必须走 Python 字典 + `json.dump`
+- 任何含内嵌直引号 `"` 的中文字段(`body` 描述英文组织名/技术词时极易出现)都不能手写 JSON 字符串
+- **正确做法**: 把 report_data 先写为 Python 字典(在 `temp/_rebuild.py` 或临时脚本),然后 `json.dump(d, f, ensure_ascii=False, indent=2)`
+- 弯引号 `\u201c\u201d`(中文引号)也不行 — 优先用全角「」或括号代替,或转义
+- v3.3 教训: 直引号未转义 → JSON 解析失败 → 6+ 轮才定位到正确做法
+
+### 8.2 E.4-08 body 段首正则硬约束
+- 正则: `^(\d{1,2}月\d{1,2}日).{1,40}(报道|表示|声明|发布)[：:]`
+- 动词(报道/表示/声明/发布)距日期 ≤ 40 字符
+- 完整模板: `6月X日,英文源(中文译名)报道：主体内容。`
+- 注意是中文全角冒号 `：`,不是 `:`
+- 来源括注用全角 `()` 而不是半角 `()`,validator 不卡但视觉更稳
+
+### 8.3 缩写括注 (E.4-09)
+- 任何英文缩写后必须有中文全名或解释,如 `NEOWISE(近地天体红外探测卫星)` / `ISA(国际海底管理局)`
+- 多次出现的缩写首次出现要带,后续可省
+
+### 8.4 S2 倒序 (H2 强化)
+- 同板块内 `pub_date` 严格倒序 (D日 全部 → D-1日 全部),不要混排
+- 校验: `python memory/daily_report_validate.py --strict` 中 E.4-11 会扫所有 `pub_date` 是否单调非递增
+
+### 8.5 trends 必须是 dict 不是 string (E.4-16)
+- 必含三 key: `core_situation` / `actor_dynamics` / `china_impact_direction`
+- 每段 200-300 字,总长 600-900 字 (validator 按中文字符数)
+- 字符串形式 → validator 静默跳过 → 误判 PASS 但内容未校验
+- 标签文字不要自带 `：**`,render 会自动追加
+
+### 8.6 signals 长度 + 情报缺口 (E.4-17)
+- 每条 `text` 60-120 字 (中文字符数)
+- 必须含 `(情报缺口：xxx)` 前缀句,缺失 → FAIL
+- `label` 末尾禁含 `：`/`:` — render 会自动追加
+- 3-5 条,过少/过多都 FAIL
+
+### 8.7 一键校验流水线
+```bash
+cd /Users/x404/Tau/.worktrees/tau-v4.0.0
+python temp/_rebuild.py 2>&1 | tail -2          # 重建 JSON
+python memory/daily_report_render.py temp/report_data_YYYYMMDD.json --fmt all --output-dir temp/output/daily_YYYYMMDD 2>&1 | tail -5
+python memory/daily_report_validate.py temp/report_data_YYYYMMDD.json --strict 2>&1 | tail -25
+```
+- 17/17 PASS = exit code 0
+- 任何 FAIL → 读 validate 输出第 3 行起的 `❌ FAIL` 区块定位字段
