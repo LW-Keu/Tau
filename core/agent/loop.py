@@ -28,7 +28,8 @@ class BaseHandler:
         if hasattr(self, method_name):
             from .tool_repair import repair_tool_input
             model = _resolve_model(self)
-            args, ok, notes = repair_tool_input(model, tool_name, args)
+            schemas = getattr(self, 'TOOL_SCHEMAS', None)
+            args, ok, notes = repair_tool_input(model, tool_name, args, schemas)
             if not ok:
                 for n in notes:
                     yield n + "\n"

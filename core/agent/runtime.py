@@ -67,6 +67,8 @@ def bootstrap():
       streams / lang / memory / cdp / plugins
       注：handler.py 内同类副作用不在本函数管辖范围，待 handler.py 重构时统一处理。
       注：默认 tool schema 加载已迁到 Tau.__init__ 末尾，不在 bootstrap 副作用内。
+      注：tool_repair 的 SCHEMAS 现在由 handler.py import 时自举（TauHandler.TOOL_SCHEMAS），
+          本处 init_schemas 调用幂等，保留为进程级 SCHEMAS 的 source of truth（测试 fixture 回退）。
     """
     global _bootstrapped
     if _bootstrapped: return
