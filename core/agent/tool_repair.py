@@ -362,8 +362,9 @@ def _schema_at(schema, path):
     return schema
 
 
-def repair_tool_input(model_id: str, tool_name: str, raw_args: dict):
-    schema = SCHEMAS.get(tool_name)
+def repair_tool_input(model_id: str, tool_name: str, raw_args: dict, schemas: dict | None = None):
+    src = schemas if schemas is not None else SCHEMAS
+    schema = src.get(tool_name)
     if schema is None or not isinstance(raw_args, dict):
         return raw_args, True, []
 
