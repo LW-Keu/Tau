@@ -16,3 +16,12 @@ def test_repair_injection_independent_of_global():
     args2, ok2, _ = tool_repair.repair_tool_input(
         '', 'ask_user', {'question': 'q', 'candidates': 'A'})
     assert ok2 and args2['candidates'] == 'A'        # 未被修复
+
+
+def test_handler_self_bootstrap_schemas():
+    """import TauHandler 即自动推导 TOOL_SCHEMAS，无需 init_schemas/bootstrap。"""
+    from core.agent.handler import TauHandler
+
+    schemas = getattr(TauHandler, 'TOOL_SCHEMAS', None)
+    assert isinstance(schemas, dict) and schemas
+    assert 'file_read' in schemas and 'code_run' in schemas

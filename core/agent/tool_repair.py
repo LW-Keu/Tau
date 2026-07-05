@@ -138,9 +138,11 @@ def derive_schema(handler_cls) -> dict[str, dict]:
 
 
 def init_schemas(handler_cls) -> None:
-    """由 runtime 启动入口调用一次，填充进程级 SCHEMAS。"""
+    """填充进程级 SCHEMAS，并注入 handler_cls.TOOL_SCHEMAS（dispatch 注入路径用）。"""
+    derived = derive_schema(handler_cls)
     SCHEMAS.clear()
-    SCHEMAS.update(derive_schema(handler_cls))
+    SCHEMAS.update(derived)
+    handler_cls.TOOL_SCHEMAS = dict(derived)
 
 
 # ======================================================================
