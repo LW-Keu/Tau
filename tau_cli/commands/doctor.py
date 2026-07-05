@@ -1,6 +1,5 @@
 """tau doctor — 工具输入修复遥测查看器"""
-import sys, json
-from pathlib import Path
+import json
 
 COMMAND = {
     "name": "doctor",
@@ -12,14 +11,10 @@ COMMAND = {
 
 
 def _read_fallback_jsonl(limit: int = 200) -> list[dict]:
-    """进程已退时 fallback 读 jsonl。优先 tool_repair 锚定的路径，找不到再退回 CWD 相对路径。"""
-    p = None
-    try:
-        from core.agent.tool_repair import _get_telemetry_file
-        p = _get_telemetry_file()
-    except Exception:
-        p = Path(".tau/repair_telemetry.jsonl")
-    if not p or not p.exists():
+    """进程已退时 fallback 读 jsonl（路径来自 tool_repair._get_telemetry_file）。"""
+    from core.agent.tool_repair import _get_telemetry_file
+    p = _get_telemetry_file()
+    if not p.exists():
         return []
     out = []
     try:

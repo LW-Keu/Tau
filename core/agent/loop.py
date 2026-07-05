@@ -4,6 +4,7 @@ from typing import Any, Optional
 try: from plugins.hooks import trigger as _hook
 except ImportError: _hook = lambda *a, **k: None
 from .format import json_default, get_pretty_json, _clean_content, _compact_tool_args
+from .tool_repair import repair_tool_input, safe_parse_args
 @dataclass
 class StepOutcome:
     data: Any
@@ -26,7 +27,6 @@ class BaseHandler:
     def dispatch(self, tool_name, args, response, index=0, tool_num=1):
         method_name = f"do_{tool_name}"
         if hasattr(self, method_name):
-            from .tool_repair import repair_tool_input
             model = _resolve_model(self)
             schemas = getattr(self, 'TOOL_SCHEMAS', None)
             args, ok, notes = repair_tool_input(model, tool_name, args, schemas)
@@ -35,9 +35,11 @@ class BaseHandler:
                     yield n + "\n"
                 return StepOutcome(None, next_prompt='；'.join(notes), should_exit=False)
             # 关系默认值产生的附注（"注意：..."）透明 yield；最后挂到 ret.data
-            relational = [n for n in notes if n.startswith('注意')]
+            relational = []
             for n in notes:
-                if not n.startswith('注意'):
+                if n.startswith('注意'):
+                    relational.append(n)
+                else:
                     yield n + "\n"
             args['_index'] = index; args['_tool_num'] = tool_num
             _hook('tool_before', locals())
@@ -125,7 +127,6 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema,
             if cleaned: yield cleaned + '\n'
         _hook('llm_after', locals())
 
-        from .tool_repair import safe_parse_args
         tool_calls = []
         for tc in (response.tool_calls or []):
             args, err = safe_parse_args(tc.function.arguments)

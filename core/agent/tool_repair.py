@@ -138,8 +138,13 @@ def derive_schema(handler_cls) -> dict[str, dict]:
 
 
 def init_schemas(handler_cls) -> None:
-    """填充进程级 SCHEMAS，并注入 handler_cls.TOOL_SCHEMAS（dispatch 注入路径用）。"""
-    derived = derive_schema(handler_cls)
+    """填充进程级 SCHEMAS，并注入 handler_cls.TOOL_SCHEMAS（dispatch 注入路径用）。
+
+    若 handler_cls 已自举 TOOL_SCHEMAS（handler.py 模块体 import 时推导），直接复用，
+    避免二次 AST 扫描。
+    """
+    existing = getattr(handler_cls, 'TOOL_SCHEMAS', None)
+    derived = dict(existing) if existing else derive_schema(handler_cls)
     SCHEMAS.clear()
     SCHEMAS.update(derived)
     handler_cls.TOOL_SCHEMAS = dict(derived)

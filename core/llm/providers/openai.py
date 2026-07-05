@@ -9,8 +9,8 @@ print = safeprint
 
 _RESP_CACHE_KEY = str(uuid.uuid4())
 
-# 模型特定温度覆盖 (声明化): 与 PR-3 的 _LEGACY_CN_MODELS 同风格。
-# 新模型应配置驱动 (在 cfg 里加 _model_temp_overrides), 不应扩展此 dict。
+# 模型特定温度覆盖 (声明化): 与 clients._LEGACY_CN_MODELS 同风格。
+# 新增温度特例扩展此 dict (cfg 字段驱动为未来方向，当前未实现)。
 _MODEL_TEMP_OVERRIDES = {
     'kimi': 1.0,             # kimi 系列强制 temperature=1
     'moonshot': 1.0,         # moonshot 系列强制 temperature=1
@@ -18,9 +18,7 @@ _MODEL_TEMP_OVERRIDES = {
 }
 
 def _apply_model_temp_overrides(model_lower: str, temperature: float) -> float:
-    """Best-effort: 按模型名应用温度覆盖。
-    新模型应加配置字段 (在 cfg 里), 不应扩展 _MODEL_TEMP_OVERRIDES。
-    """
+    """Best-effort: 按模型名应用温度覆盖。"""
     for prefix, override in _MODEL_TEMP_OVERRIDES.items():
         if prefix in model_lower:
             if isinstance(override, tuple) and override[0] == 'clamp':
