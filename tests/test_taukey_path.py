@@ -67,6 +67,17 @@ class TestTaukeyPath(unittest.TestCase):
         with self.assertRaises(Exception):
             self._load()
 
+    def test_malformed_taukey_py_raises(self):
+        """T7: taukey.py 存在但语法错误时,加载器应抛异常而非静默返回空。
+
+        旧版 taukey.json fallback 已移除,现在 .tau/taukey.py 是唯一入口。
+        若文件损坏(语法错误),importlib 加载会抛 SyntaxError —— 必须传播出去,
+        不能被静默吞掉,否则用户得到空 taukeys 而误以为是配置丢失。
+        """
+        self.TAUKEY_PATH.write_text("def : invalid syntax\n", encoding="utf-8")
+        with self.assertRaises((SyntaxError, Exception)):
+            self._load()
+
 
 if __name__ == "__main__":
     unittest.main()

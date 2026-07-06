@@ -142,3 +142,106 @@ def test_no_type_constraint_passthrough():
     # 4) Unicode 字符串通过
     args4, ok4, _ = _repair('', 'web_scan', {'switch_tab_id': '会话-unicode-é'})
     assert ok4 is True and args4['switch_tab_id'] == '会话-unicode-é'
+
+# ============================================================================
+# /review Step 5.8e: 测试 gap 补齐 (testing specialist T1-T6)
+# ============================================================================
+
+# ---- T1: opaque 8 字段全覆盖(原仅 content) ----
+@pytest.mark.parametrize("field,tool", [
+    ("content", "file_write"),
+    ("old_content", "file_patch"),
+    ("new_content", "file_patch"),
+    ("code", "code_run"),
+    ("script", "web_execute_js"),
+    ("question", "ask_user"),
+    ("key_info", "update_working_checkpoint"),
+])
+def test_opaque_field_preserved_parametrized(field, tool):
+    """所有 opaque-hint 字段绝不能把 '["a","b"]' 解析为 list。"""
+    args, ok, _ = _repair('', tool, {field: '["a","b"]'})
+    assert ok, f"{tool}.{field} 应通过(ok=True)"
+    assert args[field] == '["a","b"]', f"{tool}.{field} 应保持字符串原样"
+
+
+# ---- T2: safe_parse_args 边界(markdown-fenced / None / empty) ----
+def test_safe_parse_args_markdown_fenced():
+    from core.agent.tool_repair import safe_parse_args
+    args, err = safe_parse_args('```json\n{"a": 1}\n```')
+    assert args == {"a": 1} and err == 'lenient_json'
+
+
+def test_safe_parse_args_empty_and_none():
+    from core.agent.tool_repair import safe_parse_args
+    a1, e1 = safe_parse_args("")
+    assert a1 is None and e1 is not None
+    a2, e2 = safe_parse_args(None)
+    assert a2 is None and e2 is not None, "None 输入应被 (raw or '').strip() 兜底"
+
+
+# ---- T3: repair_tool_input non-dict passthrough ----
+@pytest.mark.parametrize("bad_input", [None, ["a", "b"], "string-not-dict", 42])
+def test_repair_passthrough_on_non_dict(bad_input):
+    out, ok, notes = _repair('', 'ask_user', bad_input)
+    assert out is bad_input
+    assert ok is True
+    assert notes == []
+
+
+# ---- T4: _fix_coerce_int 边界(负数 / fraction / inf / 不可修复) ----
+@pytest.mark.parametrize("raw_value,expected", [
+    ("42", 42),
+    ("-1", -1),
+    ("1.5", 1),     # 截断
+    ("-3.9", -3),   # 负分数截断
+])
+def test_coerce_int_valid(raw_value, expected):
+    args, ok, _ = _repair('', 'file_read', {'path': 'a', 'start': raw_value})
+    assert ok and args['start'] == expected
+
+
+def test_coerce_int_unfixable_keeps_input_or_rejects():
+    # 'not-a-number' → int(float(x)) raises ValueError → shape_fix 跳过 → validate 仍 fail
+    args, ok, notes = _repair('', 'file_read', {'path': 'a', 'start': 'not-a-number'})
+    assert (ok is False) or (isinstance(args.get('start'), str)), \
+        f"不可修复的整数应 ok=False 或保留原值；实得 ok={ok} args={args}"
+
+
+# ---- T5: apply_relational_defaults 边界 ----
+def test_relational_defaults_both_provided_no_note():
+    args, ok, notes = _repair('', 'file_read', {'path': 'a', 'start': 5, 'count': 10})
+    assert ok
+    assert notes == [], f"两字段都给就不该有附注；实得 {notes}"
+    assert args['start'] == 5 and args['count'] == 10
+
+
+def test_relational_defaults_neither_provided():
+    args, ok, notes = _repair('', 'file_read', {'path': 'a'})
+    assert ok
+    # 无 start 也无 count → apply_relational_defaults 不触发(两条分支都需 start XOR count)
+    assert 'start' not in args
+    assert 'count' not in args
+
+
+def test_relational_defaults_file_patch_missing_old_content():
+    """file_patch 缺 old_content 应触发附注(P1 #3 扩展)。"""
+    args, ok, notes = _repair('', 'file_patch', {'path': 'a', 'new_content': 'x'})
+    assert ok
+    assert any('old_content' in n for n in notes), f"应提示 old_content 缺失；实得 {notes}"
+
+
+def test_relational_defaults_file_write_bad_mode():
+    """file_write 非标准 mode 值应触发附注(P1 #3 扩展)。"""
+    args, ok, notes = _repair('', 'file_write', {'path': 'a', 'content': 'x', 'mode': 'evil'})
+    assert ok
+    assert any('mode' in n for n in notes), f"应警告 mode 非标准值；实得 {notes}"
+
+
+# ---- T6: ok=False 含可读 note 的失败路径 ----
+def test_repair_unfixable_type_returns_ok_false_with_note():
+    # tabs_only schema 是 boolean;传入嵌套 dict 不可修复
+    args, ok, notes = _repair('', 'web_scan', {'tabs_only': {'nested': 'dict'}})
+    assert ok is False
+    assert any('tabs_only' in n for n in notes), f"note 应指向字段；实得 {notes}"
+    assert any('请修正' in n or '重试' in n for n in notes), f"应含重试提示；实得 {notes}"
+    assert not any('[Error]' in n for n in notes), "note 不能带 [Error] 前缀"

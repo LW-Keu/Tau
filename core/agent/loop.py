@@ -49,8 +49,11 @@ class BaseHandler:
                 note_text = '\n\n'.join(relational)
                 if isinstance(ret.data, dict):
                     ret.data.setdefault('note', note_text)
-                else:
-                    ret.data = f"{ret.data}\n\n{note_text}"
+                elif isinstance(ret.data, str):
+                    # str 路径(如 file_read 直接返回文件内容)不污染 data,
+                    # 改走 next_prompt 通道,把附注作为追加 prompt 提示。
+                    # 需 new StepOutcome 保留原 should_exit/data 行为。
+                    ret = StepOutcome(ret.data, next_prompt=(ret.next_prompt or '') + '\n\n' + note_text, should_exit=ret.should_exit)
             return ret
         elif tool_name == 'bad_json':
             return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)

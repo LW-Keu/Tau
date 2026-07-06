@@ -32,8 +32,10 @@ _PATH_HINT_NAMES = frozenset({
 })
 
 # 已知别名映射（field_name -> [alias, ...]）
+# 与 handler.py 中 do_code_run / do_web_execute_js 的 args.get(or) 链对齐。
 _ALIAS_HINTS: dict[str, list[str]] = {
     "switch_tab_id": ["tab_id"],
+    "code": ["script"],  # do_code_run: args.get("code") or args.get("script")
 }
 
 
@@ -349,6 +351,18 @@ def apply_relational_defaults(tool_name: str, args: dict) -> str | None:
             args["count"] = DEFAULT_READ_COUNT
             return (f"注意：count 未提供，已默认为 {DEFAULT_READ_COUNT} 行。"
                     "如需读取更多或更少，请同时提供 start 与 count 重试。")
+    elif tool_name == "file_write":
+        # mode 缺失 → 已在 handler 用 .get("mode", "overwrite") 默认,
+        # 此处不强制写入(避免与 handler 默认值双写),只对危险值给出附注。
+        mode = args.get("mode")
+        if mode and mode not in ("overwrite", "append", "prepend"):
+            return (f"注意：file_write mode={mode!r} 非标准值（应为 overwrite/append/prepend），"
+                    "handler 会按 overwrite 处理。如需其他语义请显式传入合法值后重试。")
+    elif tool_name == "file_patch":
+        # 缺 old_content → 大概率 model 期望整文件改写,提示用 file_write 而非 file_patch
+        if "old_content" not in args or not args.get("old_content"):
+            return ("注意：file_patch 缺 old_content。"
+                    "若要整体改写请改用 file_write；file_patch 必须显式提供要替换的旧内容。")
     return None
 
 

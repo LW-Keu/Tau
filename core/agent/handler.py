@@ -1,18 +1,4 @@
-import os, re, json, sys
-
-_HANDLER_STREAMS_INITED = False
-
-def _init_handler_streams():
-    """stdout/stderr 兜底与编码修复 (pythonw 场景)。与 runtime._init_streams 重复但解耦。"""
-    global _HANDLER_STREAMS_INITED
-    if _HANDLER_STREAMS_INITED: return
-    for name in ('stdout', 'stderr'):
-        s = getattr(sys, name)
-        if s is None: setattr(sys, name, open(os.devnull, 'w'))
-        elif hasattr(s, 'reconfigure'): s.reconfigure(errors='replace')
-    _HANDLER_STREAMS_INITED = True
-
-_init_handler_streams()
+import os, re, json
 
 from .loop import BaseHandler, StepOutcome
 from .format import json_default
