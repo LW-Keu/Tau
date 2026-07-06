@@ -19,3 +19,11 @@
 - 动手前先说清**假设与取舍**;不确定就问,别静默猜或静默选。
 - 改动**外科手术式**:每行改动都能追溯到需求,不顺手「改进」无关代码。
 - 宣称「完成 / 修好」前先**实测验证**(before/after 对比),用证据说话,不靠推断。
+
+## gstack
+Use /browse from gstack for all web browsing. Never use mcp__claude-in-chrome__* tools.
+Available skills: /office-hours, /plan-ceo-review, /plan-eng-review, /plan-design-review,
+/design-consultation, /review, /ship, /land-and-deploy, /canary, /benchmark, /browse,
+/qa, /qa-only, /design-review, /setup-browser-cookies, /setup-deploy, /retro,
+/investigate, /document-release, /codex, /cso, /autoplan, /careful, /freeze, /guard,
+/unfreeze, /gstack-upgrade.
