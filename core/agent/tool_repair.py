@@ -360,7 +360,7 @@ def apply_relational_defaults(tool_name: str, args: dict) -> str | None:
                     "handler 会按 overwrite 处理。如需其他语义请显式传入合法值后重试。")
     elif tool_name == "file_patch":
         # 缺 old_content → 大概率 model 期望整文件改写,提示用 file_write 而非 file_patch
-        if "old_content" not in args or not args.get("old_content"):
+        if not args.get("old_content"):
             return ("注意：file_patch 缺 old_content。"
                     "若要整体改写请改用 file_write；file_patch 必须显式提供要替换的旧内容。")
     return None
