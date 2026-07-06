@@ -388,9 +388,14 @@ def repair_tool_input(model_id: str, tool_name: str, raw_args: dict, schemas: di
         args = raw_args                                  # 快路径
     else:
         # 深拷贝：args 假定为 JSON-shaped（上游 safe_parse_args 保证），
-        # 若 raw_args 含 datetime/Decimal/set 等非 JSON 值，json.dumps 会 raise。
-        # 本契约是"绝不 raise"，故此处假设上游 JSON 化已保证输入是纯 JSON-shaped。
-        args = json.loads(json.dumps(raw_args))          # 深拷贝
+        # 若 raw_args 含 datetime/Decimal/set 等非 JSON 值, json.dumps 会 raise。
+        # 本契约是"绝不 raise"(dispatch 是生成器, raise 会炸 loop)。
+        # 兜底: 序列化失败时退化为 dict() 浅拷贝(失去嵌套共享但不会 raise),
+        # 由后续定点修复继续处理可见的字段;不可序列化字段在 do_* 端再处理。
+        try:
+            args = json.loads(json.dumps(raw_args))      # 深拷贝
+        except (TypeError, ValueError):
+            args = dict(raw_args)                        # 兜底浅拷贝
         for issue in issues:
             if not issue.path or issue.expected == "required":
                 continue
