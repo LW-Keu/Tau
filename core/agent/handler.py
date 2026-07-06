@@ -27,30 +27,11 @@ class TauHandler(BaseHandler):
 
     def _get_abs_path(self, path):
         if not path: return ""
-        abs_path = os.path.abspath(os.path.join(self.cwd, path))
-        cwd_abs = self.cwd  # self.cwd 已在 __init__ 经 os.path.abspath 规范化
-        try:
-            if os.path.commonpath([abs_path, cwd_abs]) != cwd_abs:
-                return None
-        except ValueError:
-            return None
-        return abs_path
-
-    def _path_escape_iter(self):
-        """路径越界统一错误：yield 流式提示，return StepOutcome。
-
-        do_file_* 调用方写作 `return (yield from self._path_escape_iter())`，
-        把"可重试的越界错误"集中一处，避免模板漂移。
-        """
-        msg = f"路径越界：参数 path 解析后跳出了工作目录 {self.cwd}，请提供工作目录内的相对路径后重试。"
-        yield f"[Status] ❌ {msg}\n"
-        return StepOutcome({"status": "error", "msg": msg}, next_prompt="\n")
+        return os.path.abspath(os.path.join(self.cwd, path))
 
     def do_file_read(self, args, response):
         '''读取文件内容。从第start行开始读取。如有keyword则返回第一个keyword(忽略大小写)周边内容'''
         path = self._get_abs_path(args.get("path", ""))
-        if path is None:
-            return (yield from self._path_escape_iter())
         yield f"\n[Action] Reading file: {path}\n"
         start = args.get("start", 1)
         count = args.get("count", 200)
@@ -72,8 +53,6 @@ class TauHandler(BaseHandler):
         '''用于对整个文件的大量处理，精细修改要用file_patch。
         需要将要写入的内容放在<file_content>标签内，或者放在代码块中'''
         path = self._get_abs_path(args.get("path", ""))
-        if path is None:
-            return (yield from self._path_escape_iter())
         mode = args.get("mode", "overwrite")  # overwrite/append/prepend
         action_str = {"prepend": "Prepending to", "append": "Appending to"}.get(mode, "Overwriting")
         yield f"[Action] {action_str} file: {os.path.basename(path)}\n"
@@ -93,8 +72,6 @@ class TauHandler(BaseHandler):
 
     def do_file_patch(self, args, response):
         path = self._get_abs_path(args.get("path", ""))
-        if path is None:
-            return (yield from self._path_escape_iter())
         yield f"[Action] Patching file: {path}\n"
         old_content = args.get("old_content", "")
         new_content = args.get("new_content", "")
