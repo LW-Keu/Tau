@@ -265,7 +265,8 @@ class TauHandler(BaseHandler):
     # ============================================================
 
     def do_no_tool(self, args, response):
-        '''这是一个特殊工具，由引擎自主调用，不要包含在TOOLS_SCHEMA里。
+        '''这是一个特殊工具，由引擎自主调用。
+        derive_schema() 自动跳过 attr_name == "do_no_tool"，不会进入 TOOL_SCHEMAS。
         当模型在一轮中未显式调用任何工具时，由引擎自动触发。
         二次确认仅在回复几乎只包含<thinking>/<summary>和一段大代码块时触发。'''
         content = getattr(response, 'content', '') or ""

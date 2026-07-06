@@ -78,9 +78,9 @@ def bootstrap():
     _init_memory()
     _init_cdp()
     _init_plugins()
-    from .tool_repair import init_schemas
-    from .handler import TauHandler
-    init_schemas(TauHandler)
+    # 注：tool_repair 的 SCHEMAS 现在由 handler.py import 时自举
+    # （TauHandler.TOOL_SCHEMAS = derive_schema(TauHandler) 在 handler.py 末尾），
+    # 此处不再重复 init_schemas。SCHEMAS 进程级缓存由 init_schemas() 自身维护。
     _bootstrapped = True
 
 # ----------------------------------------------------------------------------
