@@ -95,3 +95,36 @@ def save_upload(uf, upload_dir=UPLOAD_DIR):
         att["thumb_b64"] = _make_thumb(path)  # 无 PIL → None,气泡回退 img_b64
         att["kind"] = "image"
     return att
+
+
+def humansize(n):
+    """字节数 → 人类可读。"""
+    for unit in ('B', 'KB', 'MB'):
+        if n < 1024:
+            return f"{n:.0f}{unit}" if unit == 'B' else f"{n:.1f}{unit}"
+        n /= 1024
+    return f"{n:.1f}GB"
+
+
+def build_prompt(text, atts):
+    """组装 query:用户文本 + 附件清单。文本类正文注入,binary 给路径,图片标注。"""
+    if not atts:
+        return text
+    out = []
+    if text:
+        out.append(text)
+    out += ["", "---", "📎 已上传文件:"]
+    for i, a in enumerate(atts, 1):
+        size = humansize(a["size"])
+        if a["kind"] == "text" and a["text"] is not None:
+            ext = os.path.splitext(a["name"])[1].lstrip('.')
+            out += [f"{i}. {a['name']} (文本·{a['lines']}行) — 正文已注入 ↓",
+                    f"```{ext}", a["text"], "```"]
+        elif a["kind"] == "image":
+            out.append(f"{i}. {a['name']} (图片·{size}) — 已作为图像附件发送")
+        else:
+            rel = os.path.relpath(a["path"], str(TEMP))
+            tag = "文本" if a["kind"] == "text" else "二进制"
+            big = f"·{a['lines']}行大文件" if (a["kind"] == "text" and a["lines"]) else ""
+            out.append(f"{i}. {a['name']} ({tag}·{size}{big}) — 已落盘 {rel}(可用 file_read 读取)")
+    return "\n".join(out)

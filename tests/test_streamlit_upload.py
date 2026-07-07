@@ -115,3 +115,39 @@ def test_save_upload_non_utf8_degrades_to_binary(tmp_path):
     uf = _FakeUF("fake.txt", b"\xff\xfe\x00\x01\x02binary\xff")
     att = save_upload(uf, upload_dir=tmp_path)
     assert att["kind"] == "binary"
+
+
+def test_build_prompt_empty_attachments():
+    from upload_utils import build_prompt
+    assert build_prompt("hello", []) == "hello"
+
+
+def test_build_prompt_text_injected(tmp_path):
+    from upload_utils import build_prompt
+    att = {"kind": "text", "name": "demo.py", "size": 100, "lines": 1,
+           "text": "print('hi')", "path": "/tmp/demo.py", "img_b64": None, "thumb_b64": None}
+    out = build_prompt("review pls", [att])
+    assert "review pls" in out
+    assert "demo.py" in out
+    assert "```py" in out              # 围栏 + 扩展名
+    assert "print('hi')" in out        # 正文注入
+
+
+def test_build_prompt_binary_path_only(tmp_path):
+    from upload_utils import build_prompt
+    att = {"kind": "binary", "name": "a.zip", "size": 2048, "lines": None,
+           "text": None, "path": str(tmp_path / "uploads" / "a.zip"),
+           "img_b64": None, "thumb_b64": None}
+    out = build_prompt("", [att])
+    assert "a.zip" in out
+    assert "file_read" in out          # 提示 agent 用 file_read
+    assert "```" not in out            # binary 不注入正文
+
+
+def test_build_prompt_image_noted():
+    from upload_utils import build_prompt
+    att = {"kind": "image", "name": "s.png", "size": 800000, "lines": None,
+           "text": None, "path": "/tmp/s.png", "img_b64": "data:...", "thumb_b64": None}
+    out = build_prompt("看图", [att])
+    assert "图像附件" in out
+    assert "s.png" in out
