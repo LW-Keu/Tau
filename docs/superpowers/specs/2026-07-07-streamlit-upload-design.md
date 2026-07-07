@@ -157,7 +157,7 @@ MAX_ATTACHMENTS = 10
 **分流细则(`save_upload` 内部,职责单一:落盘 + 分流 + 提取):**
 
 - **text 类**:读字节 → 计算可打印字符率 → **≥ 60%** 才调 `extract_text`、`kind="text"`;**< 60% 降级为 binary**(防止二进制误判为文本产生乱码)。可打印率检测归属 `save_upload`,不归 `extract_text`。
-- **image 类**:用 **PIL**(TUI 已用,复用已有依赖,**非新增依赖**)生成压缩缩略图 `thumb_b64`(max 400px / JPEG q70);同时 `read_image_b64` 生成原图 `img_b64`。
+- **image 类**:`read_image_b64` 生成原图 `img_b64`(纯 base64,零依赖);缩略图 `thumb_b64` 为 **best-effort**——`try: from PIL import Image`,有 PIL 则生成压缩缩略图(max 400px / JPEG q70),无 PIL 则 `thumb_b64=None`。气泡渲染时 `thumb_b64` 优先、为 None 回退 `img_b64`。**核心看图功能(images 多模态通道)不依赖 PIL。**
 - **binary 类**:仅落盘 + `path`,`text`/`img_b64`/`thumb_b64` 均为 None。
 
 ### 5.3 前端 UI · `app_v4.py`
@@ -270,7 +270,7 @@ MAX_ATTACHMENTS = 10
 | streaming 进行中 | 上传区禁用(`chat_input` 已 `disabled=streaming`,附件区同步) |
 | 落盘失败(权限/磁盘满) | `save_upload` try/except → toast 报错,不入 pending |
 | 删除待发附件 | 同时删磁盘文件;**已发送的附件磁盘文件保留**(历史消息引用路径) |
-| **历史气泡图片性能** | 气泡只内联**压缩缩略图**(max 400px / JPEG q70,前端生成);原图落盘保留。避免每次 rerun 重传大 base64 |
+| **历史气泡图片性能** | 气泡内联**压缩缩略图**(max 400px / JPEG q70);PIL 可选——有则生成缩略图、无则回退原图 base64;原图落盘保留 |
 | **纯文本链路收到图片**(方案 P) | runtime 不判断能力,直接传 images;不支持视觉的链路 LLM 报错 → [现有 except](../../../core/agent/runtime.py)(:232) 显示 → 用户切链路;图片**始终落盘 + 路径进 query 清单**作保底,切链路后 agent 仍可 `file_read`/`code_run` 读图 |
 
 ## 9. 测试策略
