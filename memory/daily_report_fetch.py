@@ -197,7 +197,7 @@ def fetch_bing_tmwebdriver(categories: dict, scraped_at: datetime) -> list:
             got = 0
             for url in category_queries(conf):
                 try:
-                    d.goto(url)
+                    d.jump(url)
                     d.execute_js('new Promise(r => setTimeout(r, 3000))')  # 等 JS 渲染
                     cards = d.execute_js(CARD_JS).get('data', []) or []
                 except Exception as e:
