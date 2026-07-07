@@ -183,3 +183,6 @@ reflect/*
 
 # Agent tooling runtime state (Claude Code / local-only)
 .superpowers/
+
+# Superpowers 规划草稿(过程产物;只入库 specs/ 设计文档,不入库 plans/ 草稿)
+docs/superpowers/plans/
