@@ -391,6 +391,12 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 .tau-chip-name { font-size: 0.85rem; color: var(--primary); font-weight: 500; }
 .tau-chip-meta { font-size: 0.72rem; color: var(--secondary); font-family: var(--mono); margin-left: 6px; }
 
+/* ── Attachment rendering in message bubbles ── */
+.tau-att-list { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+.tau-att-thumb { width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
+.tau-att-chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 0.78rem;
+    background: var(--neutral); border: 1px solid var(--border); padding: 4px 10px; border-radius: var(--r-full); }
+
 /* ── Misc ── */
 hr { border-color: var(--border) !important; }
 a { color: var(--tertiary) !important; }
@@ -412,19 +418,30 @@ except ImportError:
         return f'<p>{t}</p>' if t else ''
 
 
-def render_html_message(role: str, content: str, ts: str = '') -> None:
+def render_html_message(role: str, content: str, ts: str = '', attachments=None) -> None:
     is_user = role == 'user'
     cls = 'user' if is_user else 'agent'
     avatar_text = '你' if is_user else 'G'
     meta = ts if is_user else f'Tau · {ts}'
     # user input is plain-escaped; agent output goes through markdown pipeline
     content_html = html.escape(content) if is_user else _md_to_html(content)
+    atts_html = ''
+    if is_user and attachments:
+        parts = []
+        for att in attachments:
+            src = att.get('thumb_b64') or att.get('img_b64')
+            if att.get('kind') == 'image' and src:
+                parts.append(f'<img class="tau-att-thumb" src="{src}">')
+            else:
+                icon = '📄' if att.get('kind') == 'text' else '📦'
+                parts.append(f'<span class="tau-att-chip">{icon} {html.escape(att["name"])}</span>')
+        atts_html = '<div class="tau-att-list">' + ''.join(parts) + '</div>'
     st.markdown(f"""
 <div class="tau-msg {cls}">
   <div class="tau-avatar {cls}">{avatar_text}</div>
   <div class="tau-msg-wrap">
     <span class="tau-msg-meta">{meta}</span>
-    <div class="tau-bubble {cls}">{content_html}</div>
+    <div class="tau-bubble {cls}">{content_html}{atts_html}</div>
   </div>
 </div>""", unsafe_allow_html=True)
 

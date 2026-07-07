@@ -162,3 +162,13 @@ def test_app_v4_has_upload_hooks():
     assert 'render_pending_bar' in src
     assert 'from upload_utils import' in src
     assert 'save_upload' in src
+
+
+def test_render_html_message_supports_attachments():
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent /
+           'apps' / 'web' / 'streamlit' / 'app_v4.py').read_text(encoding='utf-8')
+    # 函数签名含 attachments 参数
+    assert 'def render_html_message(role' in src and 'attachments' in src
+    # 渲染附件列表的逻辑
+    assert 'tau-att-thumb' in src or 'tau-att-chip' in src
