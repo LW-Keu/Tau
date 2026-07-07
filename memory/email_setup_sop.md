@@ -78,6 +78,46 @@ email_config.save_email_config(cfg)  # 自动 mkdir .tau/ + chmod 0o600
 
 调 `python memory/email_report.py`（无参 send() 会自动从 `.tau/tauchain.json` 读 cfg + 密码，发测试邮件）。
 
+## 阶段 6 · 多 SMTP Fallback 轮询（v2，可选）
+
+> 适用：单 SMTP 经常 535/超时，需要备用账户兜底
+> Schema: 顶层 `accounts: list[dict]` 非空时走轮询；空/缺时退回 v1 顶层单账户
+
+```json
+{
+  "meta": {"version": 2, "purpose": "Tau 日报 SMTP"},
+  "to_addrs": ["recipient@example.com"],
+  "accounts": [
+    {"label": "primary",  "smtp_host": "smtp.gmail.com",     "smtp_port": 465,
+     "smtp_user": "a@gmail.com",  "smtp_pass": "xxxx", "smtp_use_ssl": true},
+    {"label": "backup-1", "smtp_host": "smtp.163.com",       "smtp_port": 465,
+     "smtp_user": "b@163.com",    "smtp_pass": "yyyy", "smtp_use_ssl": true},
+    {"label": "backup-2", "smtp_host": "smtp.office365.com", "smtp_port": 587,
+     "smtp_user": "c@outlook.com", "smtp_pass": "zzzz", "smtp_use_ssl": false}
+  ],
+  "smtp_timeout": 30,
+  "subject": "[Tau 日报] {date}",
+  "body": "今日日报见附件。"
+}
+```
+
+行为契约:
+- 顺序遍历 `accounts`；第一个成功即返回，**不再尝试后续**
+- 失败标准：`smtplib.SMTPException` 或 `OSError`（鉴权 535、超时、连接重置）
+- 全部失败 → 抛 `RuntimeError("全部 N 个 SMTP 账户失败: ...")`，**不写** `temp/email_report.sent`
+- 审计日志 `temp/email_report.log` 行尾带 `[label]`，例如 `2026-07-07T10:00:00 2026-07-07 FAIL [backup-1] doc.docx (535, b'bad')`
+- 幂等：同日重发仍受 `temp/email_report.sent` 首行日期限制（含 label 的格式日期匹配依旧生效）
+- 强制重发：`rm temp/email_report.sent`
+
+校验命令:
+```bash
+python -c "from memory.email_config import validate, iter_accounts; \
+           import json; cfg=json.load(open('.tau/tauchain.json')); \
+           print(validate(cfg)); print(list(iter_accounts(cfg)))"
+```
+
+回退路径: 删 `accounts` 键并把 `meta.version` 改回 `1`，立即退回单账户模式。
+
 或更通用：直接调 `memory.email_report.send()`（库 API）。
 
 - 成功 → 提示："✅ 已发一封测试邮件到 {recipients}，收到即配置完成。"
