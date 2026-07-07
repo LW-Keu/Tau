@@ -387,7 +387,7 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 
 /* ── Pending attachment bar ── */
 .tau-chip-icon { font-size: 1.3rem; text-align: center; line-height: 1.6; }
-.tau-chip-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+.tau-chip-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
 .tau-chip-name { font-size: 0.85rem; color: var(--primary); font-weight: 500; }
 .tau-chip-meta { font-size: 0.72rem; color: var(--secondary); font-family: var(--mono); margin-left: 6px; }
 
@@ -557,7 +557,7 @@ def _on_upload_change():
             st.toast(f"最多 {MAX_ATTACHMENTS} 个附件"); break
         att = save_upload(uf)
         if att is None:
-            st.toast(f"{uf.name} 超过大小上限,未添加")
+            st.toast(f"{uf.name} 未能添加(可能超过大小上限或落盘失败)")
         else:
             st.session_state.pending_attachments.append(att)
     st.session_state["tau_upload"] = []
@@ -587,7 +587,7 @@ def render_pending_bar():
                 except OSError:
                     pass
                 st.session_state.pending_attachments.pop(i)
-                st.rerun()
+                st.rerun(scope="fragment")
     st.file_uploader(
         "📎 添加附件",
         accept_multiple_files=True, key="tau_upload",
