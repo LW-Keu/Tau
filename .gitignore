@@ -184,5 +184,8 @@ reflect/*
 # Agent tooling runtime state (Claude Code / local-only)
 .superpowers/
 
+# skills CLI (npx skills add) 安装的 skill 源文件;接入 symlink 在 .claude/skills/(已被 .claude/ 规则忽略)
+.agents/
+
 # Superpowers 规划草稿(过程产物;只入库 specs/ 设计文档,不入库 plans/ 草稿)
 docs/superpowers/plans/
