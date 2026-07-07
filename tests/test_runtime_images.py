@@ -29,3 +29,15 @@ def test_build_initial_content_multiple_images():
     from core.agent.runtime import _build_initial_user_content
     result = _build_initial_user_content("hi", ["data:image/png;base64,A", "data:image/jpeg;base64,B"])
     assert len(result) == 3  # 1 text + 2 image
+
+
+def test_runtime_unpacks_images():
+    """run() 必须解包 task['images'] 并传 initial_user_content —— 防回归成死参数。"""
+    import inspect
+    from core.agent import runtime
+    src = inspect.getsource(runtime.Tau.run)
+    # 解包 images(任一写法皆可)
+    assert ('task["images"]' in src) or ('task.get("images"' in src)
+    # 调用 _build_initial_user_content 并传给 loop
+    assert '_build_initial_user_content' in src
+    assert 'initial_user_content' in src
