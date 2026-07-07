@@ -102,6 +102,17 @@ def get_system_prompt():
     prompt += get_global_memory()
     return prompt
 
+def _build_initial_user_content(raw_query, images):
+    """把 images 列表组装成多模态 user content。
+    images 为空 → None(保持 loop 原行为,首轮用 user_input 字符串);
+    非空 → [text part, image_url parts…],交由 agent_runner_loop 的 initial_user_content 传入。
+    """
+    if not images:
+        return None
+    parts = [{"type": "text", "text": raw_query}]
+    parts += [{"type": "image_url", "image_url": {"url": u}} for u in images]
+    return parts
+
 class Tau:
     def __init__(self):
         bootstrap()  # 模块副作用显式化（幂等）—— 必须在 self.tools_schema 填充前
