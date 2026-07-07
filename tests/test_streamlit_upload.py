@@ -151,3 +151,14 @@ def test_build_prompt_image_noted():
     out = build_prompt("看图", [att])
     assert "图像附件" in out
     assert "s.png" in out
+
+
+def test_app_v4_has_upload_hooks():
+    """app_v4.py 含上传所需的关键钩子(结构不变量,防 UI 回归)。"""
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent /
+           'apps' / 'web' / 'streamlit' / 'app_v4.py').read_text(encoding='utf-8')
+    assert 'pending_attachments' in src
+    assert 'render_pending_bar' in src
+    assert 'from upload_utils import' in src
+    assert 'save_upload' in src

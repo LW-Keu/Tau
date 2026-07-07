@@ -19,6 +19,7 @@ import streamlit as st
 import time, re, threading, queue
 from datetime import datetime
 from core.taumain import Tau
+from upload_utils import save_upload, build_prompt, humansize, MAX_ATTACHMENTS
 
 st.set_page_config(page_title="Tau", layout="wide")
 
@@ -384,6 +385,12 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-full); }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* ── Pending attachment bar ── */
+.tau-chip-icon { font-size: 1.3rem; text-align: center; line-height: 1.6; }
+.tau-chip-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+.tau-chip-name { font-size: 0.85rem; color: var(--primary); font-weight: 500; }
+.tau-chip-meta { font-size: 0.72rem; color: var(--secondary); font-family: var(--mono); margin-left: 6px; }
+
 /* ── Misc ── */
 hr { border-color: var(--border) !important; }
 a { color: var(--tertiary) !important; }
@@ -461,6 +468,7 @@ def init_session_state():
         'display_queue': None, 'partial_response': '', 'reply_ts': '',
         'current_prompt': '', 'selected_llm_idx': agent.llm_no,
         'autonomous_enabled': False, 'messages': [],
+        'pending_attachments': [],
         'session_start_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'token_count': 0, 'conversation_rounds': 0,
     }.items():
@@ -541,6 +549,54 @@ def render_sidebar():
 <div class="tau-sidebar-row"><label>对话轮次</label><div class="tau-val">{rounds_str}</div></div>
 """, unsafe_allow_html=True)
 
+def _on_upload_change():
+    """file_uploader on_change:落盘入 pending,然后清空 uploader 值(防 rerun 重复)。"""
+    ufs = st.session_state.get("tau_upload") or []
+    for uf in ufs:
+        if len(st.session_state.pending_attachments) >= MAX_ATTACHMENTS:
+            st.toast(f"最多 {MAX_ATTACHMENTS} 个附件"); break
+        att = save_upload(uf)
+        if att is None:
+            st.toast(f"{uf.name} 超过大小上限,未添加")
+        else:
+            st.session_state.pending_attachments.append(att)
+    st.session_state["tau_upload"] = []
+
+
+@st.fragment
+def render_pending_bar():
+    """chat_input 上方的待发附件条:chip[×] + 多选上传按钮。streaming 时禁用。"""
+    atts = st.session_state.pending_attachments
+    if atts:
+        for i, att in enumerate(atts):
+            cols = st.columns([1, 7, 1])
+            if att["kind"] == "image" and att.get("thumb_b64"):
+                cols[0].markdown(f'<img class="tau-chip-thumb" src="{att["thumb_b64"]}">',
+                                 unsafe_allow_html=True)
+            else:
+                icon = "📄" if att["kind"] == "text" else "📦"
+                cols[0].markdown(f'<div class="tau-chip-icon">{icon}</div>', unsafe_allow_html=True)
+            line = f"·{att['lines']}行" if att.get("lines") else ""
+            cols[1].markdown(
+                f'<span class="tau-chip-name">{html.escape(att["name"])}</span> '
+                f'<span class="tau-chip-meta">{humansize(att["size"])}{line}</span>',
+                unsafe_allow_html=True)
+            if cols[2].button("×", key=f"rm_{att['id']}", help="移除"):
+                try:
+                    os.remove(att["path"])
+                except OSError:
+                    pass
+                st.session_state.pending_attachments.pop(i)
+                st.rerun()
+    st.file_uploader(
+        "📎 添加附件",
+        accept_multiple_files=True, key="tau_upload",
+        on_change=_on_upload_change,
+        label_visibility="collapsed" if atts else "visible",
+        disabled=st.session_state.streaming,
+    )
+
+
 with st.sidebar: render_sidebar()
 
 
@@ -608,6 +664,7 @@ def render_streaming_area():
 for msg in st.session_state.messages:
     render_html_message(msg["role"], msg["content"], ts=msg.get("time", ""))
 if st.session_state.streaming: render_streaming_area()
+render_pending_bar()
 if prompt := st.chat_input("请输入指令", disabled=st.session_state.streaming):
     st.session_state.messages.append({"role": "user", "content": prompt, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
     start_agent_task(prompt)
