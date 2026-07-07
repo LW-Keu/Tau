@@ -554,6 +554,7 @@ def render_sidebar():
         st.session_state.stopping = False
         st.session_state.partial_response = ''
         st.session_state.display_queue = None
+        st.session_state.pending_attachments = []
         st.rerun()
 
     # Session info — pushed to bottom via flex spacer
