@@ -377,4 +377,8 @@ class TMWebDriver:
         return result
 
 if __name__ == "__main__":
+    import time
     driver = TMWebDriver(host='127.0.0.1', port=18765)
+    # 主线程常驻:防止 daemon 的 WS/HTTP 服务线程随主进程退出而销毁
+    while True:
+        time.sleep(3600)

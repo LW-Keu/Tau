@@ -257,6 +257,15 @@ function buildCdpScript(code) {
 
 // --- WebSocket Client for TMWebDriver ---
 let ws = null;
+function safeSend(payload) {
+  // Defensive send: null-safe + state-checked + exception-swallow.
+  // 解决 ws.onopen async 体内 await 期间 ws 已被 onclose 置 null 后的残余 send 抛 unhandled rejection。
+  try {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(typeof payload === 'string' ? payload : JSON.stringify(payload));
+    }
+  } catch (_) { /* ws 已被异步 close, 静默忽略 */ }
+}
 
 function scheduleProbe() {
   // Use chrome.alarms to survive MV3 service worker suspension
@@ -405,7 +414,7 @@ async function connectWS() {
       tabs: tabs.map(t => ({ id: t.id, url: t.url, title: t.title }))
     };
     if (bridgeConfig.bridgeToken) msg.token = bridgeConfig.bridgeToken;
-    ws.send(JSON.stringify(msg));
+    safeSend(msg);
     console.log('[TMWD-WS] Sent ext_ready with', tabs.length, 'tabs');
   };
   ws.onmessage = async (event) => {
