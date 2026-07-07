@@ -22,3 +22,13 @@ def extract_text(path):
     if len(text.encode('utf-8')) > TEXT_INJECT_MAX_BYTES or lines > TEXT_INJECT_MAX_LINES:
         return None, lines
     return text, lines
+
+
+def read_image_b64(path):
+    """图片字节 → data URI(供 images 多模态通道)。零 PIL 依赖。"""
+    import base64
+    ext = os.path.splitext(path)[1].lower().lstrip('.') or 'png'
+    mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
+    with open(path, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode('ascii')
+    return f"data:{mime};base64,{b64}"
