@@ -617,11 +617,14 @@ def render_pending_bar():
 with st.sidebar: render_sidebar()
 
 
-def start_agent_task(prompt):
-    st.session_state.display_queue = agent.put_task(prompt, source="user")
+def start_agent_task(prompt, attachments):
+    query = build_prompt(prompt, attachments)
+    images = [a["img_b64"] for a in attachments
+              if a.get("kind") == "image" and a.get("img_b64")]
+    st.session_state.display_queue = agent.put_task(query, source="user", images=images)
     st.session_state.streaming, st.session_state.stopping, st.session_state.partial_response = True, False, ''
     st.session_state.reply_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state.current_prompt = prompt
+    st.session_state.current_prompt = query
 
 
 def poll_agent_output(max_items=20):
@@ -679,11 +682,19 @@ def render_streaming_area():
     st.rerun()
 
 for msg in st.session_state.messages:
-    render_html_message(msg["role"], msg["content"], ts=msg.get("time", ""))
+    render_html_message(msg["role"], msg["content"], ts=msg.get("time", ""),
+                        attachments=msg.get("attachments"))
 if st.session_state.streaming: render_streaming_area()
 render_pending_bar()
 if prompt := st.chat_input("请输入指令", disabled=st.session_state.streaming):
-    st.session_state.messages.append({"role": "user", "content": prompt, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-    start_agent_task(prompt)
+    atts = list(st.session_state.pending_attachments)
+    display_prompt = prompt if prompt else "请处理这些文件。"
+    st.session_state.messages.append({
+        "role": "user", "content": display_prompt,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "attachments": [dict(a) for a in atts],   # 快照(含 path/text/b64),清空 pending 后仍可渲染
+    })
+    start_agent_task(display_prompt, atts)
+    st.session_state.pending_attachments = []
     st.rerun()
 

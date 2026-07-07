@@ -172,3 +172,12 @@ def test_render_html_message_supports_attachments():
     assert 'def render_html_message(role' in src and 'attachments' in src
     # 渲染附件列表的逻辑
     assert 'tau-att-thumb' in src or 'tau-att-chip' in src
+
+
+def test_app_v4_wires_send_with_attachments():
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent /
+           'apps' / 'web' / 'streamlit' / 'app_v4.py').read_text(encoding='utf-8')
+    assert 'build_prompt(' in src                      # 组装 query
+    assert "put_task(query, source=" in src and 'images=' in src  # 传 images
+    assert '"attachments": [dict(a) for a in atts]' in src or 'attachments": atts' in src  # 快照
