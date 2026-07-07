@@ -49,5 +49,10 @@ py-modules = []
 include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*"]
 exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*"]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
 [project.scripts]
 tau = "tau_cli.cli:main"
