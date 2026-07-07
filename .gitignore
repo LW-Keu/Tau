@@ -67,6 +67,10 @@ memory/*
 !memory/daily_report_sources.json
 !memory/daily_report_reference_sources.md
 !memory/daily_report_render_fallback.py
+# daily_report arXiv 数据源依赖 (R17 2026-07-07): 先解禁 utils 目录, 再只放 arxiv_fetch.py
+!memory/utils/
+memory/utils/*
+!memory/utils/arxiv_fetch.py
 memory/global_mem.txt
 memory/global_mem_insight.txt
 !memory/email_setup_sop.md
