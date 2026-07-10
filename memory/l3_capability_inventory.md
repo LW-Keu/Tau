@@ -18,7 +18,7 @@
 |---|---|---|---|
 | Swift Vision (VNRecognizeTextRequest) | 🟢实测可用 | /usr/bin/swift | macOS原生,中英文双语,精确模式,支持横竖排 |
 | Tesseract | 🟢实测可用 | /opt/homebrew/bin/tesseract 5.5.2 | 开源OCR,支持100+语言,CLI可批量处理 |
-| Apple Vision via Shortcuts | 🟡实测受限 | /usr/bin/shortcuts (15个指令) | R16: 无DeepSeek; 仅2/15可在headless+input下跑通(九宫格切图/隔空投送截图); 所有OCR/抠图/UI类shortcut失败 |
+| Apple Vision via Shortcuts | 🟡未测 | /usr/bin/shortcuts (16个指令) | 含DeepSeek/抠图等指令,可做轻量OCR |
 | pytesseract | 🔴不可用 | — | Python wrapper,需pip install |
 | pyobjc | 🔴不可用 | — | Python<->Cocoa桥,需pip install |
 | easyocr / paddleocr | 🔴不可用 | — | 深度学习OCR,包体大需联网下载模型 |
@@ -186,7 +186,7 @@
 | 能力 | 路径/版本 | 备注 |
 |---|---|---|
 | **macOS AppleScript** | `/usr/bin/osascript` | 可调用Safari/Chrome/Finder/Outlook等系统应用的AppleScript字典,无需API凭证即可UI自动化 |
-| **macOS Shortcuts** | `/usr/bin/shortcuts` | 15个预置shortcuts; CLI枚举可用; headless运行仅2/15成功(九宫格切图/隔空投送); OCR/AI/抠图/UI类均失败, 不适合autonomous vision pipeline (R16) |
+| **macOS Shortcuts** | `/usr/bin/shortcuts` | 16个预置shortcuts,可用 `shortcuts run "<name>"` 命令行调用 (含DeepSeek/抠图/OCR等) |
 | **screencapture** | `/usr/sbin/screencapture` | 命令行截图,支持窗口/区域/全屏,可作vision_sop无pyautogui备选 |
 | **say** | `/usr/bin/say` | TTS,可作语音播报/语音备忘录自动化 |
 | **afconvert / sips** | `/usr/bin/afconvert` `/usr/bin/sips` | 音频/图片格式转换,Apple原生 |
@@ -306,20 +306,6 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 - ✅ Contacts (未实测, R4 推测可达)
 
 详见 `memory/mac_automation_sop.md` + `temp/R12_macOS_Automation_Cheat_Sheet.md`。
-
-
-
-### 8.10.7 arXiv 数据源 (cs.AI / cs.CL / cs.LG)  ✅ R17 2026-07-07
-- **来源**: http://export.arxiv.org/api/query (Atom API, 无需鉴权)
-  - RSS `http://export.arxiv.org/rss/cs.AI` 周末/节假日常为空,Atom API 稳定可用
-- **接入模块**: `memory/utils/arxiv_fetch.py` (新, 2026-07-07)
-  - CLI: `python memory/utils/arxiv_fetch.py --date YYYY-MM-DD --out temp/arxiv_raw_YYYYMMDD.json --window-days 7 --per-cat 10`
-  - 函数: `fetch_arxiv(scraped_at, window_days=7, per_cat=10, categories=['cs.AI','cs.CL','cs.LG']) -> list`
-- **接入点**: `memory/daily_report_fetch.py:run()` 中新增 channel='arxiv' 分支 (failure-soft import)
-- **输出**: 写入 `temp/arxiv_raw_<date>.json`,符合 `memory/daily_report_contract.json` 的 fetch_raw schema
-  - `_meta.channels` 含 'arxiv'; records 字段含 category='前沿技术', tier='research', channel='arxiv'
-  - 默认每类 10 篇 × 3 类 = 30 条 (7 日窗口内)
-- **校验**: `python memory/daily_report_validate.py temp/arxiv_raw_YYYYMMDD.json --strict` E.4-01/02/04 全 ✅
 
 ### 8.11 v1.2.3 端口/服务状态 (R4 复核)
 - 9222 (Chrome DevTools): 🔴 未启动 (与 v1.1 一致)

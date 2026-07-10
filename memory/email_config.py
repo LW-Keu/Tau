@@ -32,65 +32,24 @@ def has_email_config() -> bool:
 
 
 def validate(cfg: Dict[str, Any]) -> List[str]:
-    """校验 cfg 字段，返回错误列表（空列表 = 通过）。纯函数，不读文件、不连网络。
-
-    Schema (v2):
-      - 顶层单账户字段（向后兼容 v1）
-      - 或 accounts: list[dict] 多账户轮询（v2 新增）；非空时忽略顶层 smtp_*
-    """
+    """校验 cfg 字段，返回错误列表（空列表 = 通过）。纯函数，不读文件、不连网络。"""
     if not isinstance(cfg, dict):
         return ["cfg 必须是 dict"]
     errs: List[str] = []
-
-    accounts = cfg.get("accounts")
-    has_accounts = isinstance(accounts, list) and len(accounts) > 0
-
-    if has_accounts:
-        # 多账户模式：只校验 accounts，顶层 smtp_* 可缺
-        if not all(isinstance(a, dict) for a in accounts):
-            errs.append("accounts 每项必须是 dict")
-        else:
-            for i, a in enumerate(accounts):
-                for k in ("smtp_host", "smtp_port", "smtp_user", "smtp_pass"):
-                    if k not in a:
-                        errs.append(f"accounts[{i}] 缺少字段: {k}")
-                if "smtp_port" in a:
-                    p = a["smtp_port"]
-                    if not isinstance(p, int) or isinstance(p, bool) or not (1 <= p <= 65535):
-                        errs.append(f"accounts[{i}].smtp_port 必须是 1-65535 整数")
-                if "label" in a and not isinstance(a["label"], str):
-                    errs.append(f"accounts[{i}].label 必须是字符串")
-        # 顶层 to_addrs 仍必填（收件人统一）
-        if "to_addrs" not in cfg:
-            errs.append("缺少字段: to_addrs")
-    else:
-        # 单账户模式（v1 行为）
-        for k in REQUIRED:
-            if k not in cfg:
-                errs.append(f"缺少字段: {k}")
-
+    for k in REQUIRED:
+        if k not in cfg:
+            errs.append(f"缺少字段: {k}")
     if "to_addrs" in cfg:
         ta = cfg["to_addrs"]
         if not isinstance(ta, list) or not ta or not all(
             isinstance(r, str) and r for r in ta
         ):
             errs.append("to_addrs 必须是非空字符串列表")
+    if "smtp_port" in cfg:
+        p = cfg["smtp_port"]
+        if not isinstance(p, int) or isinstance(p, bool) or not (1 <= p <= 65535):
+            errs.append("smtp_port 必须是 1-65535 整数")
     return errs
-
-
-def iter_accounts(cfg: Dict[str, Any]):
-    """Yield (label, acc_cfg) 元组，按优先级排列。
-
-    - accounts 非空 → 逐项 yield，每项已是完整单账户 dict
-    - accounts 缺失/空 → yield (None, cfg) 单条（v1 兼容）
-    """
-    accounts = cfg.get("accounts")
-    if isinstance(accounts, list) and accounts:
-        for a in accounts:
-            label = a.get("label") if isinstance(a, dict) else None
-            yield (label, a)
-    else:
-        yield (None, cfg)
 
 
 def _ensure_meta(cfg: Dict[str, Any]) -> Dict[str, Any]:
@@ -176,16 +135,14 @@ def load_email_config() -> Dict[str, Any]:
     meta = cfg.get("meta")
     if not isinstance(meta, dict):
         raise ValueError("meta 必须是 object")
-    ver = meta.get("version")
-    if ver not in (1, 2):
+    if meta.get("version") != 1:
         raise ValueError(
-            f"meta.version 必须是 1 或 2，当前为 {ver!r}"
+            f"meta.version 必须是 1，当前为 {meta.get('version')!r}"
         )
 
     for k, v in DEFAULTS.items():
         cfg.setdefault(k, v)
-    # 单账户模式才设 sender_name 默认值；accounts 模式每项已自带 smtp_user
-    if not cfg.get("accounts") and not cfg["sender_name"]:
+    if not cfg["sender_name"]:
         cfg["sender_name"] = cfg["smtp_user"]
     return cfg
 

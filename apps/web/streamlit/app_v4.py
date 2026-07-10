@@ -300,6 +300,60 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
     letter-spacing: 0.03em; margin-top: 4px; padding-bottom: 8px;
 }
 
+/* ── Chat input 左侧 +附件按钮(stFileUploader 重塑)── */
+/* 思路:file_uploader 是唯一能触发系统文件选择器的入口,无法被普通
+ * st.button 间接触发(rerun 断用户手势链)。故不换组件,只把它视觉重塑
+ * 成嵌在 chat_input 左下的圆形 +,落盘逻辑(_on_upload_change)零改动。 */
+[data-testid="stFileUploader"] > label,
+[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
+[data-testid="stFileUploaderDropzone"] {
+    border: none !important; background: transparent !important;
+    padding: 0 !important; min-height: 0 !important; box-shadow: none !important;
+}
+/* 容器脱离文档流,fixed 钉到 chat_input 左下内部。
+ * 水平:侧边栏 248 + stBottomBlockContainer 左 padding 80 = 328,窄屏
+ *   (vw<1328)chat_input 恒居中于此;+ 按钮 left = 328+10 = 338。
+ *   vw≥1328 时 chat_input 宽到 920,居中随视口右移,left 跟着加 (vw-1328)/2。
+ * 垂直:chat_input 钉底距视口底 85(不随窗口高度变),框高 58;按钮(40)
+ *   垂直居中 → bottom = 85 + 58/2 - 40/2 = 94。
+ * 公式经 streamlit 1.58 多 viewport 实测。无法注入主页面 JS(DOMPurify 拦
+ * onerror/script、st.html 走 iframe),故用纯 CSS media query。 */
+[data-testid="stFileUploader"] {
+    position: fixed !important;
+    left: 338px !important;
+    bottom: 94px !important;
+    z-index: 200 !important; width: auto !important; margin: 0 !important;
+}
+@media (min-width: 1328px) {
+    [data-testid="stFileUploader"] {
+        left: calc(338px + (100vw - 1328px) / 2) !important;
+    }
+}
+[data-testid="stFileUploader"] button {
+    width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important;
+    border-radius: var(--r-full) !important; padding: 0 !important;
+    background: transparent !important; border: 1px solid var(--border) !important;
+    position: relative !important; justify-content: center !important;
+}
+/* 隐藏按钮内 upload 图标 + "Upload" 文字,用 + 替代 */
+[data-testid="stFileUploader"] button [data-testid="stIconMaterial"],
+[data-testid="stFileUploader"] button [data-testid="stMarkdownContainer"] { display: none !important; }
+[data-testid="stFileUploader"] button::after {
+    content: '+'; font-size: 22px; font-weight: 300; color: var(--primary); line-height: 1;
+}
+/* hover tooltip("附件") */
+[data-testid="stFileUploader"] button::before {
+    content: '附件'; position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: #fff; font-family: var(--font); font-size: 11px;
+    padding: 3px 8px; border-radius: var(--r-sm); white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+[data-testid="stFileUploader"] button:hover { background: var(--neutral) !important; border-color: var(--tertiary) !important; }
+[data-testid="stFileUploader"] button:hover::before { opacity: 1; }
+[data-testid="stFileUploader"] button:hover::after { color: var(--tertiary) !important; }
+/* textarea 左侧给 + 让位,防长文本被遮 */
+[data-testid="stChatInputTextArea"] { padding-left: 52px !important; }
+
 /* Stop button — bottom-right corner, doesn't block content.
  * Selector identifies the small container holding ONLY the stop button:
  * excludes any block that contains real messages (.tau-msg) or the chat input. */
@@ -568,8 +622,9 @@ def render_sidebar():
 """, unsafe_allow_html=True)
 
 def _on_upload_change():
-    """file_uploader on_change:落盘入 pending,然后清空 uploader 值(防 rerun 重复)。"""
-    ufs = st.session_state.get("tau_upload") or []
+    """file_uploader on_change:落盘入 pending,然后自增 nonce 让 uploader 重建(防 rerun 重复)。"""
+    nonce = st.session_state.get("_tau_upload_nonce", 0)
+    ufs = st.session_state.get(f"tau_upload_{nonce}") or []
     for uf in ufs:
         if len(st.session_state.pending_attachments) >= MAX_ATTACHMENTS:
             st.toast(f"最多 {MAX_ATTACHMENTS} 个附件"); break
@@ -578,7 +633,7 @@ def _on_upload_change():
             st.toast(f"{uf.name} 未能添加(可能超过大小上限或落盘失败)")
         else:
             st.session_state.pending_attachments.append(att)
-    st.session_state["tau_upload"] = []
+    st.session_state["_tau_upload_nonce"] = st.session_state.get("_tau_upload_nonce", 0) + 1
 
 
 @st.fragment
@@ -606,11 +661,12 @@ def render_pending_bar():
                     pass
                 st.session_state.pending_attachments.pop(i)
                 st.rerun(scope="fragment")
+    nonce = st.session_state.get("_tau_upload_nonce", 0)
     st.file_uploader(
         "📎 添加附件",
-        accept_multiple_files=True, key="tau_upload",
+        accept_multiple_files=True, key=f"tau_upload_{nonce}",
         on_change=_on_upload_change,
-        label_visibility="collapsed" if atts else "visible",
+        label_visibility="collapsed",   # 标签由 + 按钮的 tooltip 取代
         disabled=st.session_state.streaming,
     )
 

@@ -3,6 +3,7 @@
 > 触发生成日报时先读此文件。整合 v1.5/v1.6/v1.8 + v3.2 可靠性修复全部执行踩坑经验。
 > **v3.1 核心变更**: 适配 v1.8 指令 — 5板块结构 + E.4(14项) + E.5(12项排版) 自检。
 > **v3.2 可靠性变更**: H1 24h 窗口下沉到 `daily_report_render.enforce_window()` 代码层强制; Phase 2.3b 强制扁平 schema (删除旧 `sections[]` 嵌套); Phase 7 输出路径强制 `temp/output/daily_<YYYYMMDD>/` (D-4 白名单)
+> 详见: `docs/specs/2026-06-20-daily-report-reliability-design.md`
 >
 > **三件套渲染器**: `daily_report_render.py` — MD/DOCX/HTML 全量硬编码(F.1-F.5) + enforce_window 窗口守门员 + _check_output_dir 路径白名单
 > **交付自检**: `daily_report_validate.py` — E.4 内容14项 (E.4-07 严格 24h) + E.5 排版12项 | CLI: `validate.py <report_data.json> [--docx docx路径] [--strict]`
@@ -10,6 +11,7 @@
 > **用户指令存档**: `daily_report_instruction.md` — v1.8 原文
 >
 > 相关脚本: `daily_report_fetch.py`(分层多源采集, 取代 `fetch_bing_news.py`) + `daily_report_sources.json`(源配置) + `daily_report_reference_sources.md`(参考层) / `daily_report_build_today.py`(旧版,保留兼容)
+> 采集设计: `docs/specs/2026-06-20-daily-report-fetch-multisource-design.md`
 > HTML主题: `claude_html_theme.md`
 
 ---
@@ -58,18 +60,6 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 - 涉华政策类条目需 **≥2源交叉核验**（或标注"单源待确认"）
 - 禁止主观评价词（"令人震惊""不幸的是"）
 - 中文字数：正文 2000~3500 字
-
-### H5. Validator E.4 字段细则（v3.3, R21 经验沉淀，必读）
-- **E.4-08 段首动词白名单**: 报道/表示/声明/发布（NOT 报告/公告）。arXiv 论文统一"发布"。
-- **E.4-09 大写缩写首次出现必括注**: `\b[A-Z]{2,6}\b` 匹配，正则前后 25 字符内须有 `(` 或 `（`。人名缩写 (`JW`/`JS`/`IM` 等) 也命中；改用 `J·W·Oliver` 或中文名。
-- **E.4-11 严格倒序**: 任意相邻 `cur < nxt` 即 FAIL。同日期多条 OK，日期必须降序。
-- **E.4-15 body ≤200 硬上限**: 即便 LLM 输出超长也必 trim。**安全输出带 180~200（不留 199 边界，prompt 写 "≤200"）**。
-- **E.4-16 trends 三段各 200-300**: 合计 600-900（已在 §2.4）。
-- **E.4-17 signals 60-120**: 必含 `(情报缺口：xxx)`，末禁冒号（已在 §2.5）。
-- **trim 技巧**: 优先匹配 `[。;；,，]` 边界裁剪到 180-200，fallback 截 200。
-- **R22 新增**: trim 时必须保证**语义完整**（不能断在"的/了/和"等虚词后）。字符级 cutoff ≤200 不等于句子完整；优先在 `。` 边界截断, 末字符必须是名词/动词等实词或 `。/；`。R21 案例: "对军事化路径的" 截断后用户报不完整。
-
-**R22 prompt 设计**: 一次性要求"段首动词白名单 + 缩写中文括注 + ≤200 body + 严格倒序"，避免多轮 trim 浪费（本次任务踩 ≥12 轮才全过）。
 
 ---
 

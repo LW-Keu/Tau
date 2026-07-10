@@ -69,19 +69,19 @@ class FontCfg:
     CN_BODY  = "仿宋"            # 正文族
     EN_FONT  = "Times New Roman"
 
-    SZ_MAIN_TITLE = 36     # 报告大标题 (一号) — 用户指定 36pt
-    SZ_SECTION    = 14     # 板块/一级标题 (四号) — 用户指定 黑体14pt
-    SZ_SUB2       = 12     # 二级标题 (小四) — 用户指定 12pt
+    SZ_MAIN_TITLE = 32     # 报告大标题 (一号) — instruction F.2 指定 32pt
+    SZ_SECTION    = 14     # 板块/一级标题 (四号) — 黑体14pt
+    SZ_SUB2       = 12     # 二级标题 (小四)
     SZ_SUB3       = 14     # 三级标题 (四号)
-    SZ_BODY       = 12     # 正文 (小四)
-    SZ_SOURCE     = 10.5   # 来源/图题 (五号)
+    SZ_BODY       = 11     # 正文 (小四) — instruction F.2 指定 11pt
+    SZ_SOURCE     = 9      # 来源/图题 (五号) — instruction F.2 指定 9pt
     SZ_FOOTER     = 9      # 页脚/角标 (小五)
     SZ_BADGE      = 9      # 顶部标识
-    SZ_DATE       = 14     # 日期行
+    SZ_DATE       = 13     # 日期行 — instruction F.2 指定 13pt
     SZ_EN_SUB     = 9      # 英文副标题
 
     LINE_TITLE = 1.25      # 标题行距
-    LINE_BODY  = 1.5       # 正文行距
+    LINE_BODY  = 1.6       # 正文行距 — instruction F.2 指定 1.6
     INDENT_BODY_CHARS = 2  # 正文段首缩进 (字符)
 
 

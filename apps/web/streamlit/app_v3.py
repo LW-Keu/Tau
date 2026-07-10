@@ -299,28 +299,53 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
     letter-spacing: 0.03em; margin-top: 4px; padding-bottom: 8px;
 }
 
-/* Stop button — bottom-right corner, doesn't block content.
- * Selector identifies the small container holding ONLY the stop button:
- * excludes any block that contains real messages (.tau-msg) or the chat input. */
+/* ── Streaming 时:发送 ↔ 停止 同一位置切换 ──
+ * 目标:停止按钮盖在 chat_input 内置发送按钮原位,形状一致 → "同一操作位、状态切换展示不同按钮"。
+ * 依赖 Streamlit 1.58 内部 DOM(升级需复核):
+ *   - 内置发送按钮 [data-testid="stChatInputSubmitButton"]:disabled 时仍在 DOM,display:none 可隐藏
+ *   - disabled 灰化来自 textarea 的 color:rgba(..,.4) + cursor:not-allowed(非 opacity)
+ *   - chat_input 宽 920px、在【主区】(视口 − sidebar 248px)居中,非视口居中;发送按钮 32×32 r8,距 CI 右边缘≈17px
+ * right=max(2rem,(100vw-248-920)/2+17) 须减 sidebar 248px(CI 主区居中);1440×900 实测停止按钮与发送按钮像素重合。
+ * .stop-btn-anchor 仅在 streaming 时渲染(render_streaming_area),兼作全局 streaming 标记。 */
 .stop-btn-anchor { display: none !important; }
 [data-testid="stElementContainer"]:has(.stop-btn-anchor) {
     height: 0 !important; min-height: 0 !important;
     margin: 0 !important; padding: 0 !important; overflow: visible !important;
 }
+/* 1. streaming 时隐藏 disabled 的内置发送按钮,停止按钮接管其位置 */
+:root:has(.stop-btn-anchor) [data-testid="stChatInput"] [data-testid="stChatInputSubmitButton"] {
+    display: none !important;
+}
+/* 2. streaming 时抹掉 disabled textarea 的灰色:恢复正常文字色(仍 disabled,不可输入) */
+:root:has(.stop-btn-anchor) [data-testid="stChatInput"] textarea:disabled {
+    color: var(--primary) !important;
+    -webkit-text-fill-color: var(--primary) !important;
+    cursor: default !important;
+}
+/* 3. 停止按钮容器:fixed 到发送按钮原位(右下);bottom=6.1rem 三宽度实测 v_delta=0(对齐发送按钮垂直中心) */
 [data-testid="stVerticalBlock"]:has(.stop-btn-anchor):not(:has(.tau-msg)):not(:has([data-testid="stChatInput"])) {
-    position: fixed !important; bottom: 6.5rem !important;
-    right: 32px !important; left: auto !important; transform: none !important;
+    position: fixed !important;
+    bottom: 6.1rem !important;
+    right: max(2rem, calc((100vw - 248px - 920px) / 2 + 17px)) !important;
+    left: auto !important; transform: none !important;
     z-index: 1000 !important; width: auto !important; background: transparent !important;
     pointer-events: none !important; gap: 0 !important;
 }
 [data-testid="stVerticalBlock"]:has(.stop-btn-anchor):not(:has(.tau-msg)):not(:has([data-testid="stChatInput"])) > * { pointer-events: auto !important; }
+/* 4. 停止按钮:32×32 r8 仿发送按钮形状,纯图标 ⏹ 居中 */
 [data-testid="stVerticalBlock"]:has(.stop-btn-anchor):not(:has(.tau-msg)):not(:has([data-testid="stChatInput"])) [data-testid="stButton"] > button {
-    border-radius: var(--r-full) !important;
-    background: rgba(217,119,87,0.95) !important; border-color: rgba(217,119,87,0.95) !important;
-    color: #fff !important; font-size: 0.8rem !important; font-weight: 500 !important;
-    padding: 0.4rem 1rem !important;
-    box-shadow: 0 4px 14px rgba(217,119,87,0.35) !important;
-    backdrop-filter: blur(8px) !important;
+    width: 32px !important; height: 32px !important;
+    min-width: 32px !important; min-height: 32px !important;
+    border-radius: 8px !important;
+    padding: 0 !important; margin: 0 !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    font-size: 1.05rem !important; line-height: 1 !important; font-weight: 500 !important;
+    background: var(--tertiary) !important; border-color: var(--tertiary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(217,119,87,0.35) !important;
+}
+[data-testid="stVerticalBlock"]:has(.stop-btn-anchor):not(:has(.tau-msg)):not(:has([data-testid="stChatInput"])) [data-testid="stButton"] > button:hover {
+    background: var(--tertiary-h) !important; border-color: var(--tertiary-h) !important;
 }
 
 /* ── Main content area — fill remaining width, inner items centered ── */
@@ -589,7 +614,7 @@ def render_streaming_area():
     if not st.session_state.streaming: return
     with st.container():
         st.markdown('<span class="stop-btn-anchor"></span>', unsafe_allow_html=True)
-        if st.button("⏹️ 停止生成", type="primary"):
+        if st.button("⏹", type="primary"):
             agent.abort(); st.session_state.stopping = True
             st.toast("已发送停止信号"); st.rerun()
     reply_ts = st.session_state.reply_ts

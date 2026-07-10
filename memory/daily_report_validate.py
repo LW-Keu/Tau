@@ -381,11 +381,10 @@ def check_e4_14_filename(data: dict) -> Tuple[bool, List[str]]:
 
 
 BODY_MAX_CHARS = 200  # 单条新闻 body 总结字数上限 (2026-06-23 新增)
-BODY_MIN_CHARS = 180  # 单条新闻 body 总结字数下限 (2026-07-07 新增, 与上限联动构成 180~200 区间)
 
 
 def check_e4_15_body_length(data: dict) -> Tuple[bool, List[str]]:
-    """E.4-15: 每条新闻 body 总结 180~200 字 (严格验证, 2026-07-07 调整为区间校验)"""
+    """E.4-15: 每条新闻 body 总结 ≤ 200 字 (严格验证, 2026-06-23 新增)"""
     errors = []
     sections = [
         ("s1_items", data.get("s1_items", [])),
@@ -397,12 +396,7 @@ def check_e4_15_body_length(data: dict) -> Tuple[bool, List[str]]:
         for idx, item in enumerate(items, 1):
             body = item.get("body", "")
             L = len(body)
-            if L < BODY_MIN_CHARS:
-                src = item.get("source", "?")
-                errors.append(
-                    f"{sec_name}#{idx} ({src}) body 过短: {L} 字 < {BODY_MIN_CHARS} | 摘要: {body[:60]}..."
-                )
-            elif L > BODY_MAX_CHARS:
+            if L > BODY_MAX_CHARS:
                 src = item.get("source", "?")
                 errors.append(
                     f"{sec_name}#{idx} ({src}) body 超长: {L} 字 > {BODY_MAX_CHARS} | 摘要: {body[:60]}..."

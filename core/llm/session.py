@@ -1,11 +1,9 @@
 """Abstract Session base. Provider subclasses live in llm/providers/."""
 import json, threading
-from .messages import trim_messages_history
-from .transport import safeprint
+from .trim import trim_messages_history, safeprint
 print = safeprint
 
 class BaseSession:
-    schema_suffix = ''  # PR-3: 默认空 suffix; 子类或 resolve_session() 可覆盖
     def __init__(self, cfg):
         self.api_key = cfg['apikey']
         self.api_base = cfg['apibase'].rstrip('/')

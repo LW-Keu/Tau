@@ -15,15 +15,6 @@ import argparse, base64, json, os, re, sys, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
-import importlib.util as _importlib_util
-# R17 (2026-07-07): arxiv (cs.AI/CL/LG) 数据源接入 (用 Atom API, RSS 周末空)
-_ARXIV_FETCH_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils', 'arxiv_fetch.py')
-if os.path.exists(_ARXIV_FETCH_PATH):
-    _spec = _importlib_util.spec_from_file_location('arxiv_fetch', _ARXIV_FETCH_PATH)
-    arxiv_fetch = _importlib_util.module_from_spec(_spec)
-    _spec.loader.exec_module(arxiv_fetch)  # type: ignore[attr-defined]
-else:  # 兜底: 退化到空实现 (channel fail-soft)
-    arxiv_fetch = None  # type: ignore[assignment]
 
 BJT = timezone(timedelta(hours=8))
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -197,7 +188,7 @@ def fetch_bing_tmwebdriver(categories: dict, scraped_at: datetime) -> list:
             got = 0
             for url in category_queries(conf):
                 try:
-                    d.jump(url)
+                    d.goto(url)
                     d.execute_js('new Promise(r => setTimeout(r, 3000))')  # 等 JS 渲染
                     cards = d.execute_js(CARD_JS).get('data', []) or []
                 except Exception as e:
@@ -454,15 +445,6 @@ def run(date: str = None, out: str = None, min_records: int = MIN_RECORDS,
         records += fetch_rss(conf.get('rss', []), cat, 'news', scraped_at)
     records += fetch_rss(src.get('analysis', {}).get('think_tanks_rss', []),
                          'analysis', 'analysis', scraped_at)
-    # R17 (2026-07-07): arXiv (cs.AI/CL/LG) 通道, 无认证、走 Atom API; 默认开启
-    if arxiv_fetch is not None:
-        try:
-            arxiv_records = arxiv_fetch.fetch_arxiv(scraped_at, window_days=7, per_cat=10)
-            records += arxiv_records
-            channels.append('arxiv')
-            print(f'[arxiv] {len(arxiv_records)} records', file=sys.stderr)
-        except Exception as e:
-            print(f'[arxiv] channel fail-soft: {e}', file=sys.stderr)
     records = dedup_records(records)
 
     by_cat = {}

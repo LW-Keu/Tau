@@ -68,23 +68,6 @@ memory/*
 !memory/daily_report_sources.json
 !memory/daily_report_reference_sources.md
 !memory/daily_report_render_fallback.py
-# daily_report arXiv 数据源依赖 (R17 2026-07-07): 先解禁 utils 目录, 再只放 arxiv_fetch.py
-!memory/utils/
-memory/utils/*
-!memory/utils/arxiv_fetch.py
-memory/global_mem.txt
-memory/global_mem_insight.txt
-!memory/email_setup_sop.md
-
-# L4 session archiver (only the script, not archives)
-!memory/L4_raw_sessions/
-memory/L4_raw_sessions/*
-!memory/L4_raw_sessions/compress_session.py
-
-# ljqCtrl related tools
-!memory/ljqCtrl.py
-!memory/ljqCtrl_sop.md
-
 # procmem_scanner related tools
 !memory/procmem_scanner.py
 !memory/procmem_scanner_sop.md
@@ -128,10 +111,6 @@ memory/L4_raw_sessions/*
 !memory/ocr_utils.py
 !memory/vision_sop.md
 !memory/ui_detect.py
-!memory/vision_api.template.py
-
-# Memory management
-!memory/memory_cleanup_sop.md
 
 # Code Review Principles
 !memory/code_review_principles.md
@@ -189,3 +168,4 @@ reflect/*
 
 # Superpowers 规划草稿(过程产物;只入库 specs/ 设计文档,不入库 plans/ 草稿)
 docs/superpowers/plans/
+.gstack/
