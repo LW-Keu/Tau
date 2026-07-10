@@ -200,3 +200,9 @@ web_scan失败时按序排查（自动检测优先，用户参与放最后）：
 - 验证attach是否健康：试非Target域方法（如`Page.reload`/`Runtime.evaluate`），成功则chrome.debugger工作正常
 - ⚠"Not allowed" -32000 仅对 `Target.*` 域出现（CDP桥设计限制，见上line 99）；不是Chrome权限/session问题，**不必**重启浏览器或重装扩展
 - tabId获取：`{"cmd":"tabs"}`列表(返回id/url/title/active/windowId)
+
+## 轻量"日报/盘点"抓取模式 (实战验证 2026-07-09)
+- 单源60+站点时，**不要逐站抓取**——无subagent并行会爆轮次
+- 模式：用 `web_execute_js script='{"cmd":"tabs"}'` 探tabs → `script='window.location.href="...Bing搜索URL";\"ok\"'` 串行切换tab → `web_scan text_only=true` 读当页快照
+- Bing搜索参数：用媒体名或事件词带 `qft=sortbydate%3d%221%22` 强制按时间新→旧，避开盘点文
+- 4-6次定向搜索即可覆盖多区域；结果主题聚合后再交付

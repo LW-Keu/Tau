@@ -74,10 +74,8 @@ memory/global_mem_insight.txt
 # L4 session archiver (only the script, not archives)
 !memory/L4_raw_sessions/
 memory/L4_raw_sessions/*
-!memory/L4_raw_sessions/compress_session.py
 
 # ljqCtrl related tools
-!memory/ljqCtrl.py
 !memory/ljqCtrl_sop.md
 
 # procmem_scanner related tools
@@ -123,10 +121,6 @@ memory/L4_raw_sessions/*
 !memory/ocr_utils.py
 !memory/vision_sop.md
 !memory/ui_detect.py
-!memory/vision_api.template.py
-
-# Memory management
-!memory/memory_cleanup_sop.md
 
 # Code Review Principles
 !memory/code_review_principles.md
