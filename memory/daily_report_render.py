@@ -448,6 +448,25 @@ def _strip_body_lead(body: str) -> str:
     body = _re.sub(r'^\d{1,2}月\d{1,2}日.{1,80}?(报道|表示|声明|发布|指出|评论|援引|转载报道)\uff0c\s*', '', body)
     return body
 
+def _source_has_parenthetical(source: str, full_name: str | None) -> bool:
+    """source 中已包含括注/英文名时，不再重复拼接 source_full_name。
+
+    防御 LLM/数据层把英文原名直接塞进 source 字段，导致出现
+    '美联社（Associated Press）（Associated Press News）' 这种双括号。
+    """
+    if not full_name:
+        return False
+    s = str(source)
+    # source 里已经有任何括号，视为已完成括注
+    if any(c in s for c in ("(", "（")):
+        return True
+    # full_name 的核心词已经出现在 source 中（忽略常见后缀与大小写）
+    import re as _re
+    core = _re.sub(r"(?i)\s*(news|agency|official|website)\s*$", "", str(full_name)).strip()
+    if core and core.lower() in s.lower():
+        return True
+    return False
+
 def _format_md_item(item: dict) -> str:
     """C.1 条目格式: 段首加粗 + 正文 + 来源行"""
     pub_date = item.get("pub_date", "")
@@ -456,9 +475,9 @@ def _format_md_item(item: dict) -> str:
     body = _strip_body_lead(item.get("body", ""))
     full_name = item.get("source_full_name")
     
-    # 机构括注(C.1 规则2)
+    # 机构括注(C.1 规则2); 若 source 已自带括注则不再重复拼接
     source_display = source
-    if full_name:
+    if full_name and not _source_has_parenthetical(source, full_name):
         source_display = f"{source}（{full_name}）"
     
     # 段首加粗含冒号 (C.1 规则1)
@@ -772,7 +791,7 @@ def _add_docx_item(doc, item: dict):
     full_name = item.get("source_full_name")
 
     source_display = source
-    if full_name:
+    if full_name and not _source_has_parenthetical(source, full_name):
         source_display = f"{source}（{full_name}）"
 
     header_text = f"{pub_date}，{source_display}报道："
@@ -1127,7 +1146,7 @@ def _html_item(item: dict) -> str:
     full_name = item.get("source_full_name")
 
     source_display = source
-    if full_name:
+    if full_name and not _source_has_parenthetical(source, full_name):
         source_display = source + "\uff08" + full_name + "\uff09"
 
     header = pub_date + "\uff0c" + source_display + "\u62a5\u9053\uff1a"
