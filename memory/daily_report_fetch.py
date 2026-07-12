@@ -103,11 +103,13 @@ def build_bing_url(keywords: list, sites: list) -> str:
 
 
 def category_queries(conf: dict) -> list:
-    """每领域查询: 优先域受限 + 一条不限域兜底 (sites 为空时仅兜底)。"""
+    """每领域查询: 域受限按 SITES_PER_QUERY 分块, 再加一条不限域兜底 (sites 为空时仅兜底)。"""
     kw, sites = conf.get('keywords', []), conf.get('bing_sites', [])
-    qs = [build_bing_url(kw, [])]
+    qs = []
     if sites:
-        qs.insert(0, build_bing_url(kw, sites))
+        for i in range(0, len(sites), SITES_PER_QUERY):
+            qs.append(build_bing_url(kw, sites[i:i + SITES_PER_QUERY]))
+    qs.append(build_bing_url(kw, []))
     return qs
 
 

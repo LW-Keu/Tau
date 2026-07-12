@@ -107,3 +107,148 @@
 - 能源基金会 — https://www.efchina.org/
 - 全球能源监测 — https://globalenergymonitor.org/
 - Our World in Data — https://ourworldindata.org/
+
+## 十、区域国家/地区官方与主流媒体（已纳入 daily_news）
+> 以下源已配置进 `daily_report_sources.json` 的 `daily_news` 层，按地域分为 `pacific_islands`、`latin_america`、`africa` 三类，由 `daily_report_fetch.py` 的 Bing site: 通道每日覆盖。此处保留清单便于按需核对与深挖。
+
+### 10.1 南太平洋岛国
+#### 巴布亚新几内亚
+- 总理与内阁部 — https://www.pmnec.gov.pg
+- 外交部 — https://www.dfa.gov.pg
+- 《信使邮报》(Post Courier) — https://www.postcourier.com.pg
+- 《国民报》(The National) — https://www.thenational.com.pg
+
+#### 斐济
+- 斐济政府门户 — https://www.fiji.gov.fj
+- 《斐济时报》(Fiji Times) — https://www.fijitimes.com
+- 《斐济太阳报》(Fiji Sun) — https://www.fijisun.com.fj
+
+#### 所罗门群岛
+- 总理办公室 — https://www.pmoffice.gov.sb
+- 《所罗门星报》(Solomon Star) — https://www.solomonstarnews.com
+
+#### 瓦努阿图
+- 瓦努阿图政府门户 — https://www.government.gov.vu
+- 《每日邮报》(Daily Post) — https://www.dailypost.vu
+
+#### 萨摩亚
+- 萨摩亚政府 — https://www.samoagovt.ws
+- 《萨摩亚观察家》(Samoa Observer) — https://www.samoaobserver.ws
+
+#### 汤加
+- 首相办公室 — https://www.pmo.gov.to
+- 《汤加玛坦吉》(Matangi Tonga) — https://www.matangitonga.to
+
+#### 基里巴斯
+- 总统办公室 — https://www.president.gov.ki
+- 基里巴斯广播公司 / Radio Kiribati — https://www.radiokiribati.com
+
+#### 密克罗尼西亚联邦
+- 密联邦政府 — https://www.gov.fm
+
+#### 马绍尔群岛
+- 《马绍尔群岛日报》(Marshall Islands Journal) — https://www.marshallislandsjournal.com
+
+#### 帕劳
+- 帕劳政府 — https://www.palaugov.pw
+- 《岛国时报》(Island Times) — https://www.islandtimes.org
+
+#### 瑙鲁
+- 瑙鲁政府 — https://www.naurugov.nr
+
+#### 图瓦卢
+- 图瓦卢政府 — https://www.tuvalu.gov.tv
+
+#### 区域/国际媒体与组织
+- 新西兰 RNZ Pacific — https://www.rnz.co.nz
+- 澳大利亚 ABC Pacific — https://www.abc.net.au
+- 太平洋岛国新闻协会 PINA — https://www.pina.com.fj
+- Loop PNG — https://www.looppng.com
+- Pacific Media Network — https://www.pmn.co.nz
+- 太平洋岛国论坛秘书处 — https://www.forumsec.org
+- 太平洋共同体 SPC — https://www.spc.int
+- 世界银行 — https://www.worldbank.org
+- 亚洲开发银行 ADB — https://www.adb.org
+
+### 10.2 拉丁美洲
+#### 秘鲁
+- 总统府 — https://www.presidencia.gob.pe
+- 外交部 — https://www.rree.gob.pe
+- 《商报》(El Comercio) — https://www.elcomercio.pe
+- 《共和报》(La República) — https://www.larepublica.pe
+- 秘鲁政府门户 — https://www.gob.pe
+
+#### 智利
+- 总统府 — https://www.presidencia.cl
+- 外交部 — https://www.minrel.gob.cl
+- 《信使报》(Emol) — https://www.emol.com
+- 《第三次报》(La Tercera) — https://www.latercera.com
+- 智利政府门户 — https://www.gob.cl
+
+#### 巴拿马
+- 总统府 — https://www.presidencia.gob.pa
+- 外交部 — https://www.mire.gob.pa
+- 《新闻报》(La Prensa) — https://www.prensa.com
+- TVN-2 — https://www.tvn-2.com
+
+#### 阿根廷
+- 玫瑰宫总统府 — https://www.casarosada.gob.ar
+- 外交部 — https://www.cancilleria.gob.ar
+- 《号角报》(Clarín) — https://www.clarin.com
+- 《民族报》(La Nación) — https://www.lanacion.com.ar
+- 阿根廷政府门户 — https://www.argentina.gob.ar
+
+#### 巴西
+- 巴西联邦政府 — https://www.gov.br
+- 外交部 Itamaraty — https://www.itamaraty.gov.br
+- 《圣保罗页报》(Folha de S.Paulo) — https://www.folha.uol.com.br
+- 《环球报》(O Globo) — https://www.oglobo.globo.com
+- 《圣保罗州报》(Estadão) — https://www.estadao.com.br
+
+#### 古巴
+- 古巴政府 — https://www.cubagov.cu
+- 外交部 MINREX — https://www.minrex.gob.cu
+- 《格拉玛报》(Granma) — https://www.granma.cu
+- 古巴辩论网 — https://www.cubadebate.cu
+
+### 10.3 非洲
+#### 刚果（金）
+- 总理办公室 — https://www.primature.cd
+- 外交部 — https://www.diplomatie.gouv.cd
+- 矿业部 — https://www.minmap.gouv.cd
+- Actualité.cd — https://www.actualite.cd
+-  radio Okapi — https://www.radiookapi.net
+- 《青年非洲》(Jeune Afrique) — https://www.jeuneafrique.com
+
+#### 肯尼亚
+- 总统办公室 — https://www.president.go.ke
+- 外交部 — https://www.mfa.go.ke
+- 《民族日报》(Daily Nation) — https://www.nation.africa
+- 《旗帜报》(The Standard) — https://www.standardmedia.co.ke
+- Citizen Digital — https://www.citizen.digital
+
+#### 几内亚
+- 几内亚政府 — https://www.gouvernement.gov.gn
+- Guinée News — https://www.guineenews.org
+
+#### 斯威士兰
+- 斯威士兰政府 — https://www.gov.sz
+- 《斯威士兰时报》(Times of Swaziland) — https://www.times.co.sz
+
+#### 索马里
+- 总理办公室 — https://www.opm.gov.so
+- 外交部 — https://www.mofa.gov.so
+- Somalia Guardian — https://www.somaliguardian.com
+- Garowe Online — https://www.garoweonline.com
+
+#### 坦桑尼亚
+- 总统府 Ikulu — https://www.ikulu.go.tz
+- 外交部 — https://www.foreign.go.tz
+- 《每日新闻》(Daily News) — https://www.dailynews.co.tz
+- 《公民报》(The Citizen) — https://www.thecitizen.co.tz
+
+#### 中非共和国
+- 总统府 — https://www.prc.cf
+- 外交部 — https://www.diplomatie.gouv.cf
+- Radio Ndekeluka — https://www.radiondekeluka.org
+- 乌鸦新闻 (Corbeau News Centrafrique) — https://www.corbeaunews-centrafrique.org
