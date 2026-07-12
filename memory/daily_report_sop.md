@@ -502,6 +502,7 @@ r.font.size = Pt(9); r.font.color.rgb = C_SUB  # 次色, 顶部加分隔线
 
 **红线复述**:
 - body 字数: 单条新闻 180 < body ≤ 220 字 (validator E.4-15; s3_clues 豁免下限)
+- source 字段: 最多 1 个括注对, 英文全称放 source_full_name (validator E.4-18; 禁"美联社（AP）（AP News）"双括注)
 - body段首动词: 报道/表示/声明/发布 (四选一)
 - 英文缩写首次出现: 中文全称(abbr)
 - 倒序: 每板块D日在前,D-1日在后

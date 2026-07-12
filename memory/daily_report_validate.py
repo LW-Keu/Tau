@@ -464,6 +464,29 @@ def check_e4_17_signals_spec(data: dict) -> Tuple[bool, List[str]]:
     return len(errors) == 0, errors
 
 
+def check_e4_18_source_parenthetical(data: dict) -> Tuple[bool, List[str]]:
+    """E.4-18: source 字段不得含 1 个以上括注对 (2026-07-12 新增)。
+    防 LLM 把多个英文来源名都括注进 source, 导致 render 段首出现
+    '美联社（Associated Press）（Associated Press News）' 双括注。
+    source 只写机构主名 (最多 1 个括注), 英文全称放 source_full_name。"""
+    errors = []
+    sections = [
+        ("s1_items", data.get("s1_items", [])),
+        ("s2_items", data.get("s2_items", [])),
+        ("s3_hot", data.get("s3_hot", [])),
+        ("s3_clues", data.get("s3_clues", [])),
+    ]
+    for sec_name, items in sections:
+        for idx, item in enumerate(items, 1):
+            source = item.get("source", "")
+            n_left = source.count("（") + source.count("(")
+            if n_left > 1:
+                errors.append(
+                    f"{sec_name}#{idx} source 含 {n_left} 个括注 (应 ≤1): '{source}' | 英文全称移到 source_full_name 字段"
+                )
+    return len(errors) == 0, errors
+
+
 # ─── E.5 排版自检 (12 项, 需 docx 文件) ──────────────────────
 
 def check_e5_layout(docx_path: str) -> Tuple[bool, List[Dict[str, Any]]]:
@@ -686,6 +709,7 @@ def validate(data: dict) -> Tuple[bool, List[Dict[str, Any]]]:
         ("E.4-15  单条body 180<≤220字", check_e4_15_body_length),
         ("E.4-16  trends三段200-300总600-900", check_e4_16_trends_length),
         ("E.4-17  signals text 60-120+情报缺口+无尾冒号", check_e4_17_signals_spec),
+        ("E.4-18  source括注≤1对",                       check_e4_18_source_parenthetical),
     ]
 
     results = []
