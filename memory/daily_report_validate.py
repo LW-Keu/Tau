@@ -380,27 +380,40 @@ def check_e4_14_filename(data: dict) -> Tuple[bool, List[str]]:
     return len(errors) == 0, errors
 
 
-BODY_MAX_CHARS = 200  # 单条新闻 body 总结字数上限 (2026-06-23 新增)
+BODY_MIN_CHARS = 180  # 单条新闻 body 下限 (2026-07-12: 严格区间 180 < body ≤ 220)
+BODY_MAX_CHARS = 220  # 单条新闻 body 上限
 
 
 def check_e4_15_body_length(data: dict) -> Tuple[bool, List[str]]:
-    """E.4-15: 每条新闻 body 总结 ≤ 200 字 (严格验证, 2026-06-23 新增)"""
+    """E.4-15: 单条新闻 body 严格区间 180 < body ≤ 220 字 (2026-07-12 强化下限)。
+    s3_clues (苗头性线索) 豁免下限 —— instruction §3.2 允许 1-2 句, 仅查上限。"""
     errors = []
-    sections = [
+    news_sections = [
         ("s1_items", data.get("s1_items", [])),
         ("s2_items", data.get("s2_items", [])),
         ("s3_hot", data.get("s3_hot", [])),
-        ("s3_clues", data.get("s3_clues", [])),
     ]
-    for sec_name, items in sections:
+    for sec_name, items in news_sections:
         for idx, item in enumerate(items, 1):
             body = item.get("body", "")
             L = len(body)
-            if L > BODY_MAX_CHARS:
-                src = item.get("source", "?")
+            src = item.get("source", "?")
+            if L <= BODY_MIN_CHARS:
+                errors.append(
+                    f"{sec_name}#{idx} ({src}) body 过短: {L} 字 ≤ {BODY_MIN_CHARS} (须 >180) | 摘要: {body[:60]}..."
+                )
+            elif L > BODY_MAX_CHARS:
                 errors.append(
                     f"{sec_name}#{idx} ({src}) body 超长: {L} 字 > {BODY_MAX_CHARS} | 摘要: {body[:60]}..."
                 )
+    # s3_clues (苗头性线索): 仅查上限, 豁免下限 (instruction §3.2 允许 1-2 句)
+    for idx, item in enumerate(data.get("s3_clues", []), 1):
+        body = item.get("body", "")
+        L = len(body)
+        if L > BODY_MAX_CHARS:
+            errors.append(
+                f"s3_clues#{idx} ({item.get('source', '?')}) body 超长: {L} 字 > {BODY_MAX_CHARS}"
+            )
     return len(errors) == 0, errors
 
 
@@ -670,7 +683,7 @@ def validate(data: dict) -> Tuple[bool, List[Dict[str, Any]]]:
         ("E.4-12  板块四五无新材/无重叠",  check_e4_12_no_new_material),
         ("E.4-13  加粗仅三处(render)",     check_e4_13_bold_only_three),
         ("E.4-14  文件命名YYYYMMDD",      check_e4_14_filename),
-        ("E.4-15  每条body≤200字",        check_e4_15_body_length),
+        ("E.4-15  单条body 180<≤220字", check_e4_15_body_length),
         ("E.4-16  trends三段200-300总600-900", check_e4_16_trends_length),
         ("E.4-17  signals text 60-120+情报缺口+无尾冒号", check_e4_17_signals_spec),
     ]

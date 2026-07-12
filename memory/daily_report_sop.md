@@ -49,11 +49,11 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 ### H3. 条目数约束
 | 板块 | 下限 | 上限 | 说明 |
 |------|------|------|------|
-| S1 涉华要闻 | 3 | 5 | 不足3条时用D-1日补充，但不可超窗 |
-| S2 各国动向 | 5 | 10 | 覆盖多领域优先 |
-| S3 热点+苗头 | 2 | 5 | 含社会热点与苗头预警 |
-| S4 趋势观察 | 2 | 4 | 跨事件关联分析 |
-| S5 情报价值 | 3 | 5 | 含情报缺口标注 |
+| S1 非传统安全领域涉华要闻 | 3 | 5 | 不足3条时用D-1日补充，但不可超窗 |
+| S2 主要国家及国际组织的重要动向 | 5 | 10 | 覆盖多领域优先 |
+| S3 其他热点或苗头性线索 | 2 | 5 | 含3.1社会/行业热点 + 3.2苗头性线索 |
+| S4 本期要情与趋势分析 | 2 | 4 | 跨事件关联分析 |
+| S5 重点关注信号的情报价值 | 3 | 5 | 含情报缺口标注 |
 
 ### H4. 内容质量红线
 - 每条目必须有：**来源媒体名 + 原文URL**
@@ -104,7 +104,7 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 ### 2.1 精选流程
 1. 从采集JSON中按板块关键词分组
 2. 按 **时效性(D日优先) → 重要性(涉华/战略级优先) → 多样性(避免同源集中)** 排序
-3. 每条目提取：发布日期、来源媒体、原文URL、核心事实(100-200字中文)
+3. 每条目提取：发布日期、来源媒体、原文URL、核心事实(181-220字中文, 严格区间)
 4. **剔除超窗条目**（此步骤不可跳过）
 
 ### 2.2 条目模板（中文撰写）
@@ -116,11 +116,11 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 ### 2.3 五板块定义
 | 编号 | 板块名 | 条目数 | 内容范围 |
 |------|--------|--------|----------|
-| S1 | 涉华要闻 | 3-5 | 稀土管制/AI芯片/涉华外交/海外利益 |
-| S2 | 各国动向 | 5-10 | 核能/粮食/水资源/气候/地缘博弈 |
-| S3 | 热点追踪与苗头预警 | 2-5 | 含3.1社会热点 + 3.2苗头预警 |
-| S4 | 趋势观察 | 2-4 | 跨事件关联分析，每条一个趋势线 | **字段 schema 见 §2.4 / Appendix C** |
-| S5 | 情报价值研判 | 3-5 | 含情报缺口标注 (情报缺口：...) | **字段 schema 见 §2.5 / Appendix C** |
+| S1 | 非传统安全领域涉华要闻 | 3-5 | 稀土管制/AI芯片/涉华外交/海外利益 |
+| S2 | 主要国家及国际组织的重要动向 | 5-10 | 核能/粮食/水资源/气候/地缘博弈 |
+| S3 | 其他热点或苗头性线索 | 2-5 | 含3.1社会/行业热点 + 3.2苗头性线索 |
+| S4 | 本期要情与趋势分析 | 2-4 | 跨事件关联分析，每条一个趋势线 | **字段 schema 见 §2.4 / Appendix C** |
+| S5 | 重点关注信号的情报价值 | 3-5 | 含情报缺口标注 (情报缺口：...) | **字段 schema 见 §2.5 / Appendix C** |
 
 ### 2.3b report_data.json 输出规范 (v3.1 新增, v3.2 升级: 强制扁平 schema)
 
@@ -149,7 +149,7 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 **渲染**: `python daily_report_render.py report_data.json --format all`
 **自检**: `python daily_report_validate.py report_data.json --strict`
 
-### 2.4 趋势观察写法 (v3.2 升级: 对齐 render.is_analysis 与 Appendix C 字段速查)
+### 2.4 本期要情与趋势分析（trends）写法 (v3.2 升级: 对齐 render.is_analysis 与 Appendix C 字段速查)
 
 **字段结构**: `report_data.json` 的 `trends` 字段必须是 **dict**，三个 key 全部非空：
 
@@ -170,7 +170,7 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 - 禁止三段任一为空字符串 — validator E.4-12 视为缺失
 - 禁止标签自加冒号 — render 会自动追加 `：**`
 
-### 2.5 情报价值研判写法 (v3.2 升级: 对齐 render.is_signals 与 Appendix C 字段速查)
+### 2.5 重点关注信号的情报价值（signals）写法 (v3.2 升级: 对齐 render.is_signals 与 Appendix C 字段速查)
 
 **字段结构**: `report_data.json` 的 `signals` 字段必须是 **list of dict**，3-5 条：
 
@@ -215,17 +215,17 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 ## 一、非传统安全领域涉华要闻
 {条目们，D日在前，D-1日在后}
 
-## 二、各国非传统安全动向
+## 二、主要国家及国际组织的重要动向
 {条目们，倒序}
 
-## 三、热点追踪与苗头预警
-### 3.1 社会热点
-### 3.2 苗头预警
+## 三、其他热点或苗头性线索
+### 3.1 社会/行业热点
+### 3.2 苗头性线索
 
-## 四、趋势观察
+## 四、本期要情与趋势分析
 {趋势条目}
 
-## 五、情报价值研判
+## 五、重点关注信号的情报价值
 {研判条目}
 ```
 
@@ -253,9 +253,9 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 | 层级 | 内容 | 字号 | 颜色 | 字重 | 特殊 |
 |------|------|------|------|------|------|
 | 第一层·标识行 | `■ 国际非传统安全领域 · 每日情报整编 ■` | 9pt | ACCENT #D97757 | 加粗 | 行高14pt |
-| 第二层·主标题 | `非传统安全领域动态日报` | 32pt | PRIMARY #1A1A1A | 加粗 | 字体:微软雅黑, 行高38pt, 上空6pt |
+| 第二层·主标题 | `非传统安全领域动态日报` | 36pt | PRIMARY #1A1A1A | 加粗 | 字体:微软雅黑, 行高38pt, 上空6pt |
 | 第三层·英文副标题 | `INTERNATIONAL NON-TRADITIONAL SECURITY BRIEFING` | 9pt | SECONDARY #C9B99A | 常规 | 字距加宽60 |
-| 第四层·日期行 | `YYYY年M月D日（星期X）` | 13pt | PRIMARY #1A1A1A | 加粗 | 上空8pt |
+| 第四层·日期行 | `YYYY年M月D日（星期X）` | 14pt | PRIMARY #1A1A1A | 加粗 | 上空8pt |
 
 **顶部区域整体要求**：
 - 四层之间 **不插入分隔线**，依靠字号与颜色层次自然区分
@@ -292,7 +292,7 @@ p.paragraph_format.space_before = Pt(6)
 p.paragraph_format.space_after = Pt(4)
 p.paragraph_format.line_spacing = Pt(38)
 r = p.add_run('非传统安全领域动态日报')
-r.font.size = Pt(32); r.font.color.rgb = C_MAIN; r.bold = True
+r.font.size = Pt(36); r.font.color.rgb = C_MAIN; r.bold = True
 r.font.name = 'Inter'
 r._element.rPr.rFonts.set(qn('w:eastAsia'), '微软雅黑')
 
@@ -316,7 +316,7 @@ p.paragraph_format.space_before = Pt(8)
 p.paragraph_format.space_after = Pt(0)
 p.paragraph_format.line_spacing = Pt(20)
 r = p.add_run(f'2026年6月4日（{wk[date(2026,6,4).weekday()]}）')
-r.font.size = Pt(13); r.font.color.rgb = C_MAIN; r.bold = True
+r.font.size = Pt(14); r.font.color.rgb = C_MAIN; r.bold = True
 r.font.name = 'Inter'
 r._element.rPr.rFonts.set(qn('w:eastAsia'), '微软雅黑')
 
@@ -340,13 +340,13 @@ pPr.append(parse_xml('<w:shd {} w:fill="FBEEE6" w:val="clear"/>'.format(nsdecls(
 pPr.append(parse_xml(
     '<w:pBdr {}><w:left w:val="single" w:sz="32" w:space="8" w:color="D97757"/></w:pBdr>'.format(nsdecls('w'))))
 r = p.add_run('一、非传统安全领域涉华要闻')
-r.font.size = Pt(13); r.font.color.rgb = C_ACCENT; r.bold = True
+r.font.size = Pt(14); r.font.color.rgb = C_ACCENT; r.bold = True
 ```
 
 ### 4.5 条目正文样式
-- 前缀加粗: `6月4日，Tech Times报道：` → 10.5pt PRIMARY 加粗
-- 正文常规: 10.5pt PRIMARY
-- 来源行: `▸ `(ACCENT) + `来源: `(GRAY) + URL(SUB)，9pt
+- 前缀加粗: `6月4日，Tech Times报道：` → 12pt PRIMARY 加粗
+- 正文常规: 12pt PRIMARY
+- 来源行: `▸ `(ACCENT) + `来源: `(GRAY) + URL(SUB)，10.5pt
 
 ### 4.6 页面设置
 ```python
@@ -354,17 +354,17 @@ section = doc.sections[0]
 section.page_width = Cm(21)    # A4
 section.page_height = Cm(29.7)
 section.top_margin = Cm(2.5)
-section.bottom_margin = Cm(2)
+section.bottom_margin = Cm(2.5)
 section.left_margin = Cm(2.5)
-section.right_margin = Cm(2)
+section.right_margin = Cm(2.5)
 ```
 
 ### 4.7 页脚
 ```python
 fp = section.footer.paragraphs[0]
 fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = fp.add_run('非传统安全领域动态日报 · {DATE} · 内部资料')
-r.font.size = Pt(7); r.font.color.rgb = C_GRAY
+r = fp.add_run('非传统安全领域动态日报 · {DATE} · 第N页')  # PAGE field 由 render._setup_footer 注入
+r.font.size = Pt(9); r.font.color.rgb = C_SUB  # 次色, 顶部加分隔线
 ```
 
 
@@ -391,7 +391,7 @@ r.font.size = Pt(7); r.font.color.rgb = C_GRAY
     <section id="s2">板块二</section>
     ...
   </main>
-  <footer>内部资料</footer>
+  <footer>非传统安全领域动态日报 · {DATE} · 第N页</footer>
 </body>
 </html>
 ```
@@ -489,9 +489,9 @@ r.font.size = Pt(7); r.font.color.rgb = C_GRAY
   "window": "2026-06-06 00:00 至 2026-06-07 18:00 (北京时间)",  # 监测窗口
   "s1_items":   [{"pub_date": "X月X日", "source": "...", "body": "X月X日，源报道：...", "url": "..."}],  # S1 涉华要闻, 3-5条
   "s2_items":   [同S1结构],                     # S2 各国动向, 5-10条
-  "s3_hot":     [同S1结构],                     # S3.1 社会热点, 与clues合计2-5
+  "s3_hot":     [同S1结构],                     # S3.1 社会/行业热点, 与clues合计2-5
   "s3_clues":   [同S1结构],                     # S3.2 苗头性线索
-  "trends": {                                   # S4 趋势观察, dict结构(非list)
+  "trends": {                                   # S4 本期要情与趋势分析, dict结构(非list)
     "core_situation": "...",                    # 核心态势
     "actor_dynamics": "...",                    # 行为体动态
     "china_impact_direction": "..."              # 涉华影响方向
@@ -501,6 +501,7 @@ r.font.size = Pt(7); r.font.color.rgb = C_GRAY
 ```
 
 **红线复述**:
+- body 字数: 单条新闻 180 < body ≤ 220 字 (validator E.4-15; s3_clues 豁免下限)
 - body段首动词: 报道/表示/声明/发布 (四选一)
 - 英文缩写首次出现: 中文全称(abbr)
 - 倒序: 每板块D日在前,D-1日在后
@@ -531,7 +532,20 @@ r.font.size = Pt(7); r.font.color.rgb = C_GRAY
 - 全球能源监测 https://globalenergymonitor.org/
 - Our World in Data https://ourworldindata.org/
 
-## Appendix C · v3.2 实际使用补遗 (R7, 2026-06-20)
+## Appendix C-pre · v3.2 补遗 (R9, 2026-07-12)
+
+| 坑 | 现象 | 解决 |
+|----|------|------|
+| 1. `validate.py` CLI 用错 | 误传 `--json`/`--input` 触发 argparse 报错,真实接口是**位置参数 `<report_data.json>` + 可选 `--docx <path>`** (无 `--strict` 也会跑全检) | `python memory/daily_report_validate.py temp/report_data.json --docx temp/output/daily_YYYYMMDD/*.docx` |
+| 2. `data["window"]` 字符串必须含日期 | render.enforce_window 要求形如 `"2026-07-11 00:00 至 2026-07-12 18:00"` (BJT, 中文「至」),只写 `"D-1 00:00 至 D 18:00"` 占位符会被打回 | window 字段按当日日期填完整字符串,不要留 `D`/`D-1` 占位 |
+| 3. `data["items"][i].pub_date` 要中文 | E.4-07 期望 `"7月12日"` 这种 `M月D日` 短格式,而非 `"2026-07-12"` 或 `"07-12"` | 整编时直接 `pub_date=f"{m}月{d}日"` |
+| 4. body 段首来源必须加粗 + 冒号结尾 | E.4-08 模式 `^\d{1,2}月\d{1,2}日.{1,40}(报道\|表示\|声明\|发布):` (冒号是半角);`source` 媒体名不能超过 ~40 字否则 `报告:` 字数超出 | source 名截短到 12-14 字;body 首句 **`X月X日<来源>报道:**` 用中文冒号（按当前 validate regex 看是英文冒号,实测两个都可,但源长要小） |
+| 5. trends 三段字数硬卡 200-300 | E.4-16 严格 `min(每段)=200 AND max(每段)=300 AND 总和∈[600,900]`;每段头必须 `“……”` 框引文 | 直接先写满 250 字一段,然后照边界裁 |
+| 6. 大写缩写首次出现须括注中文全称 | E.4-09 扫 body 去掉 lead 后,首次见 `\b[A-Z]{2,6}\b` 看附近 25 字符内是否含 `中文(XXXX)` | 常见 EU/US 手工写 `欧盟（EU）`/`美国（US）`;IPO/WHO 等按需,正文写一次即可 |
+| 7. `manual_construction=true` 必带 | B 路手工或数据稀薄时缺这一项会触发 E.4-07 redundant 报错 (D-1 00:00~D 18:00 和 JSON pub_date 不一致) | report_data.json 顶层加 `"manual_construction": true` |
+| 8. 三件套输出强制 `temp/output/daily_YYYYMMDD/` | render 写入路径与 SOP D-4 白名单不符会 exit 2 | 先 `mkdir -p temp/output/daily_$(date +%Y%m%d)` |
+
+
 
 R7 第一次端到端跑通,记下 3 个 L2 描述与实际不符的坑:
 
