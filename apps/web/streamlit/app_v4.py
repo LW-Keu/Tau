@@ -19,6 +19,7 @@ import streamlit as st
 import time, re, threading, queue
 from datetime import datetime
 from core.taumain import Tau
+from upload_utils import save_upload, build_prompt, humansize, MAX_ATTACHMENTS
 
 st.set_page_config(page_title="Tau", layout="wide")
 
@@ -299,6 +300,60 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
     letter-spacing: 0.03em; margin-top: 4px; padding-bottom: 8px;
 }
 
+/* ── Chat input 左侧 +附件按钮(stFileUploader 重塑)── */
+/* 思路:file_uploader 是唯一能触发系统文件选择器的入口,无法被普通
+ * st.button 间接触发(rerun 断用户手势链)。故不换组件,只把它视觉重塑
+ * 成嵌在 chat_input 左下的圆形 +,落盘逻辑(_on_upload_change)零改动。 */
+[data-testid="stFileUploader"] > label,
+[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
+[data-testid="stFileUploaderDropzone"] {
+    border: none !important; background: transparent !important;
+    padding: 0 !important; min-height: 0 !important; box-shadow: none !important;
+}
+/* 容器脱离文档流,fixed 钉到 chat_input 左下内部。
+ * 水平:侧边栏 248 + stBottomBlockContainer 左 padding 80 = 328,窄屏
+ *   (vw<1328)chat_input 恒居中于此;+ 按钮 left = 328+10 = 338。
+ *   vw≥1328 时 chat_input 宽到 920,居中随视口右移,left 跟着加 (vw-1328)/2。
+ * 垂直:chat_input 钉底距视口底 85(不随窗口高度变),框高 58;按钮(40)
+ *   垂直居中 → bottom = 85 + 58/2 - 40/2 = 94。
+ * 公式经 streamlit 1.58 多 viewport 实测。无法注入主页面 JS(DOMPurify 拦
+ * onerror/script、st.html 走 iframe),故用纯 CSS media query。 */
+[data-testid="stFileUploader"] {
+    position: fixed !important;
+    left: 338px !important;
+    bottom: 94px !important;
+    z-index: 200 !important; width: auto !important; margin: 0 !important;
+}
+@media (min-width: 1328px) {
+    [data-testid="stFileUploader"] {
+        left: calc(338px + (100vw - 1328px) / 2) !important;
+    }
+}
+[data-testid="stFileUploader"] button {
+    width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important;
+    border-radius: var(--r-full) !important; padding: 0 !important;
+    background: transparent !important; border: 1px solid var(--border) !important;
+    position: relative !important; justify-content: center !important;
+}
+/* 隐藏按钮内 upload 图标 + "Upload" 文字,用 + 替代 */
+[data-testid="stFileUploader"] button [data-testid="stIconMaterial"],
+[data-testid="stFileUploader"] button [data-testid="stMarkdownContainer"] { display: none !important; }
+[data-testid="stFileUploader"] button::after {
+    content: '+'; font-size: 22px; font-weight: 300; color: var(--primary); line-height: 1;
+}
+/* hover tooltip("附件") */
+[data-testid="stFileUploader"] button::before {
+    content: '附件'; position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: #fff; font-family: var(--font); font-size: 11px;
+    padding: 3px 8px; border-radius: var(--r-sm); white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+[data-testid="stFileUploader"] button:hover { background: var(--neutral) !important; border-color: var(--tertiary) !important; }
+[data-testid="stFileUploader"] button:hover::before { opacity: 1; }
+[data-testid="stFileUploader"] button:hover::after { color: var(--tertiary) !important; }
+/* textarea 左侧给 + 让位,防长文本被遮 */
+[data-testid="stChatInputTextArea"] { padding-left: 52px !important; }
+
 /* Stop button — bottom-right corner, doesn't block content.
  * Selector identifies the small container holding ONLY the stop button:
  * excludes any block that contains real messages (.tau-msg) or the chat input. */
@@ -384,6 +439,18 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-full); }
 ::-webkit-scrollbar-track { background: transparent; }
 
+/* ── Pending attachment bar ── */
+.tau-chip-icon { font-size: 1.3rem; text-align: center; line-height: 1.6; }
+.tau-chip-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
+.tau-chip-name { font-size: 0.85rem; color: var(--primary); font-weight: 500; }
+.tau-chip-meta { font-size: 0.72rem; color: var(--secondary); font-family: var(--mono); margin-left: 6px; }
+
+/* ── Attachment rendering in message bubbles ── */
+.tau-att-list { display: flex; flex-wrap: wrap; gap: var(--sp-sm); margin-top: var(--sp-sm); }
+.tau-att-thumb { width: 120px; height: 120px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
+.tau-att-chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 0.78rem;
+    background: var(--neutral); border: 1px solid var(--border); padding: 4px 10px; border-radius: var(--r-full); }
+
 /* ── Misc ── */
 hr { border-color: var(--border) !important; }
 a { color: var(--tertiary) !important; }
@@ -405,19 +472,30 @@ except ImportError:
         return f'<p>{t}</p>' if t else ''
 
 
-def render_html_message(role: str, content: str, ts: str = '') -> None:
+def render_html_message(role: str, content: str, ts: str = '', attachments=None) -> None:
     is_user = role == 'user'
     cls = 'user' if is_user else 'agent'
     avatar_text = '你' if is_user else 'G'
     meta = ts if is_user else f'Tau · {ts}'
     # user input is plain-escaped; agent output goes through markdown pipeline
     content_html = html.escape(content) if is_user else _md_to_html(content)
+    atts_html = ''
+    if is_user and attachments:
+        parts = []
+        for att in attachments:
+            src = att.get('thumb_b64') or att.get('img_b64')
+            if att.get('kind') == 'image' and src:
+                parts.append(f'<img class="tau-att-thumb" src="{src}">')
+            else:
+                icon = '📄' if att.get('kind') == 'text' else '📦'
+                parts.append(f'<span class="tau-att-chip">{icon} {html.escape(att["name"])}</span>')
+        atts_html = '<div class="tau-att-list">' + ''.join(parts) + '</div>'
     st.markdown(f"""
 <div class="tau-msg {cls}">
   <div class="tau-avatar {cls}">{avatar_text}</div>
   <div class="tau-msg-wrap">
     <span class="tau-msg-meta">{meta}</span>
-    <div class="tau-bubble {cls}">{content_html}</div>
+    <div class="tau-bubble {cls}">{content_html}{atts_html}</div>
   </div>
 </div>""", unsafe_allow_html=True)
 
@@ -461,6 +539,7 @@ def init_session_state():
         'display_queue': None, 'partial_response': '', 'reply_ts': '',
         'current_prompt': '', 'selected_llm_idx': agent.llm_no,
         'autonomous_enabled': False, 'messages': [],
+        'pending_attachments': [],
         'session_start_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'token_count': 0, 'conversation_rounds': 0,
     }.items():
@@ -529,6 +608,7 @@ def render_sidebar():
         st.session_state.stopping = False
         st.session_state.partial_response = ''
         st.session_state.display_queue = None
+        st.session_state.pending_attachments = []
         st.rerun()
 
     # Session info — pushed to bottom via flex spacer
@@ -541,14 +621,67 @@ def render_sidebar():
 <div class="tau-sidebar-row"><label>对话轮次</label><div class="tau-val">{rounds_str}</div></div>
 """, unsafe_allow_html=True)
 
+def _on_upload_change():
+    """file_uploader on_change:落盘入 pending,然后自增 nonce 让 uploader 重建(防 rerun 重复)。"""
+    nonce = st.session_state.get("_tau_upload_nonce", 0)
+    ufs = st.session_state.get(f"tau_upload_{nonce}") or []
+    for uf in ufs:
+        if len(st.session_state.pending_attachments) >= MAX_ATTACHMENTS:
+            st.toast(f"最多 {MAX_ATTACHMENTS} 个附件"); break
+        att = save_upload(uf)
+        if att is None:
+            st.toast(f"{uf.name} 未能添加(可能超过大小上限或落盘失败)")
+        else:
+            st.session_state.pending_attachments.append(att)
+    st.session_state["_tau_upload_nonce"] = st.session_state.get("_tau_upload_nonce", 0) + 1
+
+
+@st.fragment
+def render_pending_bar():
+    """chat_input 上方的待发附件条:chip[×] + 多选上传按钮。streaming 时禁用。"""
+    atts = st.session_state.pending_attachments
+    if atts:
+        for i, att in enumerate(atts):
+            cols = st.columns([1, 7, 1])
+            if att["kind"] == "image" and att.get("thumb_b64"):
+                cols[0].markdown(f'<img class="tau-chip-thumb" src="{att["thumb_b64"]}">',
+                                 unsafe_allow_html=True)
+            else:
+                icon = "📄" if att["kind"] == "text" else "📦"
+                cols[0].markdown(f'<div class="tau-chip-icon">{icon}</div>', unsafe_allow_html=True)
+            line = f"·{att['lines']}行" if att.get("lines") else ""
+            cols[1].markdown(
+                f'<span class="tau-chip-name">{html.escape(att["name"])}</span> '
+                f'<span class="tau-chip-meta">{humansize(att["size"])}{line}</span>',
+                unsafe_allow_html=True)
+            if cols[2].button("×", key=f"rm_{att['id']}", help="移除"):
+                try:
+                    os.remove(att["path"])
+                except OSError:
+                    pass
+                st.session_state.pending_attachments.pop(i)
+                st.rerun(scope="fragment")
+    nonce = st.session_state.get("_tau_upload_nonce", 0)
+    st.file_uploader(
+        "📎 添加附件",
+        accept_multiple_files=True, key=f"tau_upload_{nonce}",
+        on_change=_on_upload_change,
+        label_visibility="collapsed",   # 标签由 + 按钮的 tooltip 取代
+        disabled=st.session_state.streaming,
+    )
+
+
 with st.sidebar: render_sidebar()
 
 
-def start_agent_task(prompt):
-    st.session_state.display_queue = agent.put_task(prompt, source="user")
+def start_agent_task(prompt, attachments):
+    query = build_prompt(prompt, attachments)
+    images = [a["img_b64"] for a in attachments
+              if a.get("kind") == "image" and a.get("img_b64")]
+    st.session_state.display_queue = agent.put_task(query, source="user", images=images)
     st.session_state.streaming, st.session_state.stopping, st.session_state.partial_response = True, False, ''
     st.session_state.reply_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state.current_prompt = prompt
+    st.session_state.current_prompt = query
 
 
 def poll_agent_output(max_items=20):
@@ -606,10 +739,19 @@ def render_streaming_area():
     st.rerun()
 
 for msg in st.session_state.messages:
-    render_html_message(msg["role"], msg["content"], ts=msg.get("time", ""))
+    render_html_message(msg["role"], msg["content"], ts=msg.get("time", ""),
+                        attachments=msg.get("attachments"))
 if st.session_state.streaming: render_streaming_area()
+render_pending_bar()
 if prompt := st.chat_input("请输入指令", disabled=st.session_state.streaming):
-    st.session_state.messages.append({"role": "user", "content": prompt, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-    start_agent_task(prompt)
+    atts = list(st.session_state.pending_attachments)
+    display_prompt = prompt if prompt else "请处理这些文件。"
+    st.session_state.messages.append({
+        "role": "user", "content": display_prompt,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "attachments": [dict(a) for a in atts],   # 快照(含 path/text/b64),清空 pending 后仍可渲染
+    })
+    start_agent_task(display_prompt, atts)
+    st.session_state.pending_attachments = []
     st.rerun()
 
