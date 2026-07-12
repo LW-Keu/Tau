@@ -150,7 +150,12 @@ assets/copilot_proxy.pyw
 
 # Daily report runtime artifacts (PID lock + per-day raw input data)
 scheduler.pid
+autonomous.pid
 report_data_*.json
+
+# Root 启动脚本已移至 tau_cli/ (commit 1959ccd), root 副本仅供本地运行, 不入库
+/start*.sh
+/stop*.sh
 
 # Plugins
 !plugins/__init__.py
