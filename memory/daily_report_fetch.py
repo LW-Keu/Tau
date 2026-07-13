@@ -283,7 +283,7 @@ def fetch_bing_urllib(categories: dict, scraped_at: datetime) -> list:
 # ─── RSS 通道 (stdlib, 无新依赖) ──────────────────────────────
 
 def parse_rss(xml_bytes: bytes) -> list:
-    """解析 RSS 2.0 / Atom -> [{title,url,source,rel_time}] (rel_time=发布日期文本)。"""
+    """解析 RSS 2.0 / Atom -> [{title,url,source,rel_time,snippet}] (rel_time=发布日期文本)。"""
     out = []
     try:
         root = ET.fromstring(xml_bytes)
@@ -294,7 +294,7 @@ def parse_rss(xml_bytes: bytes) -> list:
         tag = it.tag.split('}')[-1]
         if tag not in ('item', 'entry'):
             continue
-        title = link = pub = ''
+        title = link = pub = snippet = ''
         for ch in it:
             t = ch.tag.split('}')[-1]
             if t == 'title':
@@ -303,8 +303,20 @@ def parse_rss(xml_bytes: bytes) -> list:
                 link = (ch.get('href') or ch.text or '').strip()
             elif t in ('pubDate', 'published', 'updated'):
                 pub = (ch.text or '').strip()
+            elif t in ('description', 'summary', 'content'):
+                # Atom may use content type=html; RSS may have plain text
+                raw = ch.text or ''
+                if not raw and 'encoded' in t:
+                    # <content:encoded> handled via {*}wildcard below if needed
+                    continue
+                # strip HTML tags
+                raw = re.sub(r'<[^>]+>', '', raw)
+                raw = re.sub(r'\s+', ' ', raw).strip()
+                if len(raw) > 600:
+                    raw = raw[:600] + '…'
+                snippet = raw
         if link:
-            out.append({'title': title, 'url': link, 'source': '', 'rel_time': pub})
+            out.append({'title': title, 'url': link, 'source': '', 'rel_time': pub, 'snippet': snippet})
     return out
 
 

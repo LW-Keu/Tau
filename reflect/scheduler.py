@@ -1,4 +1,4 @@
-import os, sys, json, socket as _socket, logging
+import os, sys, json, time as _time, socket as _socket, logging
 from datetime import datetime, timedelta
 
 # 端口锁：防止重复启动。端口被占=已有实例在跑，干净退出而非崩溃
@@ -13,7 +13,7 @@ except NameError:
 INTERVAL = 120
 ONCE = False
 
-from core.paths import SCHE_TASKS
+from core.paths import SCHE_TASKS, TEMP, MEMORY
 TASKS = str(SCHE_TASKS)
 DONE  = str(SCHE_TASKS / 'done')
 _LOG  = str(SCHE_TASKS / 'scheduler.log')
@@ -30,6 +30,7 @@ if not _logger.handlers:
 
 # 默认最大延迟窗口（小时），超过此时间不触发
 DEFAULT_MAX_DELAY = 6
+_l4_t = 0  # last L4 archive time
 
 def _parse_cooldown(repeat):
     """解析repeat为冷却时间(比实际周期略短,防漂移)"""
@@ -62,6 +63,22 @@ def _last_run(tid, done_files):
     return latest
 
 def check():
+    # L4 archive cron (silent, every 12h)
+    global _l4_t
+    if _time.time() - _l4_t > 43200:
+        _l4_t = _time.time()
+        try:
+            import importlib.util
+            _cs = importlib.util.spec_from_file_location(
+                "compress_session", str(MEMORY / "L4_raw_sessions" / "compress_session.py"))
+            _m = importlib.util.module_from_spec(_cs); _cs.loader.exec_module(_m)
+            batch_process = _m.batch_process
+            raw_dir = str(TEMP / 'model_responses')
+            r = batch_process(raw_dir, dry_run=False)
+            print(f'[L4 cron] {r}')
+        except Exception as e:
+            _logger.error(f'L4 archive failed: {e}')
+
     if not os.path.isdir(TASKS): return None
     now = datetime.now()
     os.makedirs(DONE, exist_ok=True)

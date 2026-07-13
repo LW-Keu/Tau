@@ -1,8 +1,10 @@
-# 本地PC能力盘点 v1.0 (2026-06-05)
+# 本地PC能力盘点 v1.4 (2026-07-12)
 
 > 探测时间: 2026-06-05 00:10
-> 探测者: GenericAgent R03
+> 补丁时间: 2026-07-12 23:35 (R2 自评+复核)
+> 探测者: Tau R03
 > 主机: Apple M4, 32GB RAM, 195GB可用, macOS 26.6
+> v1.3→v1.4 变更: §8.10.5 L2 错记复核标注 + 头部版本号升级（TODO[7] R2 执行）
 
 ## 标签说明
 - 🟢 **实测可用** — 探测已通过
@@ -305,7 +307,7 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 - ✅ Notes
 - ✅ Contacts (未实测, R4 推测可达)
 
-详见 `memory/mac_automation_sop.md` + `temp/R12_macOS_Automation_Cheat_Sheet.md`。
+详见本文件 §8.10.1-8.10.6（实测已收敛到 inventory 自身；`memory/mac_automation_sop.md` 与 `temp/R12_macOS_Automation_Cheat_Sheet.md` 实际不存在，参见 §8.10.5 L2 错记修正）。
 
 ### 8.11 v1.2.3 端口/服务状态 (R4 复核)
 - 9222 (Chrome DevTools): 🔴 未启动 (与 v1.1 一致)
@@ -374,10 +376,12 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 6. **Contacts 模糊查询**: `every person whose name contains "X"` — 邮件前置
 
 #### 8.10.5 L2 错记修正
-- ❌ `R12_macOS_Automation_Cheat_Sheet.md` 文件**不存在**
-- ❌ `mac_automation_sop.md` 文件**不存在** (L3 列表中也无)
-- ❌ `R7_Mail.app_AppleScript自动化实测+中文教程.md` 文件**不存在**
-- ✅ Mail.app AS 实测: 本轮 R5 用例已含 Mail get name/version/id + 需补 `count messages of inbox` 实测
+- ❌ `R12_macOS_Automation_Cheat_Sheet.md` 文件**不存在** (已确认文件不存在 2026-07-12 R1 复核)
+- ❌ `mac_automation_sop.md` 文件**不存在** (L3 列表中也无) (已确认 2026-07-12 R1 复核)
+- ❌ `R7_Mail.app_AppleScript自动化实测+中文教程.md` 文件**不存在** (已确认 2026-07-12 R1 复核)
+- ✅ Mail.app AS 实测: 8.10.1/8.10.2 行已含 Mail get name/version/id；`count messages of inbox` 未补测（TBD）
+- 🔄 复核动作 (2026-07-12 R2): 已用 `ls autonomous_reports/` 验证上述 3 个文件确实不存在
+- 📌 行动项: 后续报告命名建议改用日期前缀避免误引（如 `R7_2026-XX-XX_*`）
 
 #### 8.10.6 接入建议
 - daily_report 阶段加 "今日 Reminders" 段 (用例 1)

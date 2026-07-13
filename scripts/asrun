@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""asrun - 统一 AppleScript 执行入口 (R8 探针6 产物)
+
+用法:
+    asrun -e 'tell application "Finder" to get name'
+    asrun -f /path/to/script.scpt
+    asrun -e '...' --pretty
+
+设计动机: 多次遇到单行 osascript 不支持 properties record {-10025, -2741 等},
+本工具统一多行执行 + 结构化 JSON 输出, 方便后续观测/告警。
+
+输出 schema:
+{
+  "mode": "inline" | "file",
+  "source_preview": "前80字符...",
+  "rc": 0 | 1 | ...,
+  "stdout": "...",
+  "stderr": "...",
+  "elapsed_ms": int
+}
+"""
+import argparse
+import json
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+
+def run_inline(script_text: str, timeout: int = 60) -> dict:
+    """把内联脚本写到临时 .scpt 文件, 调用 osascript."""
+    start = time.time()
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.scpt', delete=False, encoding='utf-8') as f:
+        f.write(script_text)
+        scpt_path = f.name
+    try:
+        res = subprocess.run(['osascript', scpt_path], capture_output=True, text=True, timeout=timeout)
+        return {
+            'mode': 'inline',
+            'source_preview': script_text[:80].replace('\n', ' ⏎ '),
+            'rc': res.returncode,
+            'stdout': res.stdout,
+            'stderr': res.stderr,
+            'elapsed_ms': int((time.time() - start) * 1000),
+        }
+    finally:
+        Path(scpt_path).unlink(missing_ok=True)
+
+
+def run_file(path: str, timeout: int = 60) -> dict:
+    start = time.time()
+    res = subprocess.run(['osascript', path], capture_output=True, text=True, timeout=timeout)
+    return {
+        'mode': 'file',
+        'source_preview': f'file:{path}',
+        'rc': res.returncode,
+        'stdout': res.stdout,
+        'stderr': res.stderr,
+        'elapsed_ms': int((time.time() - start) * 1000),
+    }
+
+
+def main():
+    p = argparse.ArgumentParser(description='统一 AppleScript 执行入口')
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument('-e', '--execute', help='内联 AppleScript 代码')
+    g.add_argument('-f', '--file', help='AppleScript 文件路径 (.scpt)')
+    p.add_argument('-t', '--timeout', type=int, default=60, help='timeout 秒数 (默认60, Music/Photos 首次启动建议120+)')
+    p.add_argument('--pretty', action='store_true', help='人类可读输出')
+    args = p.parse_args()
+
+    if args.execute:
+        result = run_inline(args.execute, timeout=args.timeout)
+    else:
+        result = run_file(args.file, timeout=args.timeout)
+
+    if args.pretty:
+        print(f'mode={result["mode"]}  rc={result["rc"]}  elapsed={result["elapsed_ms"]}ms')
+        print(f'stdout: {result["stdout"].rstrip()}')
+        if result['stderr'].strip():
+            print(f'stderr: {result["stderr"].rstrip()}')
+    else:
+        print(json.dumps(result, ensure_ascii=False))
+    sys.exit(result['rc'])
+
+
+if __name__ == '__main__':
+    main()

@@ -25,7 +25,11 @@
         "ac-rei.org.cn",
         "chinania.org.cn"
       ],
-      "rss": []
+      "rss": [
+        "https://www.ft.com/climate-change?format=rss",
+        "https://www.nature.com/nclimate.rss",
+        "https://phys.org/rss-feed/earth-news/"
+      ]
     },
     "biomedicine": {
       "keywords": [
@@ -50,7 +54,12 @@
         "paho.org",
         "ich.org"
       ],
-      "rss": []
+      "rss": [
+        "https://www.statnews.com/feed/",
+        "https://www.science.org/rss/news_current.xml",
+        "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+        "https://www.newscientist.com/feed/home/"
+      ]
     },
     "food_agri": {
       "keywords": [
@@ -77,7 +86,10 @@
         "cofco.com",
         "ldc.com"
       ],
-      "rss": []
+      "rss": [
+        "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+        "http://feeds.bbci.co.uk/news/world/rss.xml"
+      ]
     },
     "climate": {
       "keywords": [
@@ -101,7 +113,14 @@
         "cma.gov.cn",
         "mee.gov.cn"
       ],
-      "rss": []
+      "rss": [
+        "https://www.theguardian.com/environment/rss",
+        "https://www.ft.com/climate-change?format=rss",
+        "https://www.nature.com/nclimate.rss",
+        "https://www.newscientist.com/feed/home/",
+        "https://phys.org/rss-feed/earth-news/",
+        "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+      ]
     },
     "water": {
       "keywords": [
@@ -197,7 +216,11 @@
         "minenergo.gov.ru",
         "moenergy.gov.sa"
       ],
-      "rss": []
+      "rss": [
+        "https://oilprice.com/rss/main",
+        "https://www.ft.com/climate-change?format=rss",
+        "http://feeds.bbci.co.uk/news/science_and_environment/rss.xml"
+      ]
     },
     "pacific_islands": {
       "keywords": [
