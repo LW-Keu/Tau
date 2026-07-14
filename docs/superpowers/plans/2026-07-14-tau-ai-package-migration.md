@@ -28,7 +28,7 @@ Recorded on 2026-07-14 before implementation:
 
 ---
 
-### Task 1: Establish and Package the `tau_ai` Boundary
+### Task 1: Migrate the Package and Every Runtime Consumer
 
 **Files:**
 - Create: `tests/test_tau_ai_package.py`
@@ -177,19 +177,16 @@ uv run --no-sync python -m unittest tests.test_tau_ai_package -v
 
 Expected: all 3 tests pass.
 
-- [ ] **Step 7: Commit the package boundary**
+- [ ] **Step 7: Confirm the package boundary before switching consumers**
 
 ```bash
-git add pyproject.toml tests/test_tau_ai_package.py src/tau_ai core/llm
-git commit -m "refactor: move llm package to tau_ai"
+git diff --check -- pyproject.toml tests/test_tau_ai_package.py src/tau_ai core/llm
 ```
 
-Expected: the commit records renames plus the namespace, packaging, and
-boundary-test changes; it does not include `memory/l3_capability_inventory.md`.
+Expected: no output. Do not commit yet: the old runtime consumers must switch
+in the same atomic commit so every commit remains runnable.
 
----
-
-### Task 2: Switch Every Runtime Consumer to `tau_ai`
+#### Phase B: Switch Every Runtime Consumer to `tau_ai`
 
 **Files:**
 - Modify: `core/taumain.py:8-11`
@@ -337,19 +334,20 @@ uv run --no-sync python -m unittest discover -s tests -v
 Expected: 7 focused tests pass, both smoke scripts print `[SMOKE-OK]`, and all
 11 tests pass.
 
-- [ ] **Step 7: Commit the consumer migration**
+- [ ] **Step 7: Commit the atomic package and consumer migration**
 
 ```bash
-git add core/taumain.py apps/im apps/pet/app.py apps/common/cost_tracker.py plugins/langfuse_tracing.py tests/test_taukey_path.py scripts/smoke_tau_ai.py scripts/smoke_llmcore.py scripts/smoke_packaging.py
-git commit -m "refactor: switch consumers to tau_ai"
+git add pyproject.toml src/tau_ai core/llm core/taumain.py apps/im apps/pet/app.py apps/common/cost_tracker.py plugins/langfuse_tracing.py tests/test_tau_ai_package.py tests/test_taukey_path.py scripts/smoke_tau_ai.py scripts/smoke_llmcore.py scripts/smoke_packaging.py
+git commit -m "refactor: move llm package to tau_ai"
 ```
 
-Expected: only the listed consumer, test, and smoke files are committed;
+Expected: one runnable commit contains the package move, packaging changes,
+all consumer switches, tests, and smoke updates. The user's
 `memory/l3_capability_inventory.md` remains unstaged.
 
 ---
 
-### Task 3: Update Integration Documentation and Verify the Distribution
+### Task 2: Update Integration Documentation and Verify the Distribution
 
 **Files:**
 - Modify: `scripts/README.md:13`
@@ -358,7 +356,7 @@ Expected: only the listed consumer, test, and smoke files are committed;
 - Verify: `dist/tau-0.1.0-py3-none-any.whl`
 
 **Interfaces:**
-- Consumes: the migrated source tree and consumer imports from Tasks 1–2.
+- Consumes: the migrated source tree and consumer imports from Task 1.
 - Produces: accurate integration documentation and evidence that the wheel ships only the new LLM package boundary.
 
 - [ ] **Step 1: Update the remaining active documentation reference**
