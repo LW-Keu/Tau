@@ -1,0 +1,57 @@
+#!/bin/bash
+# ../bin/asrun — 统一 osascript 薄壳层 (R63 TODO #2)
+# 设计目标:
+#   1. 零依赖 (POSIX bash + osascript)
+#   2. stderr 透传, 退出码透传
+#   3. 临时错误日志自动清理
+#   4. 支持 inline (-e), file 两种输入方式
+# 用法:
+#   ../bin/asrun -e 'return 1+1'
+#   ../bin/asrun script.applescript
+
+set -u
+
+ERR_LOG=$(mktemp /tmp/asrun.err.XXXXXX)
+AS_RUN_STDERR="${AS_RUN_STDERR:-}"  # 供调试时保留错误日志; 默认空=自动清理
+RC=0
+
+# 清理函数
+cleanup() {
+  if [ -z "$AS_RUN_STDERR" ] && [ -n "$ERR_LOG" ] && [ -f "$ERR_LOG" ]; then
+    rm -f "$ERR_LOG"
+  fi
+}
+trap cleanup EXIT
+
+# 帮助
+if [ $# -eq 0 ] || [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  echo "usage: asrun [-e 'AppleScript'] [script.applescript]" >&2
+  echo "       echo 'AppleScript' | asrun" >&2
+  exit 1
+fi
+
+# 执行 AppleScript
+if [ "$1" = "-e" ]; then
+  if [ $# -lt 2 ]; then
+    echo "AS_ERROR rc=1 msg=missing argument after -e" >&2
+    exit 1
+  fi
+  osascript -e "$2" 2>"$ERR_LOG"
+  RC=$?
+else
+  if [ -f "$1" ]; then
+    osascript "$1" 2>"$ERR_LOG"
+    RC=$?
+  else
+    echo "AS_ERROR rc=1 msg=file not found: $1" >&2
+    exit 1
+  fi
+fi
+
+# 出错时把 stderr 内容透传到 stderr 并加 AS_ERROR 前缀
+if [ $RC -ne 0 ]; then
+  MSG=$(cat "$ERR_LOG")
+  echo "AS_ERROR rc=$RC msg=${MSG}" >&2
+fi
+
+exit $RC

@@ -1,26 +1,35 @@
 #!/usr/bin/env python3
-"""asrun - 统一 AppleScript 执行入口 (R8 探针6 产物)
+"""asrun v1.6 - 统一 AppleScript 执行入口 (R8 探针6 + R59 on error 增强)
 
 用法:
     asrun -e 'tell application "Finder" to get name'
     asrun -f /path/to/script.scpt
     asrun -e '...' --pretty
 
-设计动机: 多次遇到单行 osascript 不支持 properties record {-10025, -2741 等},
-本工具统一多行执行 + 结构化 JSON 输出, 方便后续观测/告警。
+v1.6 变更:
+- 自动捕获 AppleScript `on error errMsg number errNum`, 写入 result.error_code/error_msg
+- v1.5 的 exit code 仅保留 osascript rc; v1.6 新增 as_error_code 字段 (AppleScript 引擎错误码)
+- 兼容旧调用: result.error_code = None 表示无 AppleScript 错误
 
-输出 schema:
+设计动机: R57 发现 osascript 对不存在 App 静默 fallback 不抛 -1728;
+此 v1.6 通过 try/on error 包装, 强制捕获用户主动 `error "msg"` 抛出的真实错误码,
+使探针脚本可写 `if errorCode < 0 then ...` 分支逻辑。
+
+输出 schema (v1.6):
 {
   "mode": "inline" | "file",
-  "source_preview": "前80字符...",
-  "rc": 0 | 1 | ...,
-  "stdout": "...",
-  "stderr": "...",
+  "source_preview": "...",
+  "rc": 0 | 1,          # osascript 退出码 (仅区分语法/超时, 不区分 AS 业务错误)
+  "stdout": "...",       # 可能含 "ERR|<num>|<msg>" 前缀 (v1.6 wrap)
+  "stderr": "...",       # osascript 原文透传
+  "as_error_code": int | None,  # v1.6 新增: 从 wrap 提取的 AS 错误码
+  "as_error_msg":  str | None,  # v1.6 新增
   "elapsed_ms": int
 }
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -28,58 +37,112 @@ import time
 from pathlib import Path
 
 
+_ERR_PREFIX = "ERR|"  # AppleScript wrap 输出前缀
+_ERR_RE = re.compile(r'^ERR\|(-?\d+)\|(.*)$', re.DOTALL)
+
+
+def _wrap_script(script_text: str) -> str:
+    """把用户脚本包到 try/on error 里, 把 on error 转为 ERR|<code>|<msg> 字符串."""
+    indent = '\n'.join('    ' + line for line in script_text.splitlines())
+    return (
+        'try\n'
+        f'{indent}\n'
+        'on error errMsg number errNum\n'
+        f'    return "{_ERR_PREFIX}" & errNum & "|" & errMsg\n'
+        'end try\n'
+    )
+
+
+def _parse_wrap_stdout(stdout: str):
+    """从 wrap 输出解析 ERR 记录. 返回 (clean_stdout, code, msg)."""
+    s = stdout.strip()
+    m = _ERR_RE.match(s)
+    if m:
+        return ('', int(m.group(1)), m.group(2))
+    return (stdout, None, None)
+
+
 def run_inline(script_text: str, timeout: int = 60) -> dict:
-    """把内联脚本写到临时 .scpt 文件, 调用 osascript."""
+    """把内联脚本写到临时 .scpt 文件 (含 v1.6 wrap), 调用 osascript."""
     start = time.time()
+    wrapped = _wrap_script(script_text)
     with tempfile.NamedTemporaryFile(mode='w', suffix='.scpt', delete=False, encoding='utf-8') as f:
-        f.write(script_text)
+        f.write(wrapped)
         scpt_path = f.name
     try:
         res = subprocess.run(['osascript', scpt_path], capture_output=True, text=True, timeout=timeout)
+        clean_out, as_code, as_msg = _parse_wrap_stdout(res.stdout)
         return {
             'mode': 'inline',
             'source_preview': script_text[:80].replace('\n', ' ⏎ '),
             'rc': res.returncode,
-            'stdout': res.stdout,
+            'stdout': clean_out,
             'stderr': res.stderr,
+            'as_error_code': as_code,
+            'as_error_msg': as_msg,
             'elapsed_ms': int((time.time() - start) * 1000),
         }
     finally:
         Path(scpt_path).unlink(missing_ok=True)
 
 
-def run_file(path: str, timeout: int = 60) -> dict:
+def run_file(path: str, timeout: int = 60, wrap: bool = True) -> dict:
+    """执行 .scpt 文件. wrap=True (默认) 时把文件内容用 try/on error 包一层;
+    wrap=False 时透传原文件 (用户自己处理 try)."""
     start = time.time()
-    res = subprocess.run(['osascript', path], capture_output=True, text=True, timeout=timeout)
-    return {
-        'mode': 'file',
-        'source_preview': f'file:{path}',
-        'rc': res.returncode,
-        'stdout': res.stdout,
-        'stderr': res.stderr,
-        'elapsed_ms': int((time.time() - start) * 1000),
-    }
+    scpt_path = path
+    tmp = None
+    if wrap:
+        with open(path, encoding='utf-8') as f:
+            body = f.read()
+        wrapped = _wrap_script(body)
+        tf = tempfile.NamedTemporaryFile(mode='w', suffix='.scpt', delete=False, encoding='utf-8')
+        tf.write(wrapped)
+        tf.close()
+        scpt_path = tf.name
+        tmp = scpt_path
+    try:
+        res = subprocess.run(['osascript', scpt_path], capture_output=True, text=True, timeout=timeout)
+        clean_out, as_code, as_msg = _parse_wrap_stdout(res.stdout)
+        return {
+            'mode': 'file',
+            'source_preview': f'file:{path}' + (' (wrapped)' if wrap else ''),
+            'rc': res.returncode,
+            'stdout': clean_out,
+            'stderr': res.stderr,
+            'as_error_code': as_code,
+            'as_error_msg': as_msg,
+            'elapsed_ms': int((time.time() - start) * 1000),
+        }
+    finally:
+        if tmp:
+            Path(tmp).unlink(missing_ok=True)
 
 
 def main():
-    p = argparse.ArgumentParser(description='统一 AppleScript 执行入口')
+    p = argparse.ArgumentParser(description='统一 AppleScript 执行入口 (v1.6)')
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument('-e', '--execute', help='内联 AppleScript 代码')
     g.add_argument('-f', '--file', help='AppleScript 文件路径 (.scpt)')
-    p.add_argument('-t', '--timeout', type=int, default=60, help='timeout 秒数 (默认60, Music/Photos 首次启动建议120+)')
+    p.add_argument('-t', '--timeout', type=int, default=60, help='timeout 秒数 (默认60)')
+    p.add_argument('--no-wrap', action='store_true', help='-f 模式不包 try/on error (用户自管)')
     p.add_argument('--pretty', action='store_true', help='人类可读输出')
     args = p.parse_args()
 
     if args.execute:
         result = run_inline(args.execute, timeout=args.timeout)
     else:
-        result = run_file(args.file, timeout=args.timeout)
+        result = run_file(args.file, timeout=args.timeout, wrap=not args.no_wrap)
 
     if args.pretty:
-        print(f'mode={result["mode"]}  rc={result["rc"]}  elapsed={result["elapsed_ms"]}ms')
-        print(f'stdout: {result["stdout"].rstrip()}')
+        print(f'mode={result["mode"]}  rc={result["rc"]}  as_err={result["as_error_code"]}  '
+              f'elapsed={result["elapsed_ms"]}ms')
+        if result['stdout'].strip():
+            print(f'stdout: {result["stdout"].rstrip()}')
         if result['stderr'].strip():
             print(f'stderr: {result["stderr"].rstrip()}')
+        if result['as_error_code'] is not None:
+            print(f'AS_ERROR: {result["as_error_code"]} | {result["as_error_msg"]}')
     else:
         print(json.dumps(result, ensure_ascii=False))
     sys.exit(result['rc'])
