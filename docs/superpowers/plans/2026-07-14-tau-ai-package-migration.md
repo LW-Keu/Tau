@@ -417,13 +417,15 @@ Run:
 uv run --no-sync python -m unittest discover -s tests -v
 uv run --no-sync python scripts/smoke_tau_ai.py
 uv run --no-sync python scripts/smoke_packaging.py
-git diff --check
+git diff --check -- scripts/README.md
 git status --short
 ```
 
 Expected: all 11 tests pass; both smokes print `[SMOKE-OK]`; `git diff --check`
-prints nothing; status shows only the planned documentation change plus the
-user's pre-existing `memory/l3_capability_inventory.md` modification.
+prints nothing for the task-owned file; status shows only the planned
+documentation change plus the user's pre-existing
+`memory/l3_capability_inventory.md` modification. The check is scoped because
+that excluded user file has pre-existing trailing whitespace.
 
 - [ ] **Step 7: Commit the documentation update**
 
