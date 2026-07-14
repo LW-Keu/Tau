@@ -1,6 +1,7 @@
 # AI install hint: choose deps by OS/env + needed ui/bot. do NOT install all.
 # minimal core first; missing packages can be installed on demand.
-# base deps = what the installed package (core* + simphtml/TMWebDriver) imports;
+# base deps = what the installed packages (core* + tau_agent* + tau_ai* +
+# simphtml/TMWebDriver) import;
 # frontend-only deps (streamlit, aiohttp, ...) live under optional-dependencies.
 
 [project]
@@ -46,7 +47,7 @@ py-modules = []
 
 [tool.setuptools.packages.find]
 where = [".", "src"]
-include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*", "tau_ai*"]
+include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*", "tau_ai*", "tau_agent*"]
 exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*"]
 namespaces = false
 

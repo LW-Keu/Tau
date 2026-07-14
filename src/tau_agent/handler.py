@@ -8,7 +8,7 @@ from .tools.utils import (smart_format, consume_file, log_memory_access,
 from .tools.code_run import code_run, ask_user
 from .tools.file_io import file_read, file_patch, file_write
 from .tools.web import web_scan, web_execute_js
-from .paths import MEMORY
+from core.paths import MEMORY
 
 class TauHandler(BaseHandler):
     '''Tau 工具库，包含多种工具的实现。工具函数自动加上了 do_ 前缀。实际工具名没有前缀。'''

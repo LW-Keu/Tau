@@ -2,9 +2,9 @@
 中导入核心顶层模块，全部成功才算地基达成。"""
 import subprocess, sys, tempfile, os
 
-TOPLEVEL = ["tau_ai", "core.paths", "core.taumain", "TMWebDriver",
-            "TMWebDriver.simphtml",
-            "plugins.hooks", "memory.email_config", "reflect.scheduler"]
+TOPLEVEL = ["tau_agent", "tau_ai", "core.paths", "core.taumain",
+            "TMWebDriver", "TMWebDriver.simphtml", "plugins.hooks",
+            "memory.email_config", "reflect.scheduler"]
 
 def main():
     code = "import " + ", ".join(TOPLEVEL)

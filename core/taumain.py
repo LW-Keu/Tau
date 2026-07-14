@@ -9,12 +9,12 @@ from tau_ai.keys import reload_taukeys
 from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, resolve_client
 from tau_ai.providers.openai import LLMSession, NativeOAISession
 from tau_ai.providers.claude import ClaudeSession, NativeClaudeSession
-from .agent_loop import agent_runner_loop
+from tau_agent.agent_loop import agent_runner_loop
 try:
     from plugins.hooks import discover_and_load; discover_and_load()
 except Exception: pass
-from .handler import TauHandler
-from .tools.utils import smart_format, get_global_memory, format_error, consume_file
+from tau_agent.handler import TauHandler
+from tau_agent.tools.utils import smart_format, get_global_memory, format_error, consume_file
 from .paths import TAU_HOME, MEMORY, ASSETS, TEMP
 
 script_dir = str(TAU_HOME / "core")
