@@ -372,10 +372,12 @@ Change the `scripts/README.md` table cell to:
 Run:
 
 ```bash
-rg -n "core\.llm|core/llm|from \.llm" core apps plugins tests scripts pyproject.toml README.md docs --glob '!docs/superpowers/**'
+rg -n "(from|import) core\.llm|from \.llm|core/llm" core apps plugins tests scripts pyproject.toml README.md docs --glob '!docs/superpowers/**'
 ```
 
-Expected: no output. Historical design and implementation documents under
+Expected: no output. The narrower expression checks active imports and stale
+path documentation without rejecting the intentional negative assertion
+`find_spec("core.llm")`. Historical design and implementation documents under
 `docs/superpowers/` are excluded because they intentionally describe the
 before/after boundary.
 
