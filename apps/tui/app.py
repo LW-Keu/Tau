@@ -103,7 +103,7 @@ _ANSI_CONTROL_RE = re.compile(
 # (e.g. mapping narrow rendered output to source positions for selection).
 _ANSI_SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
 
-# Strip the leading `**LLM Running (Turn N) ...**` marker that agent_loop yields per turn.
+# Strip the leading marker that tau_agent.agent_loop yields per turn.
 # fold_turns still needs the marker in source content to split turns, so we only strip at
 # render time. Applies to the live (last) text segment, since folded turns don't include it.
 _TURN_MARKER_RE = re.compile(r"^\s*\**LLM Running \(Turn \d+\) \.\.\.\**\s*", re.MULTILINE)
@@ -2038,7 +2038,7 @@ class TauTUI(App[None]):
         return sess
 
     def _install_ask_user_hook(self, sess: AgentSession) -> None:
-        """Capture ask_user INTERRUPT payloads from agent_loop's turn_end hook.
+        """Capture ask_user INTERRUPT payloads from tau_agent.agent_loop's turn_end hook.
 
         The agent yields `{"status": "INTERRUPT", "intent": "HUMAN_INTERVENTION",
         "data": {question, candidates}}` via `exit_reason.data`. We push events

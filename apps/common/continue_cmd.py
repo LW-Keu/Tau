@@ -272,7 +272,7 @@ def _assistant_text(response_body):
 
 
 def _format_tool_use(block):
-    """Match agent_loop.py:72 verbose tool-call header."""
+    """Match tau_agent.agent_loop:72 verbose tool-call header."""
     name = block.get('name', '?')
     args = block.get('input', {})
     try: pretty = json.dumps(args, indent=2, ensure_ascii=False).replace('\\n', '\n')
@@ -281,7 +281,7 @@ def _format_tool_use(block):
 
 
 def _format_tool_result(content):
-    """Match agent_loop.py:79-81 five-backtick fence around tool output."""
+    """Match tau_agent.agent_loop:79-81 five-backtick fence around tool output."""
     if isinstance(content, list):
         parts = []
         for b in content:
@@ -310,7 +310,7 @@ def _tool_results_from_prompt(prompt_body):
 
 def _format_response_segment(response_body, tool_results):
     """Rebuild one LLM call's transcript slice: text blocks + tool_use headers +
-    matching tool_result fences. Mirrors agent_loop verbose output so fold_turns
+    matching tool_result fences. Mirrors tau_agent.agent_loop verbose output so fold_turns
     sees the same string shape as live mode.
     """
     try: blocks = ast.literal_eval(response_body)
@@ -337,7 +337,7 @@ def extract_ui_messages(path):
     Auto-continuation LLM calls are concatenated into the same assistant bubble,
     separated by ``**LLM Running (Turn N) ...**`` markers. Tool calls and their
     results are rendered into the assistant content using the same string format
-    that agent_loop yields live, so fold_turns can fold them identically.
+    that tau_agent.agent_loop yields live, so fold_turns can fold them identically.
     """
     try:
         with open(path, encoding='utf-8', errors='replace') as f: content = f.read()
@@ -356,7 +356,7 @@ def extract_ui_messages(path):
         if user:
             if assistant is not None: out.append(assistant)
             out.append({'role': 'user', 'content': user})
-            # Turn 1 marker too — agent_loop yields one per LLM call, including the
+            # Turn 1 marker too — tau_agent.agent_loop yields one per LLM call, including the
             # first, so fold_turns treats every non-last call uniformly as a fold.
             assistant = {'role': 'assistant',
                          'content': f"\n\n**LLM Running (Turn 1) ...**\n\n{seg}"}

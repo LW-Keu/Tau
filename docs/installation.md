@@ -132,7 +132,7 @@ python launch.pyw
 From the Tau directory:
 
 ```bash
-python -c "import agent_loop; print('OK')"
+python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 
@@ -262,7 +262,7 @@ Run:
 
 ```bash
 cd ~/Tau
-python -c "import agent_loop; print('OK')"
+python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 

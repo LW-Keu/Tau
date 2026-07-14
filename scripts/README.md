@@ -1,7 +1,7 @@
 # scripts/
 
 开发期工具集。**不在 wheel**（pyproject `exclude` 显式排除）。**不在用户运行路径**。
-Agent 不可见；agent 在 SOP/工具中**只**通过 `core.tools.*` API 调用业务逻辑。
+Agent 不可见；agent 在 SOP/工具中**只**通过 `tau_agent.tools.*` API 调用业务逻辑。
 
 | 文件 | 这是什么 | 谁调它 |
 |---|---|---|

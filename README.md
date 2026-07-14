@@ -133,7 +133,8 @@ tau list       # 列出全部命令
 
 ```
 Tau/
-├── core/         # 智能体内核 ~1.8K 行:agent_loop · handler · taumain · llm/ · tools/
+├── core/         # Tau 入口与路径配置:taumain · paths
+├── src/          # 可安装内核包:tau_agent · tau_ai
 ├── apps/         # 多前端:common · cli · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
 ├── reflect/      # 高级模式:自主运行 · 目标模式 · 子代理团队 · 调度器
