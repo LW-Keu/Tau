@@ -179,3 +179,5 @@ reflect/*
 
 # Agent tooling runtime state (Claude Code / local-only)
 .superpowers/
+.agents/
+.todos/
