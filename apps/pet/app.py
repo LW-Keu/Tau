@@ -21,7 +21,7 @@ from apps.common.chatapp_common import (
     HELP_TEXT, FILE_HINT, format_restore,
     _handle_continue_frontend, _reset_conversation,
 )
-from core.llm.keys import taukeys
+from tau_ai.keys import taukeys
 
 try:
     import discord

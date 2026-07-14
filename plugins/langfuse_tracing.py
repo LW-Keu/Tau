@@ -10,7 +10,7 @@ Usage tracking (SSE parser wrapping) stays as internal llmcore patch.
 import threading, sys
 
 try:
-    from core.llm import _load_taukeys
+    from tau_ai import _load_taukeys
     _cfg = _load_taukeys().get('langfuse_config')
     from langfuse import Langfuse
     _lf = Langfuse(**_cfg) if _cfg else None
@@ -18,7 +18,7 @@ except Exception:
     _lf = None
 
 if _lf:
-    import plugins.hooks as hooks, core.llm as llmcore
+    import plugins.hooks as hooks, tau_ai as llmcore
     _tls = threading.local()
 
     # ── Agent trace ──────────────────────────────────────────────

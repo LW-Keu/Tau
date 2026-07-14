@@ -11,7 +11,7 @@ import requests
 
 from core.taumain import Tau
 from apps.common.chatapp_common import AgentChatMixin, ensure_single_instance, public_access, redirect_log, require_runtime, split_text
-from core.llm.keys import taukeys
+from tau_ai.keys import taukeys
 
 try:
     from dingtalk_stream import AckMessage, CallbackHandler, Credential, DingTalkStreamClient

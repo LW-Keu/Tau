@@ -23,23 +23,25 @@ class TestTaukeyPath(unittest.TestCase):
         self._env_patcher = mock.patch.dict(os.environ, env, clear=True)
         self._env_patcher.start()
         self.addCleanup(self._env_patcher.stop)
-        # Reload core.paths and core.llm.keys with TAU_HOME=tmp.
+        # Reload core.paths and tau_ai with TAU_HOME=tmp.
         for mod in list(sys.modules):
-            if mod == "core.paths" or mod.startswith("core.llm.keys"):
+            if mod == "core.paths" or mod == "tau_ai" or mod.startswith("tau_ai."):
                 del sys.modules[mod]
         from core.paths import TAU, TAUKEY_PATH  # noqa
-        from core.llm.keys import _load_taukeys, reload_taukeys  # noqa
+        from tau_ai.keys import _load_taukeys, reload_taukeys  # noqa
         self.TAU = TAU
         self.TAUKEY_PATH = TAUKEY_PATH
         self._load = _load_taukeys
         self._reload = reload_taukeys
 
-        # The legacy JSON fallback in core/llm/keys.py reads
-        # core/llm/taukey.json from the loader's own __file__ directory,
+        # The legacy JSON fallback in tau_ai/keys.py reads
+        # tau_ai/taukey.json from the loader's own __file__ directory,
         # NOT from TAU_HOME. To exercise the "missing file" branch of
         # the loader, we must hide this file for the duration of each test.
         import shutil
-        self._legacy_json = Path(__file__).resolve().parent.parent / "core" / "llm" / "taukey.json"
+        import tau_ai.keys as keys_module
+
+        self._legacy_json = Path(keys_module.__file__).with_name("taukey.json")
         self._legacy_json_backup = None
         if self._legacy_json.exists():
             self._legacy_json_backup = self._legacy_json.with_suffix(".json.test_bak")

@@ -11,7 +11,7 @@ readme = "README.md"
 requires-python = ">=3.10,<3.14"
 license = { text = "MIT" }
 dependencies = [
-    "requests>=2.28",                 # core/llm/transport.py
+    "requests>=2.28",                 # src/tau_ai/transport.py
     "beautifulsoup4>=4.12",           # simphtml.py
     "bottle>=0.12",                   # TMWebDriver.py
     "simple-websocket-server>=0.4",   # TMWebDriver.py
@@ -45,8 +45,13 @@ build-backend = "setuptools.build_meta"
 py-modules = []
 
 [tool.setuptools.packages.find]
-include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*"]
+where = [".", "src"]
+include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*", "tau_ai*"]
 exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+tau_ai = ["taukey.json"]
 
 [project.scripts]
 tau = "tau_cli.cli:main"

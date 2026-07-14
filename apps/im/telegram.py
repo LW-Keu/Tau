@@ -33,7 +33,7 @@ from apps.common.chatapp_common import (
 )
 from apps.common.continue_cmd import handle_frontend_command, reset_conversation
 from apps.common.btw_cmd import handle_frontend_command as handle_btw_frontend_command
-from core.llm.keys import taukeys
+from tau_ai.keys import taukeys
 
 agent = Tau()
 agent.verbose = False

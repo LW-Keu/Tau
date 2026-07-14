@@ -124,7 +124,7 @@ def install() -> None:
     """Idempotently wrap llmcore._record_usage and llmcore.print."""
     global _INSTALLED
     if _INSTALLED: return
-    import core.llm as llmcore
+    import tau_ai as llmcore
     orig_record, orig_print = llmcore._record_usage, print
 
     def record_patched(usage, api_mode):

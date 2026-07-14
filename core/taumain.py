@@ -5,10 +5,10 @@ elif hasattr(sys.stdout, 'reconfigure'): sys.stdout.reconfigure(errors='replace'
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 elif hasattr(sys.stderr, 'reconfigure'): sys.stderr.reconfigure(errors='replace')
 
-from .llm.keys import reload_taukeys
-from .llm.clients import ToolClient, NativeToolClient, MixinSession, resolve_client
-from .llm.providers.openai import LLMSession, NativeOAISession
-from .llm.providers.claude import ClaudeSession, NativeClaudeSession
+from tau_ai.keys import reload_taukeys
+from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, resolve_client
+from tau_ai.providers.openai import LLMSession, NativeOAISession
+from tau_ai.providers.claude import ClaudeSession, NativeClaudeSession
 from .agent_loop import agent_runner_loop
 try:
     from plugins.hooks import discover_and_load; discover_and_load()

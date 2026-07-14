@@ -1,4 +1,4 @@
-"""Abstract Session base. Provider subclasses live in llm/providers/."""
+"""Abstract Session base. Provider subclasses live in tau_ai/providers/."""
 import json, threading
 from .trim import trim_messages_history, safeprint
 print = safeprint

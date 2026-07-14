@@ -18,7 +18,7 @@ os.chdir(PROJECT_ROOT)
 from core.taumain import Tau
 from apps.common.chatapp_common import format_restore
 from apps.common.continue_cmd import handle_frontend_command as handle_continue_frontend, reset_conversation
-from core.llm.keys import taukeys
+from tau_ai.keys import taukeys
 
 import traceback
 import lark_oapi as lark
