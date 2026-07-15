@@ -14,7 +14,7 @@ if _r not in sys.path:
 import asyncio, json, os, queue as Q, re, sys, threading, time
 from collections import OrderedDict
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from apps.common.chatapp_common import (
     AgentChatMixin, build_done_text, ensure_single_instance, extract_files,
     public_access, redirect_log, require_runtime, split_text, strip_files, clean_reply,

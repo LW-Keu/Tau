@@ -34,7 +34,7 @@ from PySide6.QtGui import (
     QPen, QPainterPath, QCursor, QFont, QIcon, QPixmap, QRegion,
 )
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from apps.common.chatapp_common import FILE_HINT, HELP_TEXT, clean_reply, build_done_text, format_restore
 
 

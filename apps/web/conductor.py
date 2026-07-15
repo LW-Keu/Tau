@@ -23,7 +23,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
 from pydantic import BaseModel
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 
 HOST = "127.0.0.1"
 PORT = 8900

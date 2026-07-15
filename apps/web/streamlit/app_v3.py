@@ -18,7 +18,7 @@ except: pass
 import streamlit as st
 import time, re, threading, queue
 from datetime import datetime
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 
 st.set_page_config(page_title="Tau", layout="wide")
 
@@ -637,4 +637,3 @@ if prompt := st.chat_input("请输入指令", disabled=st.session_state.streamin
     st.session_state.messages.append({"role": "user", "content": prompt, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
     start_agent_task(prompt)
     st.rerun()
-

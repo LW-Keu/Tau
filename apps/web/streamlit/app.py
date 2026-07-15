@@ -22,7 +22,7 @@ sys.path.append(os.path.abspath(script_dir))
 
 import streamlit as st
 import time, json, re, threading, queue
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 import apps.common.chatapp_common as chatapp_common  # activate /continue command (monkey patches Tau)
 from apps.common.continue_cmd import handle_frontend_command, reset_conversation, list_sessions, extract_ui_messages
 from apps.common.btw_cmd import handle_frontend_command as btw_handle_frontend

@@ -32,7 +32,7 @@ LAUNCHERS: dict[str, dict] = {
         "name": "cli",
         "help": "启动 CLI 对话 (taumain)",
         "desc": "启动命令行交互对话模式，最轻量的使用方式",
-        "cmd": ["python", "{PROJECT_DIR}/core/taumain.py"],
+        "cmd": ["python", "-m", "tau_coding.taumain"],
     },
     "launch": {
         "name": "launch",

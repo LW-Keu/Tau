@@ -23,7 +23,7 @@ except (ImportError, AttributeError):
     from streamlit.components.v1 import html as _embed_html  # ≤1.55
 import time, json, re, threading, queue
 from datetime import datetime
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 
 st.set_page_config(page_title="Cowork", layout="wide")
 
@@ -1053,4 +1053,3 @@ if prompt := st.chat_input("请输入指令", disabled=st.session_state.streamin
     st.session_state.messages.append({"role": "user", "content": prompt, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
     start_agent_task(prompt)
     st.rerun()
-

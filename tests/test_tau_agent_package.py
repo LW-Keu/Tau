@@ -2,6 +2,13 @@ import importlib.util
 import unittest
 
 
+def find_spec(name):
+    try:
+        return importlib.util.find_spec(name)
+    except ModuleNotFoundError:
+        return None
+
+
 class TestTauAgentPackage(unittest.TestCase):
 
     def test_runtime_symbols_come_from_tau_agent(self):
@@ -26,7 +33,7 @@ class TestTauAgentPackage(unittest.TestCase):
     def test_old_core_modules_are_removed(self):
         for module in ("core.agent_loop", "core.handler", "core.tools"):
             with self.subTest(module=module):
-                self.assertIsNone(importlib.util.find_spec(module))
+                self.assertIsNone(find_spec(module))
 
 
 if __name__ == "__main__":

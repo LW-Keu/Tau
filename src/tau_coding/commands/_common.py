@@ -1,10 +1,11 @@
-"""Shared helpers for tau_cli/commands/*.
+"""Shared helpers for tau_coding/commands/*.
 
 启动类命令都通过 launch_frontend() Popen 子进程,internal 命令用各自的 run() 实现。
 """
 import os, subprocess, sys
+from tau_coding.paths import TAU_HOME
 
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_DIR = str(TAU_HOME)
 
 
 def _apps():
@@ -12,7 +13,7 @@ def _apps():
 
 
 def _reflect():
-    return os.path.join(PROJECT_DIR, "reflect")
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "reflect")
 
 
 def launch_frontend(cmd_parts, args=None):

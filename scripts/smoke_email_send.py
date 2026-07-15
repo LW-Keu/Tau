@@ -41,8 +41,8 @@ def _setup_home():
 
     # 关键：reload 模块，让 CONFIG_DIR / CONFIG_FILE / SENT / EMAIL_LOG 常量
     # 用新的 TAU_HOME 重新求值（模块级常量只在 import 时求值一次）
-    import core.paths
-    importlib.reload(core.paths)  # 重读 TAU_HOME env（锚点首次 import 已冻结）
+    import tau_coding.paths
+    importlib.reload(tau_coding.paths)  # 重读 TAU_HOME env（锚点首次 import 已冻结）
     import memory.email_config as email_config
     importlib.reload(email_config)
     import memory.email_send as email_send  # noqa: F401

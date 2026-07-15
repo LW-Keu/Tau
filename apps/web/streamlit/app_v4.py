@@ -18,7 +18,7 @@ except: pass
 import streamlit as st
 import time, re, threading, queue
 from datetime import datetime
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from upload_utils import save_upload, build_prompt, humansize, MAX_ATTACHMENTS
 
 st.set_page_config(page_title="Tau", layout="wide")
@@ -754,4 +754,3 @@ if prompt := st.chat_input("请输入指令", disabled=st.session_state.streamin
     start_agent_task(display_prompt, atts)
     st.session_state.pending_attachments = []
     st.rerun()
-

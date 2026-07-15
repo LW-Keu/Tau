@@ -8,7 +8,7 @@ if _r not in sys.path:
 
 import os, sys, re, threading, asyncio, queue as Q, time, random, uuid
 _TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'temp')
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 try:
     from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
     from telegram.constants import ChatType, MessageLimit, ParseMode

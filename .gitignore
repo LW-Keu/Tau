@@ -155,17 +155,9 @@ scheduler.pid
 autonomous.pid
 report_data_*.json
 
-# Root 启动脚本已移至 tau_cli/ (commit 1959ccd), root 副本仅供本地运行, 不入库
+# Root 启动脚本已移至 src/tau_coding/scripts/, root 副本仅供本地运行, 不入库
 /start*.sh
 /stop*.sh
-
-# Reflect (ignore new files, whitelist existing)
-reflect/*
-!reflect/__init__.py
-!reflect/autonomous.py
-!reflect/scheduler.py
-!reflect/agent_team_worker.py
-!reflect/goal_mode.py
 
 # Universal: never track __pycache__ anywhere
 **/__pycache__/

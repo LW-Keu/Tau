@@ -994,7 +994,7 @@ class AgentSession:
 
 
 def default_agent_factory() -> Any:
-    from core.taumain import Tau
+    from tau_coding.taumain import Tau
     agent = Tau()
     agent.inc_out = True
     return agent
@@ -1893,7 +1893,7 @@ class TauTUI(App[None]):
             pass
         # Patch Tau for /review in case chatapp_common didn't wire it.
         try:
-            from core.taumain import Tau as _Tau
+            from tau_coding.taumain import Tau as _Tau
             import apps.common.review_cmd as review_cmd; review_cmd.install(_Tau)
         except Exception:
             pass

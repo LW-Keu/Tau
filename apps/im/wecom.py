@@ -23,7 +23,7 @@ class TurnContext(TypedDict, total=False):
 
 TurnHookFn = Callable[[TurnContext], None]
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from apps.common.chatapp_common import (AgentChatMixin, FILE_HINT, build_done_text, clean_reply,
                             ensure_single_instance, extract_files, public_access,
                             redirect_log, require_runtime, split_text, strip_files)

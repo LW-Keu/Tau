@@ -106,7 +106,7 @@ class AgentManager:
         old_cwd = os.getcwd()
         try:
             os.chdir(sess.cwd or str(root))
-            taumain = importlib.import_module("core.taumain")
+            taumain = importlib.import_module("tau_coding.taumain")
             Tau = getattr(taumain, "Tau")
             agent = Tau()
             agent.inc_out = True
@@ -120,7 +120,7 @@ class AgentManager:
     def list_model_profiles(self):
         self.ensure_ga_import_path()
         try:
-            taumain = importlib.import_module("core.taumain")
+            taumain = importlib.import_module("tau_coding.taumain")
             agent = taumain.Tau()
             if hasattr(agent, "list_llms"):
                 return [{"id": i, "name": name, "active": active} for i, name, active in agent.list_llms()]

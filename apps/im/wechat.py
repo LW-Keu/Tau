@@ -12,7 +12,7 @@ from urllib.parse import quote
 import requests, qrcode
 from Crypto.Cipher import AES
 _TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'temp')
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 
 # ── WxBotClient (inline from wx_bot_client.py) ──
 for _k in ('HTTPS_PROXY', 'https_proxy'):

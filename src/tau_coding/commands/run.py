@@ -21,10 +21,10 @@ def run(args=None):
         print("示例: tau run 帮我在桌面创建一个 hello.txt")
         sys.exit(1)
 
-    # Lazy import: core.taumain 在 import 时拉起 requests 等重依赖,
+    # Lazy import: tau_coding.taumain 在 import 时拉起 requests 等重依赖,
     # 不能让 cli.py 顶层 import run 就把这些 deps 拉进来 (tau list 跑不起来)。
     import threading
-    from core.taumain import Tau
+    from tau_coding.taumain import Tau
 
     query = " ".join(args)
     agent = Tau()

@@ -1,5 +1,5 @@
 import importlib.util, json, os
-from core.paths import TAUKEY_PATH
+from tau_coding.paths import TAUKEY_PATH
 
 _taukey_path = _taukey_mtime = None
 taukeys = {}

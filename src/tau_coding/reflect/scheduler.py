@@ -13,7 +13,7 @@ except NameError:
 INTERVAL = 120
 ONCE = False
 
-from core.paths import SCHE_TASKS, TEMP, MEMORY
+from tau_coding.paths import SCHE_TASKS, TEMP, MEMORY
 TASKS = str(SCHE_TASKS)
 DONE  = str(SCHE_TASKS / 'done')
 _LOG  = str(SCHE_TASKS / 'scheduler.log')

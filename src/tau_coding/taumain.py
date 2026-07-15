@@ -1,3 +1,5 @@
+import importlib
+import importlib.util
 import os, sys, threading, queue, time, json, re, random, locale
 os.environ.setdefault('GA_LANG', 'zh' if any(k in (locale.getlocale()[0] or '').lower() for k in ('zh', 'chinese')) else 'en')
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
@@ -17,7 +19,6 @@ from tau_agent.handler import TauHandler
 from tau_agent.tools.utils import smart_format, get_global_memory, format_error, consume_file
 from .paths import TAU_HOME, MEMORY, ASSETS, TEMP
 
-script_dir = str(TAU_HOME / "core")
 def load_tool_schema(suffix=''):
     global TOOLS_SCHEMA
     TS = open(str(ASSETS / f'tools_schema{suffix}.json'), 'r', encoding='utf-8').read()
@@ -45,6 +46,22 @@ def get_system_prompt():
     prompt += f"\nToday: {time.strftime('%Y-%m-%d %a')}\n"
     prompt += get_global_memory()
     return prompt
+
+
+def _load_reflect(target, current=None):
+    if os.path.isfile(target):
+        spec = importlib.util.spec_from_file_location("reflect_script", target)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load reflect script: {target}")
+        module = current or importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    else:
+        module = importlib.reload(current) if current else importlib.import_module(target)
+    source = getattr(module, "__file__", None)
+    if not source:
+        raise ImportError(f"Reflect target has no source file: {target}")
+    return module, os.path.realpath(source)
+
 
 class Tau:
     def __init__(self):
@@ -193,12 +210,17 @@ if __name__ == '__main__':
 
     if args.task and not args.nobg:
         import subprocess, platform
-        cmd = [sys.executable, os.path.abspath(__file__)] + [a for a in sys.argv[1:]] + ['--nobg']
+        cmd = [sys.executable, "-m", "tau_coding.taumain"] + [
+            arg for arg in sys.argv[1:] if arg != "--nobg"
+        ] + ["--nobg"]
         d = str(TEMP / args.task); os.makedirs(d, exist_ok=True)
-        p = subprocess.Popen(cmd, cwd=script_dir,
-            creationflags=0x08000000 if platform.system() == 'Windows' else 0,
-            stdout=open(os.path.join(d, 'stdout.log'), 'w', encoding='utf-8'),
-            stderr=open(os.path.join(d, 'stderr.log'), 'w', encoding='utf-8'))
+        p = subprocess.Popen(
+            cmd,
+            cwd=str(TAU_HOME),
+            creationflags=0x08000000 if platform.system() == "Windows" else 0,
+            stdout=open(os.path.join(d, "stdout.log"), "w", encoding="utf-8"),
+            stderr=open(os.path.join(d, "stderr.log"), "w", encoding="utf-8"),
+        )
         print(p.pid); sys.exit(0)
 
     agent = Tau()
@@ -230,16 +252,15 @@ if __name__ == '__main__':
             nround = nround + 1 if isinstance(nround, int) else 1
     elif args.reflect:
         agent.peer_hint = False
-        import importlib.util
-        spec = importlib.util.spec_from_file_location('reflect_script', args.reflect)
-        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        mod, reflect_path = _load_reflect(args.reflect)
         if hasattr(mod, 'init'): mod.init(_reflect_args)
-        _mt = os.path.getmtime(args.reflect)
+        _mt = os.path.getmtime(reflect_path)
         print(f'[Reflect] loaded {args.reflect}' + (f' args={_reflect_args}' if _reflect_args else ''))
         while True:
-            if os.path.getmtime(args.reflect) != _mt:
+            if os.path.getmtime(reflect_path) != _mt:
                 try:
-                    spec.loader.exec_module(mod); _mt = os.path.getmtime(args.reflect)
+                    mod, reflect_path = _load_reflect(args.reflect, mod)
+                    _mt = os.path.getmtime(reflect_path)
                     if hasattr(mod, 'init'): mod.init(_reflect_args)
                     print('[Reflect] reloaded')
                 except Exception as e: print(f'[Reflect] reload error: {e}')
@@ -259,7 +280,7 @@ if __name__ == '__main__':
                 if getattr(mod, 'ONCE', False): raise
                 print(f'[Reflect] drain error: {e}'); result = f'[ERROR] {e}'
             log_dir = str(TEMP / 'reflect_logs'); os.makedirs(log_dir, exist_ok=True)
-            script_name = os.path.splitext(os.path.basename(args.reflect))[0]
+            script_name = os.path.splitext(os.path.basename(reflect_path))[0]
             open(os.path.join(log_dir, f'{script_name}_{datetime.now():%Y-%m-%d}.log'), 'a', encoding='utf-8').write(f'[{datetime.now():%m-%d %H:%M}]\n{result}\n\n')
             if (on_done := getattr(mod, 'on_done', None)):
                 try: on_done(result)

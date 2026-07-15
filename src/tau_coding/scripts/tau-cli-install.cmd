@@ -4,7 +4,7 @@ chcp 65001 >nul
 :: 运行一次后，即可在任意位置敲 tau <command>
 :: 建议以管理员身份运行
 
-cd /d "%~dp0.."
+cd /d "%~dp0..\..\.."
 set "TARGET_DIR=%CD%"
 
 echo.

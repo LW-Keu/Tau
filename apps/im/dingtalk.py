@@ -9,7 +9,7 @@ if _r not in sys.path:
 import asyncio, json, os, sys, threading, time
 import requests
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from apps.common.chatapp_common import AgentChatMixin, ensure_single_instance, public_access, redirect_log, require_runtime, split_text
 from tau_ai.keys import taukeys
 

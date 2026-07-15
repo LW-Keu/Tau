@@ -2,6 +2,7 @@
 # 启动: set GOAL_STATE=temp/xxx.json && python taumain.py --reflect reflect/goal_mode.py
 # 配置: agent按SOP写好state json，通过环境变量GOAL_STATE指定路径
 import os, json, time
+from tau_coding.paths import TAU_HOME, TEMP
 
 INTERVAL = 3   # check间隔短，agent跑完立刻再检查
 ONCE = False
@@ -10,8 +11,10 @@ _dir = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = ''
 def init(a):
     global STATE_FILE
-    STATE_FILE = a.get('goal_state') or os.environ.get('GOAL_STATE') or os.path.join(_dir, '../temp/goal_state.json')
-    if not os.path.isabs(STATE_FILE): STATE_FILE = os.path.join(_dir, '..', STATE_FILE)
+    STATE_FILE = (a.get("goal_state") or os.environ.get("GOAL_STATE")
+                  or str(TEMP / "goal_state.json"))
+    if not os.path.isabs(STATE_FILE):
+        STATE_FILE = str(TAU_HOME / STATE_FILE)
 # --- state 管理 ---
 def _load():
     if not os.path.isfile(STATE_FILE): return None

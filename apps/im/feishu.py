@@ -15,7 +15,7 @@ except Exception:
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(PROJECT_ROOT)
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 from apps.common.chatapp_common import format_restore
 from apps.common.continue_cmd import handle_frontend_command as handle_continue_frontend, reset_conversation
 from tau_ai.keys import taukeys

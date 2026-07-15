@@ -1,9 +1,10 @@
 # hub.pyw - Tau 服务启动器
 # 纯 tkinter + 标准库，零第三方依赖，跨平台
-import os, sys, socket, subprocess, threading
+import os, pkgutil, sys, socket, subprocess, threading
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
+from tau_coding.reflect import __path__ as REFLECT_PATH
 
 LOCK_PORT = 19735
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -19,19 +20,20 @@ def acquire_singleton():
 
 def discover_services():
     services = []
-    EXCLUDES = {'goal_mode.py'}  # chatapp_common.py now lives in apps/common/ — not at top level
-    reflect_dir = os.path.join(BASE_DIR, 'reflect')
-    if os.path.isdir(reflect_dir):
-        for f in sorted(os.listdir(reflect_dir)):
-            if f.endswith('.py') and not f.startswith('_') and f not in EXCLUDES:
-                services.append({
-                    'name': 'reflect/' + f,
-                    'cmd': [sys.executable, os.path.join(BASE_DIR, 'core', 'taumain.py'), '--reflect', os.path.join(BASE_DIR, 'reflect', f)],
-                })
+    excludes = {"goal_mode"}
+    modules = sorted(info.name for info in pkgutil.iter_modules(REFLECT_PATH))
+    for name in modules:
+        if not name.startswith("_") and name not in excludes:
+            target = f"tau_coding.reflect.{name}"
+            services.append({
+                "name": target,
+                "cmd": [sys.executable, "-m", "tau_coding.taumain",
+                        "--reflect", target],
+            })
     apps_dir = os.path.join(BASE_DIR, 'apps')
     if os.path.isdir(apps_dir):
         for f in sorted(os.listdir(apps_dir)):
-            if 'app' in f and f.endswith('.py') and f not in EXCLUDES:
+            if 'app' in f and f.endswith('.py') and f not in excludes:
                 if 'stapp' in f: cmd = [sys.executable, '-m', 'streamlit', 'run', 'apps/' + f, '--server.headless=true']
                 else: cmd = [sys.executable, 'apps/' + f]
                 services.append({'name': 'apps/' + f, 'cmd': cmd})

@@ -41,7 +41,7 @@ assert NativeToolClient.__module__.endswith('tau_ai.clients'), NativeToolClient.
 assert MixinSession.__module__.endswith('tau_ai.clients'), MixinSession.__module__
 assert resolve_client.__module__.endswith('tau_ai.clients'), resolve_client.__module__
 
-from core.paths import TAUKEY_PATH
+from tau_coding.paths import TAUKEY_PATH
 print(f'[SMOKE-OK] taukey_path={TAUKEY_PATH} '
       f'taukeys_loaded={len(taukeys)} '
       f'private_load={_load_taukeys.__name__} '

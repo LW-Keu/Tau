@@ -45,7 +45,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.taumain import Tau
+from tau_coding.taumain import Tau
 
 
 JSONRPC_VERSION = "2.0"

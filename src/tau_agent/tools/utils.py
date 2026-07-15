@@ -1,7 +1,7 @@
 """Generic utility helpers used across tool implementations."""
 import os, re, sys, json, traceback
 from datetime import datetime
-from core.paths import MEMORY, ASSETS, TEMP
+from tau_coding.paths import MEMORY, ASSETS, TEMP
 
 
 def smart_format(data, max_str_len=100, omit_str=' ... '):

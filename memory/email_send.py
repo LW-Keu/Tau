@@ -7,7 +7,7 @@ from datetime import datetime
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 
-from core.paths import SCHE_TASKS, TEMP
+from tau_coding.paths import SCHE_TASKS, TEMP
 from memory.email_config import load_email_config
 DONE = str(SCHE_TASKS / "done")
 SENT = str(TEMP / "email_report.sent")

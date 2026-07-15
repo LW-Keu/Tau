@@ -1,15 +1,15 @@
-"""tau_cli/cli.py - Tau 命令行分发入口。
+"""tau_coding/cli.py - Tau 命令行分发入口。
 
-通过 `python -m tau_cli <command>` 或 `tau <command>` 调用。
-命令定义与执行在 tau_cli/commands/ 下, 本文件仅负责 main() 与 dispatch。
+通过 `python -m tau_coding <command>` 或 `tau <command>` 调用。
+命令定义与执行在 tau_coding/commands/ 下, 本文件仅负责 main() 与 dispatch。
 """
 import argparse, sys, textwrap
 
 if sys.platform == "win32" and sys.stdout.encoding and sys.stdout.encoding.lower() in ("gbk", "gb2312"):
     sys.stdout.reconfigure(errors="replace") if hasattr(sys.stdout, "reconfigure") else None
 
-from tau_cli.commands import _launchers as _launchers_mod
-from tau_cli.commands import run, list as list_cmd, status as status_cmd, update as update_cmd
+from .commands import _launchers as _launchers_mod
+from .commands import run, list as list_cmd, status as status_cmd, update as update_cmd
 
 
 COMMANDS = {
