@@ -206,24 +206,29 @@ def batch_process(src, l4_dir=None, dry_run=True):
 
     # Phase 3: Archive to monthly zips
     by_month = defaultdict(list)
-    for sn, cpath, _, info, _ in results:
+    for sn, cpath, _, info, raw_path in results:
         year = info.get('year', '2026') if isinstance(info, dict) else '2026'
-        by_month[f"{year}-{sn[:2]}"].append((sn, cpath))
+        by_month[f"{year}-{sn[:2]}"].append((sn, cpath, raw_path))
+    archived_raw = set()
     for mk, items in sorted(by_month.items()):
         zpath = os.path.join(l4_dir, f"{mk}.zip")
         mode = 'a' if os.path.exists(zpath) else 'w'
+        written = []
         with zipfile.ZipFile(zpath, mode, zipfile.ZIP_DEFLATED) as zf:
             names = set(zf.namelist()) if mode == 'a' else set()
-            for sn, cp in items:
-                if f"{sn}.txt" not in names: zf.write(cp, f"{sn}.txt")
+            for sn, cp, raw_path in items:
+                member = f"{sn}.txt"
+                if member not in names:
+                    zf.write(cp, member)
+                    written.append((member, raw_path))
+        with zipfile.ZipFile(zpath, 'r') as zf:
+            verified = set(zf.namelist())
+        archived_raw.update(raw_path for member, raw_path in written
+                            if member in verified)
         print(f"  {mk}.zip: +{len(items)}")
 
     # Phase 4: Delete raw files
-    to_del = [rp for *_, rp in results]
-    for fname, reason in skipped:
-        if 'recent' in reason: continue  # active session still being written
-        m = [f for f in raw_files if os.path.basename(f) == fname]
-        if m: to_del.append(m[0])
+    to_del = sorted(archived_raw)
     deleted = 0
     for rp in to_del:
         try: os.remove(rp); deleted += 1

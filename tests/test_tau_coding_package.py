@@ -46,6 +46,15 @@ class TestTauCodingPackage(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_cli_import_is_lightweight(self):
+        code = ("import sys,tau_coding.cli; "
+                "assert 'tau_coding.taumain' not in sys.modules; "
+                "assert 'tau_ai' not in sys.modules; "
+                "assert 'tau_agent' not in sys.modules")
+        result = subprocess.run([sys.executable, "-c", code],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_reflect_module_target_resolves(self):
         from tau_coding.taumain import _load_reflect
         module, source = _load_reflect("tau_coding.reflect.autonomous")

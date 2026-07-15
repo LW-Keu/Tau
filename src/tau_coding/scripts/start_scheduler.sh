@@ -29,18 +29,33 @@ header(){ echo -e "${CYAN}[====]${NC}  $*"; }
 check_port() {
     local port="$1"
     if command -v lsof &>/dev/null; then
-        lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+        lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null \
+            | awk 'NR > 1 {print "users:((\"" $1 "\",pid=" $2 "))"}' || true
     elif command -v ss &>/dev/null; then
         ss -tulnp 2>/dev/null | grep ":${port} " || true
     fi
 }
 
 extract_pids() {
-    echo "$1" | awk '{
-        for (i=1; i<=NF; i++) {
-            if ($i ~ /^[0-9]+$/) { print $i; break }
+    printf '%s\n' "$1" | awk '{
+        users = index($0, "users:(")
+        if (!users) next
+        rest = substr($0, users)
+        while (match(rest, /pid=[0-9]+/)) {
+            print substr(rest, RSTART + 4, RLENGTH - 4)
+            rest = substr(rest, RSTART + RLENGTH)
         }
     }' | sort -u
+}
+
+is_verified_scheduler_pid() {
+    local pid="$1" args
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    (( pid > 1 )) || return 1
+    [ "$pid" != "$$" ] && [ "$pid" != "$PPID" ] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    args=$(ps -p "$pid" -o args= 2>/dev/null) || return 1
+    [[ "$args" == *"${MODULE}"* && "$args" == *"${REFLECT_MODULE}"* ]]
 }
 
 get_proc_detail() {
@@ -83,9 +98,20 @@ if [ -n "$CONFLICT_INFO" ]; then
     echo "  ────────────────────────────────────────────────────────────"
 
     PIDS=$(extract_pids "$CONFLICT_INFO")
+    VERIFIED_PIDS=""
     for pid in $PIDS; do
-        get_proc_detail "$pid"
+        if is_verified_scheduler_pid "$pid"; then
+            VERIFIED_PIDS="${VERIFIED_PIDS} ${pid}"
+            get_proc_detail "$pid"
+        else
+            warn "拒绝未验证的进程 PID=${pid}"
+        fi
     done
+    PIDS="$VERIFIED_PIDS"
+    if [ -z "${PIDS// }" ]; then
+        error "未找到可验证的 scheduler 进程，拒绝发送信号。"
+        exit 1
+    fi
     echo "  ────────────────────────────────────────────────────────────"
     echo ""
 
@@ -96,7 +122,7 @@ if [ -n "$CONFLICT_INFO" ]; then
     if [ "$USER_REPLY" = "yes" ] || [ "$USER_REPLY" = "y" ]; then
         echo ""
         for pid in $PIDS; do
-            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            if is_verified_scheduler_pid "$pid"; then
                 info "正在终止进程 PID=${pid} ..."
                 kill -15 "$pid" 2>/dev/null || true
                 for i in 1 2 3; do

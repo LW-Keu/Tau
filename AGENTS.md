@@ -9,7 +9,7 @@
 
 ## Tau 硬约束
 
-- **结构勿大重排**:`core/`、`TMWebDriver/` 等顶层模块有意保留;前端一律在 `apps/`(`common/tui/web/im/gui/pet/desktop/hub`)。不要为「更整洁」搬动顶层目录。
+- **结构勿大重排**:运行时包在 `src/tau_coding`、`src/tau_agent`、`src/tau_ai`;`TMWebDriver/` 保留在顶层;前端一律在 `apps/`(`common/tui/web/im/gui/pet/desktop/hub`)。不要为「更整洁」搬动目录。
 - **包管理用 `uv`**:不用 pip / venv / poetry。
 - **`memory/` 是白名单**:`.py` 是工具(Agent import 调用)、`.md` 是 SOP(Agent 阅读执行)。新增或删除条目要**同步**改 `.gitignore` 的 `!memory/...` 解禁项,否则不入库。
 - **AGENTS.md ≠ Tau 运行时**:本文件只供开发期的 Codex 阅读;Tau 运行时 Agent 读的是 `assets/prompts/sys_prompt.txt` + `memory/`,改运行时行为请改那里。

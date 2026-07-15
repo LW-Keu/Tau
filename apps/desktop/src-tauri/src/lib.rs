@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use std::net::TcpStream;
 use std::time::{Duration, Instant};
 use std::thread;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 
 #[cfg(windows)]
@@ -69,23 +69,17 @@ fn find_python() -> String {
     { "python3".to_string() }
 }
 
-/// Find project directory by searching upward from exe for core/taumain.py
+fn find_project_dir_from(start: &Path) -> Option<PathBuf> {
+    start.ancestors().take(8).find(|dir| {
+        dir.join("pyproject.toml").is_file()
+            && dir.join("src").join("tau_coding").join("taumain.py").is_file()
+    }).map(Path::to_path_buf)
+}
+
+/// Find project directory by searching upward from the executable.
 fn find_project_dir() -> Option<String> {
     let exe = std::env::current_exe().ok()?;
-    let mut dir = exe.parent();
-    // Walk up to 8 levels from exe location
-    for _ in 0..8 {
-        match dir {
-            Some(d) => {
-                if d.join("core").join("taumain.py").exists() {
-                    return Some(d.to_string_lossy().to_string());
-                }
-                dir = d.parent();
-            }
-            None => break,
-        }
-    }
-    None
+    find_project_dir_from(exe.parent()?).map(|dir| dir.to_string_lossy().to_string())
 }
 
 /// Settings file path: ~/.tau_desktop_settings.json
@@ -339,4 +333,26 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_project_dir_from;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn discovers_project_from_current_package_anchors() {
+        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let root = std::env::temp_dir().join(format!("tau-root-{unique}"));
+        let nested = root.join("apps").join("desktop").join("target").join("debug");
+        fs::create_dir_all(root.join("src").join("tau_coding")).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(root.join("pyproject.toml"), "[project]\n").unwrap();
+        fs::write(root.join("src").join("tau_coding").join("taumain.py"), "").unwrap();
+
+        assert_eq!(find_project_dir_from(&nested), Some(root.clone()));
+
+        fs::remove_dir_all(root).unwrap();
+    }
 }

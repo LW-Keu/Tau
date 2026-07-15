@@ -107,10 +107,10 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 | llama.cpp / llamafile | 🔴不可用 | 不在PATH,需brew install或下载binary |
 | Anthropic SDK (pip) | 🔴不可用 | 不在Python site-packages |
 | OpenAI SDK (pip) | 🔴不可用 | 不在Python site-packages |
-| 本地core/taumain.py | 🟢实测可用 | Claude API经核心代理调用,本仓库内置 |
+| 本地 `tau_coding.taumain` | 🟢实测可用 | Claude API经核心代理调用,本仓库内置 |
 
 ### 🟠 已落地复用案例
-1. **核心调度**: 所有Agent/Subagent运行均通过`python3 ../core/taumain.py --task ... --nobg`调度
+1. **核心调度**: 所有Agent/Subagent运行均通过`python3 -m tau_coding.taumain --task ... --nobg`调度
 2. **批量文本处理**: TODO 3双源核验的"语义相似度判断"将调用subagent(LLM后端不可本地跑,只能远程)
 
 ### 建议
@@ -211,7 +211,7 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 
 ### 🟠 已落地复用案例
 1. **R02 Pipeline Monitor集成**: `0 8 * * * cd /path && python pipeline_monitor.py` (待接入)
-2. **subagent后台调度**: `cd {cwd} && python3 ../core/taumain.py --task "..." --nobg &`
+2. **subagent后台调度**: `cd {cwd} && python3 -m tau_coding.taumain --task "..." --nobg &`
 
 ---
 

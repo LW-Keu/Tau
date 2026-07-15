@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import os, sys, threading, queue, time, json, re, random, locale
+from pathlib import Path
 os.environ.setdefault('GA_LANG', 'zh' if any(k in (locale.getlocale()[0] or '').lower() for k in ('zh', 'chinese')) else 'en')
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
 elif hasattr(sys.stdout, 'reconfigure'): sys.stdout.reconfigure(errors='replace')
@@ -21,7 +22,7 @@ from .paths import TAU_HOME, MEMORY, ASSETS, TEMP
 
 def load_tool_schema(suffix=''):
     global TOOLS_SCHEMA
-    TS = open(str(ASSETS / f'tools_schema{suffix}.json'), 'r', encoding='utf-8').read()
+    TS = (ASSETS / f'tools_schema{suffix}.json').read_text(encoding='utf-8')
     TOOLS_SCHEMA = json.loads(TS if os.name == 'nt' else TS.replace('powershell', 'bash'))
 load_tool_schema()
 
@@ -33,7 +34,8 @@ if not os.path.exists(mem_txt): open(mem_txt, 'w', encoding='utf-8').write('# [G
 mem_insight = str(MEMORY / 'global_mem_insight.txt')
 if not os.path.exists(mem_insight):
     t = str(ASSETS / f'template/global_mem_insight_template{lang_suffix}.txt')
-    open(mem_insight, 'w', encoding='utf-8').write(open(t, encoding='utf-8').read() if os.path.exists(t) else '')
+    template = Path(t).read_text(encoding='utf-8') if os.path.exists(t) else ''
+    open(mem_insight, 'w', encoding='utf-8').write(template)
 cdp_cfg = str(TAU_HOME / 'TMWebDriver/tmwd_cdp_bridge/config.js')
 if not os.path.exists(cdp_cfg):
     try:
@@ -137,7 +139,7 @@ class Tau:
         if _sm := re.match(r'/session\.(\w+)=(.*)', raw_query.strip()):
             k, v = _sm.group(1), _sm.group(2)
             vfile = str(TEMP / v)
-            if os.path.isfile(vfile): v = open(vfile, encoding='utf-8').read().strip()
+            if os.path.isfile(vfile): v = Path(vfile).read_text(encoding='utf-8').strip()
             try: v = json.loads(v)  # cover number parsing
             except (json.JSONDecodeError, ValueError): pass
             setattr(self.llmclient.backend, k, v)

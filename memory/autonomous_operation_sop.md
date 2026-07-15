@@ -48,4 +48,4 @@ print(get_todo())       # 查看待办
 - **subagent的output.txt会被taumain对话流覆盖**：subagent在Turn里写自己的output.txt, taumain进程结束后stdout.log里又会写入自己的对话流dump, 最终output.txt只剩对话流(3-4KB), subagent的真实产物(5-6KB)丢失
 - **解法**：要求subagent写到独立文件(例 `review.md`), 不用output.txt; 启动后从 `../temp/{taskname}/stdout.log` 验证产物大小(若产物>=5KB但output.txt<5KB, 说明被覆盖)
 - **fallback**：若review丢失, 改用self-review按同一份task_planning.md准则, 在R1报告里明确说明subagent输出被覆盖故转自评
-- **完整调用模板** (验证可用): `cd {cwd} && python3 ../core/taumain.py --task "评审TODO" --input "{abs_path_to_TODO.txt}" --nobg &` (subagent的cwd自动继承父进程cwd, output目录是 `../temp/{taskname}/`)
+- **完整调用模板** (验证可用): `cd {cwd} && python3 -m tau_coding.taumain --task "评审TODO" --input "{abs_path_to_TODO.txt}" --nobg &` (subagent的cwd自动继承父进程cwd, output目录是 `temp/{taskname}/`)
