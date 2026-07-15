@@ -1,5 +1,5 @@
-# reflect/goal_mode.py — Goal Mode: 持续自驱直到预算耗尽
-# 启动: set GOAL_STATE=temp/xxx.json && python taumain.py --reflect reflect/goal_mode.py
+# tau_coding.reflect.goal_mode — Goal Mode: 持续自驱直到预算耗尽
+# 启动: set GOAL_STATE=temp/xxx.json && python -m tau_coding.taumain --reflect tau_coding.reflect.goal_mode
 # 配置: agent按SOP写好state json，通过环境变量GOAL_STATE指定路径
 import os, json, time
 from tau_coding.paths import TAU_HOME, TEMP

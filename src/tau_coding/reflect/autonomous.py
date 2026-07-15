@@ -1,4 +1,4 @@
-# reflect/autonomous.py
+# tau_coding.reflect.autonomous
 INTERVAL = 1800
 ONCE = False
 
