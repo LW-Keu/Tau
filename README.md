@@ -134,13 +134,12 @@ tau list       # 列出全部命令
 ```
 Tau/
 ├── core/         # Tau 入口与路径配置:taumain · paths
-├── src/          # 可安装内核包:tau_agent · tau_ai
+├── src/          # 可安装内核包:tau_agent(Agent · tools · plugins) · tau_ai
 ├── apps/         # 多前端:common · cli · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
 ├── reflect/      # 高级模式:自主运行 · 目标模式 · 子代理团队 · 调度器
 ├── TMWebDriver/  # 浏览器自动化(保留登录态)+ Site Skills + 多平台发布
 ├── tau_cli/      # `tau` 命令行入口(gui/tui/cli/launch/hub/list/status/update)
-├── plugins/      # 插件(hooks 自动发现加载)
 ├── sche_tasks/   # 计划任务
 ├── docs/         # 文档
 └── assets/       # 系统提示词 · 工具 schema · 模板 · 脚本

@@ -11,7 +11,7 @@ from tau_ai import (
     MockFunction, MockToolCall, MockResponse, tryparse,
 )
 # Load-bearing privates kept on the facade for out-of-package consumers
-# (plugins/langfuse_tracing._load_taukeys, apps/common/cost_tracker._record_usage).
+# (tau_agent.plugins.langfuse_tracing._load_taukeys, apps/common/cost_tracker._record_usage).
 from tau_ai import _load_taukeys, _record_usage
 # Internals live in submodules — new code imports them there, not from the package.
 from tau_ai.trim import compress_history_tags, trim_messages_history, safeprint

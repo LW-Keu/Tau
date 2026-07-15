@@ -12,7 +12,7 @@ Internal helpers (prefix `_`) live in the submodules (trim/transport/convert/
 response/providers) — import them from there, not from this package. The two
 exceptions below are kept on the facade only because out-of-package consumers
 monkey-patch / read them: `_record_usage` (apps/common/cost_tracker),
-`_load_taukeys` (plugins/langfuse_tracing).
+`_load_taukeys` (tau_agent.plugins.langfuse_tracing).
 """
 from .keys import reload_taukeys, _load_taukeys
 from .transport import auto_make_url, _record_usage
