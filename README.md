@@ -88,10 +88,10 @@ oai_config = {
 
 ### 3. 启动
 
-通过 `tau` 命令(等价于 `python -m tau_cli`)选择前端:
+通过 `tau` 命令(等价于 `python -m tau_coding`)选择前端:
 
 ```bash
-tau cli        # CLI 对话,最轻量(core/taumain.py)
+tau cli        # CLI 对话,最轻量(tau_coding.taumain)
 tau tui        # 终端图形界面(Textual),适合 SSH / 纯终端
 tau gui        # 桌面聊天界面(PySide6)
 tau launch     # 原生窗口壳(pywebview)
@@ -133,13 +133,10 @@ tau list       # 列出全部命令
 
 ```
 Tau/
-├── core/         # Tau 入口与路径配置:taumain · paths
-├── src/          # 可安装内核包:tau_agent(Agent · tools · plugins) · tau_ai
+├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai
 ├── apps/         # 多前端:common · cli · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
-├── reflect/      # 高级模式:自主运行 · 目标模式 · 子代理团队 · 调度器
 ├── TMWebDriver/  # 浏览器自动化(保留登录态)+ Site Skills + 多平台发布
-├── tau_cli/      # `tau` 命令行入口(gui/tui/cli/launch/hub/list/status/update)
 ├── sche_tasks/   # 计划任务
 ├── docs/         # 文档
 └── assets/       # 系统提示词 · 工具 schema · 模板 · 脚本

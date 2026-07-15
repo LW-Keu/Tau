@@ -194,7 +194,9 @@ uv pip install -e ".[ui]"
 If `git pull` reports conflicts:
 
 - For `.tau/taukey.py`, `memory/`, `skills/`, `temp/`, and user-created artifacts: prefer the local copy.
-- For core code such as `agent*.py`, `apps/*`, `reflect/*`, and `tools/*`: usually prefer upstream unless the user says otherwise.
+- For code such as `src/tau_coding/*`, `src/tau_agent/*`, `src/tau_ai/*`,
+  `apps/*`, and `TMWebDriver/*`: usually prefer upstream unless the user says
+  otherwise.
 - Resolve explicitly, then `git add` and commit the merge.
 
 ---

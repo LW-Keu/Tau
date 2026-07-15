@@ -48,6 +48,6 @@ BBS 第一帖必须包含以下四项：
 
 ## 拉起 worker
 
-启动 worker：`start /b python <CodeRoot>/taumain.py --reflect <CodeRoot>/reflect/agent_team_worker.py --base_url http://127.0.0.1:<PORT> --board_key <BOARD_KEY> --name hive-worker-1`。
+启动 worker：`start /b python -m tau_coding.taumain --reflect tau_coding.reflect.agent_team_worker --base_url http://127.0.0.1:<PORT> --board_key <BOARD_KEY> --name hive-worker-1`。
 
 后续 worker 由 Goal Master 按需要增加（不能超过5个，一般任务2-4个足够）。

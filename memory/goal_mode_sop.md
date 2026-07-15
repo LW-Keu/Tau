@@ -30,13 +30,13 @@
 
 ```bash
 # 默认路径 temp/goal_state.json
-start /b python taumain.py --reflect reflect/goal_mode.py
+start /b python -m tau_coding.taumain --reflect tau_coding.reflect.goal_mode
 
 # 自定义路径（多实例）
-set GOAL_STATE=temp/goal_xxx.json && start /b python taumain.py --reflect reflect/goal_mode.py
+set GOAL_STATE=temp/goal_xxx.json && start /b python -m tau_coding.taumain --reflect tau_coding.reflect.goal_mode
 
 # 用其他模型跑（--llm_no 选择已配置的第N个LLM，从0开始）
-set GOAL_STATE=temp/goal_xxx.json && start /b python taumain.py --reflect reflect/goal_mode.py --llm_no 1
+set GOAL_STATE=temp/goal_xxx.json && start /b python -m tau_coding.taumain --reflect tau_coding.reflect.goal_mode --llm_no 1
 ```
 
 ## 停止

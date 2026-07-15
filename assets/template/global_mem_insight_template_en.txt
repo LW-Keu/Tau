@@ -8,7 +8,7 @@ L4: L4_raw_sessions/ historical sessions
 
 Browser special ops: tmwebdriver_sop(file upload/image search/PDF blob/physical coords/HttpOnly Cookie/autofill bypass/cross-origin iframe/CDP/cross-tab)
 Keyboard & Mouse: ljqCtrl_sop(no pyautogui/activate first) Screenshot/Vision: ocr/vision_sop | No fullscreen capture, prefer window
-Scheduling: scheduled_task_sop | Autonomous: autonomous_operation_sop | watchdog/reflect: taumain --reflect
+Scheduling: scheduled_task_sop | Autonomous: autonomous_operation_sop | watchdog/reflect: python -m tau_coding.taumain --reflect tau_coding.reflect.<name>
 Mobile: adb_ui.py
 
 [RULES]

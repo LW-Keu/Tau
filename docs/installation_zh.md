@@ -194,7 +194,8 @@ uv pip install -e ".[ui]"
 如果 `git pull` 报冲突：
 
 - `.tau/taukey.py`、`memory/`、`skills/`、`temp/` 和用户成果：本地优先。
-- `agent*.py`、`apps/*`、`reflect/*`、`tools/*` 等核心代码：通常 upstream 优先，除非用户另有说明。
+- `src/tau_coding/*`、`src/tau_agent/*`、`src/tau_ai/*`、`apps/*`、
+  `TMWebDriver/*` 等代码：通常 upstream 优先，除非用户另有说明。
 - 明确解决冲突后，再 `git add` 并提交合并。
 
 ---
