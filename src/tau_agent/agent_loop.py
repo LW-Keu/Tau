@@ -1,7 +1,7 @@
 import json, re, os
 from dataclasses import dataclass
 from typing import Any, Optional
-try: from plugins.hooks import trigger as _hook
+try: from .plugins.hooks import trigger as _hook
 except ImportError: _hook = lambda *a, **k: None
 @dataclass
 class StepOutcome:

@@ -47,7 +47,7 @@ py-modules = []
 
 [tool.setuptools.packages.find]
 where = [".", "src"]
-include = ["core*", "reflect*", "tau_cli*", "plugins*", "memory*", "TMWebDriver*", "tau_ai*", "tau_agent*"]
+include = ["core*", "reflect*", "tau_cli*", "memory*", "TMWebDriver*", "tau_ai*", "tau_agent*"]
 exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*"]
 namespaces = false
 

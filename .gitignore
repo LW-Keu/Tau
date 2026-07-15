@@ -159,11 +159,9 @@ report_data_*.json
 /start*.sh
 /stop*.sh
 
-# Plugins
-!plugins/__init__.py
-
 # Reflect (ignore new files, whitelist existing)
 reflect/*
+!reflect/__init__.py
 !reflect/autonomous.py
 !reflect/scheduler.py
 !reflect/agent_team_worker.py

@@ -18,7 +18,8 @@ except Exception:
     _lf = None
 
 if _lf:
-    import plugins.hooks as hooks, tau_ai as llmcore
+    from . import hooks
+    import tau_ai as llmcore
     _tls = threading.local()
 
     # ── Agent trace ──────────────────────────────────────────────

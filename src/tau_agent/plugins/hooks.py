@@ -1,10 +1,9 @@
+import importlib
 import os
 import sys
-import importlib
 
 # 模块级注册表: event_name -> [callback, ...]
 _registry = {}
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def register(event):
@@ -44,23 +43,27 @@ def has(event):
 
 
 def discover_and_load(plugin_dir=None):
+    package = __package__
     if plugin_dir is None:
-        plugin_dir = os.path.join(_PROJECT_ROOT, 'plugins')
+        plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    else:
+        plugin_dir = os.path.abspath(plugin_dir)
+        parent = os.path.dirname(plugin_dir)
+        if parent not in sys.path:
+            sys.path.insert(0, parent)
+        package = os.path.basename(plugin_dir)
     if not os.path.isdir(plugin_dir):
         return
-    parent = os.path.dirname(plugin_dir)
-    if parent not in sys.path:
-        sys.path.insert(0, parent)
     for fn in sorted(os.listdir(plugin_dir)):
         if fn.startswith('_') or not fn.endswith('.py'):
             continue
         name = fn[:-3]
-        load(name)
+        load(name, package)
 
 
-def load(name):
+def load(name, package=None):
     try:
-        importlib.import_module(f'plugins.{name}')
+        importlib.import_module(f'{package or __package__}.{name}')
         return True
     except Exception as e:
         sys.stderr.write(f"[hooks] plugin '{name}' load failed: {e}\n")
