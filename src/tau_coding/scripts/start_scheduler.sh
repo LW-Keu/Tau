@@ -64,6 +64,34 @@ get_proc_detail() {
         || echo "（无法获取 PID=${pid} 的进程信息）"
 }
 
+terminate_verified_scheduler_pid() {
+    local pid="$1"
+    info "正在终止进程 PID=${pid} ..."
+    if ! is_verified_scheduler_pid "$pid"; then
+        warn "进程 PID=${pid} 身份已变化，停止发送信号。"
+        return 0
+    fi
+    kill -15 "$pid" 2>/dev/null || true
+    for i in 1 2 3; do
+        sleep 1
+        if ! kill -0 "$pid" 2>/dev/null; then break; fi
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+        warn "进程 PID=${pid} 未响应 SIGTERM，准备发送 SIGKILL ..."
+        if ! is_verified_scheduler_pid "$pid"; then
+            warn "进程 PID=${pid} 身份已变化，停止发送信号。"
+            return 0
+        fi
+        kill -9 "$pid" 2>/dev/null || true
+        sleep 1
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+        error "无法终止进程 PID=${pid}，请手动处理。"
+        return 1
+    fi
+    info "进程 PID=${pid} 已终止。"
+}
+
 # ---------- kv 输出（printf 固定宽度对齐）----------
 KV_MAX_LABEL=22
 print_kv() {
@@ -122,25 +150,7 @@ if [ -n "$CONFLICT_INFO" ]; then
     if [ "$USER_REPLY" = "yes" ] || [ "$USER_REPLY" = "y" ]; then
         echo ""
         for pid in $PIDS; do
-            if is_verified_scheduler_pid "$pid"; then
-                info "正在终止进程 PID=${pid} ..."
-                kill -15 "$pid" 2>/dev/null || true
-                for i in 1 2 3; do
-                    sleep 1
-                    if ! kill -0 "$pid" 2>/dev/null; then break; fi
-                done
-                if kill -0 "$pid" 2>/dev/null; then
-                    warn "进程 PID=${pid} 未响应 SIGTERM，发送 SIGKILL ..."
-                    kill -9 "$pid" 2>/dev/null || true
-                    sleep 1
-                fi
-                if kill -0 "$pid" 2>/dev/null; then
-                    error "无法终止进程 PID=${pid}，请手动处理。"
-                    exit 1
-                else
-                    info "进程 PID=${pid} 已终止。"
-                fi
-            fi
+            terminate_verified_scheduler_pid "$pid" || exit 1
         done
 
         # ---------- Step 3: 二次确认 ----------

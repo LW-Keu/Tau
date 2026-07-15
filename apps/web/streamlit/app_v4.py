@@ -660,7 +660,7 @@ def render_pending_bar():
                 except OSError:
                     pass
                 st.session_state.pending_attachments.pop(i)
-                st.rerun(scope="fragment")
+                st.rerun()
     nonce = st.session_state.get("_tau_upload_nonce", 0)
     st.file_uploader(
         "📎 添加附件",
@@ -743,7 +743,12 @@ for msg in st.session_state.messages:
                         attachments=msg.get("attachments"))
 if st.session_state.streaming: render_streaming_area()
 render_pending_bar()
-if prompt := st.chat_input("请输入指令", disabled=st.session_state.streaming):
+submit_attachments = bool(st.session_state.pending_attachments) and st.button(
+    "发送附件", key="btn_send_attachments", icon=":material/send:",
+    disabled=st.session_state.streaming,
+)
+prompt = st.chat_input("请输入指令", disabled=st.session_state.streaming)
+if prompt or submit_attachments:
     atts = list(st.session_state.pending_attachments)
     display_prompt = prompt if prompt else "请处理这些文件。"
     st.session_state.messages.append({

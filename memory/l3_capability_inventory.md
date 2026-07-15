@@ -336,11 +336,11 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 #### 8.9.1 修正项 (v1.0/v1.1 错记)
 | 项 | 旧记录 | 修正 | 证据 |
 |---|---|---|---|
-| **core/handler.py "Code missing"** | 未在 v1.0/v1.1 出现 | 🆕 **已发现基础设施 bug** | `core/handler.py:35-38` 提取 `code` 失败时报错, `_extract_code_block` regex 不支持单行代码块; R3 报告含 2 个建议 patch |
+| **src/tau_agent/handler.py "Code missing"** | 未在 v1.0/v1.1 出现 | 🆕 **已发现基础设施 bug** | `src/tau_agent/handler.py:35-38` 提取 `code` 失败时报错, `_extract_code_block` regex 不支持单行代码块; R3 报告含 2 个建议 patch |
 | **L2 global_mem.txt "cross_verify.py 词表 v2"** | L2 错记为独立文件 | ✅ **已自然完成** | 实际是 `memory/daily_report_validate.py` (30KB),R2 验证 |
-| **utils/ 目录** | TODO 1 假定存在 | 🔴 **不存在** | 实际无 `utils/` 目录,任何引用 utils/*.py 的 SOP 需改为 `core/tools/utils.py` (3KB) |
+| **utils/ 目录** | TODO 1 假定存在 | 🔴 **不存在** | 实际无顶层 `utils/` 目录,相关 SOP 应引用 `src/tau_agent/tools/utils.py` (3KB) |
 | **bin/ 目录** | TODO 1 假定存在 | 🔴 **不存在** | 实际无 `bin/` 目录, `check_venv.sh` 等脚本需先建目录 |
-| **scripts/ 用途** | 未明确 | 🟡 **全是测试脚本** | 6 个 smoke_*.py + test_email_config.py = 测试代码,生产逻辑均在 core/ |
+| **scripts/ 用途** | 未明确 | 🟡 **全是测试脚本** | 6 个 smoke_*.py + test_email_config.py = 测试代码,生产逻辑位于 `src/` 包 |
 
 #### 8.9.2 新发现能力 (R4 复核)
 | 能力 | 路径/版本 | 备注 |
@@ -350,13 +350,13 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 | **.venv/bin/jsonschema** | 同上 | JSON schema 验证 (备用) |
 | **.venv/bin/streamlit** | 同上 | 数据看板 (备用) |
 | **.venv/bin/numpy-config** | 同上 | numpy 已装 (sys.path 可见) |
-| **core/agent_loop.py** (6.8KB) | `core/agent_loop.py` | Agent 主循环 (BaseHandler/StepOutcome 定义) |
-| **core/llm/transport.py** (3.9KB) | `core/llm/transport.py` | LLM 传输层 (与 R3 handler.py 配套) |
-| **core/llm/trim.py** (3.9KB) | `core/llm/trim.py` | LLM 上下文裁剪 |
-| **core/tools/code_run.py** (4.3KB) | `core/tools/code_run.py` | code_run 工具实现 (含 sandbox 逻辑) |
+| **src/tau_agent/agent_loop.py** (6.8KB) | `src/tau_agent/agent_loop.py` | Agent 主循环 (BaseHandler/StepOutcome 定义) |
+| **src/tau_ai/transport.py** (3.9KB) | `src/tau_ai/transport.py` | LLM 传输层 (与 R3 handler.py 配套) |
+| **src/tau_ai/trim.py** (3.9KB) | `src/tau_ai/trim.py` | LLM 上下文裁剪 |
+| **src/tau_agent/tools/code_run.py** (4.3KB) | `src/tau_agent/tools/code_run.py` | code_run 工具实现 (含 sandbox 逻辑) |
 
 #### 8.9.3 关键发现: R3 修复的 handler.py 缺口
-`core/handler.py:27-30` `_extract_code_block` 用正则 ````r"```(?:python|py|...)\n(.*?)\n```"````
+`src/tau_agent/handler.py:27-30` `_extract_code_block` 用正则 ````r"```(?:python|py|...)\n(.*?)\n```"````
 - **不支持单行代码块** (如 `` ```python\nprint(1)\n``` `` 中间无换行会失败)
 - **不支持无语言标识** 的代码块 (如 `` ```\nprint(1)\n``` `` 不会被 `python|py` 匹中)
 - **报错消息误导**: "Must use reply code block or 'script' arg" - 实际可能两种都有但任一为空

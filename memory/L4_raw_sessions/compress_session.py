@@ -142,7 +142,7 @@ def format_history_block(session_name, history_lines):
     return f"{sep}\nSESSION: {session_name}\n{sep}\n" + '\n'.join(history_lines) + '\n'
 
 import tempfile, shutil, zipfile, glob
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 def _existing_sessions(l4_dir):
     """Read session names already in all_histories.txt."""
@@ -165,6 +165,7 @@ def batch_process(src, l4_dir=None, dry_run=True):
 
     tmp_dir = tempfile.mkdtemp(prefix='cs_batch_')
     results, skipped, errors = [], [], []
+    reserved = set(existing)
 
     import time
     cutoff = time.time() - 7200  # skip files modified within 2h
@@ -175,12 +176,14 @@ def batch_process(src, l4_dir=None, dry_run=True):
         if os.path.getmtime(fp) > cutoff:
             skipped.append((fname, 'recent(<2h)')); continue
         try:
-            dst, info = compress_session(fp, tmp_dir)
+            work_dir = tempfile.mkdtemp(dir=tmp_dir)
+            dst, info = compress_session(fp, work_dir)
             if dst is None:
                 skipped.append((fname, info)); continue
             sn = os.path.splitext(os.path.basename(dst))[0]
-            if sn in existing:
+            if sn in reserved:
                 skipped.append((fname, f'dup:{sn}')); os.remove(dst); continue
+            reserved.add(sn)
             results.append((sn, dst, extract_history(dst), info, fp))
         except Exception as e:
             errors.append((fname, str(e)))
@@ -198,34 +201,40 @@ def batch_process(src, l4_dir=None, dry_run=True):
                 'errors': len(errors), 'new_sessions': len(results),
                 'sessions': [r[0] for r in results]}
 
-    # Phase 2: Append history
-    with open(os.path.join(l4_dir, 'all_histories.txt'), 'a', encoding='utf-8') as f:
-        for sn, _, hist, _, _ in results:
-            if hist: f.write('\n' + format_history_block(sn, hist))
-    print(f"Appended {len(results)} sessions to all_histories.txt")
-
-    # Phase 3: Archive to monthly zips
+    # Phase 2: Archive to monthly zips
     by_month = defaultdict(list)
-    for sn, cpath, _, info, raw_path in results:
+    for result in results:
+        sn, _, _, info, _ = result
         year = info.get('year', '2026') if isinstance(info, dict) else '2026'
-        by_month[f"{year}-{sn[:2]}"].append((sn, cpath, raw_path))
+        by_month[f"{year}-{sn[:2]}"].append(result)
     archived_raw = set()
+    archived_histories = []
     for mk, items in sorted(by_month.items()):
         zpath = os.path.join(l4_dir, f"{mk}.zip")
         mode = 'a' if os.path.exists(zpath) else 'w'
-        written = []
         with zipfile.ZipFile(zpath, mode, zipfile.ZIP_DEFLATED) as zf:
             names = set(zf.namelist()) if mode == 'a' else set()
-            for sn, cp, raw_path in items:
+            for sn, cp, _, _, _ in items:
                 member = f"{sn}.txt"
                 if member not in names:
                     zf.write(cp, member)
-                    written.append((member, raw_path))
+                    names.add(member)
         with zipfile.ZipFile(zpath, 'r') as zf:
-            verified = set(zf.namelist())
-        archived_raw.update(raw_path for member, raw_path in written
-                            if member in verified)
+            counts = Counter(zf.namelist())
+            for sn, cp, hist, _, raw_path in items:
+                member = f"{sn}.txt"
+                with open(cp, 'rb') as f:
+                    matches = counts.get(member) == 1 and zf.read(member) == f.read()
+                if matches:
+                    archived_raw.add(raw_path)
+                    archived_histories.append((sn, hist))
         print(f"  {mk}.zip: +{len(items)}")
+
+    # Phase 3: Persist only histories whose archive members were verified.
+    with open(os.path.join(l4_dir, 'all_histories.txt'), 'a', encoding='utf-8') as f:
+        for sn, hist in archived_histories:
+            if hist: f.write('\n' + format_history_block(sn, hist))
+    print(f"Appended {len(archived_histories)} sessions to all_histories.txt")
 
     # Phase 4: Delete raw files
     to_del = sorted(archived_raw)

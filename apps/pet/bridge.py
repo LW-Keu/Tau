@@ -52,7 +52,8 @@ def find_default_tau_root() -> Path:
     ]
     for p in candidates:
         root = p.resolve()
-        if (root / "core" / "taumain.py").exists():
+        package_entry = root / "src" / "tau_coding" / "taumain.py"
+        if (root / "pyproject.toml").exists() and package_entry.exists():
             return root
     return APP_DIR.parent.parent.resolve()
 
