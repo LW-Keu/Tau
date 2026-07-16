@@ -1552,7 +1552,7 @@ splayInfoDataType (显示器)
 - `uptime` → 1 day, 12:21, 1 user, load 3.03 2.82 2.53
 
 **B. AX88179B USB 网卡详情**
-- `networksetup -getinfo AX88179B` → 
+- `networksetup -getinfo AX88179B` →
 ...[Truncated]...
 system_profiler SPApplicationsDataType` (应用安装信息)
 - **避免 osascript -e 双层转义**: 用 `cat > /tmp/x.applescript << EOF ... EOF` 临时文件再 osascript 调
