@@ -49,7 +49,8 @@ def _tracked_text_files():
 
 
 def _legacy_hits(text):
-    return [pattern.pattern for pattern in LEGACY_PATTERNS if pattern.search(text)]
+    normalized = text.replace("\\", "/")
+    return [pattern.pattern for pattern in LEGACY_PATTERNS if pattern.search(normalized)]
 
 
 class MigrationRegressionTests(unittest.TestCase):
@@ -66,6 +67,10 @@ class MigrationRegressionTests(unittest.TestCase):
             "../tau_cli/config.py",
             "reflect/scheduler.py",
             "plugins/hooks.py",
+            r"core\handler.py",
+            r"tau_cli\config.py",
+            r"reflect\scheduler.py",
+            r"plugins\hooks.py",
             "from core.llm import transport",
             "import tau_cli.cli",
             "'reflect.goal_mode'",
@@ -79,6 +84,8 @@ class MigrationRegressionTests(unittest.TestCase):
         current = (
             "src/tau_coding/reflect/scheduler.py",
             "src/tau_agent/plugins/hooks.py",
+            r"src\tau_coding\reflect\scheduler.py",
+            r"src\tau_agent\plugins\hooks.py",
             "from tau_coding.reflect import scheduler",
             '"tau_agent.plugins.hooks"',
         )

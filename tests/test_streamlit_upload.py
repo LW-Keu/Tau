@@ -1,5 +1,6 @@
 import os
 import queue
+import subprocess
 import sys
 import tempfile
 import types
@@ -8,7 +9,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
-from streamlit.testing.v1 import AppTest
+try:
+    from streamlit.testing.v1 import AppTest
+except ImportError:
+    AppTest = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +22,9 @@ sys.path.insert(0, str(STREAMLIT_DIR))
 
 from upload_utils import (MAX_FILE_SIZE, TEXT_INJECT_MAX_LINES, build_prompt,
                           extract_text, read_image_b64, save_upload)
+
+
+requires_app_test = unittest.skipIf(AppTest is None, "Streamlit testing API unavailable")
 
 
 class FakeUpload:
@@ -123,6 +130,56 @@ class StreamlitUploadTests(unittest.TestCase):
         self.assertIn("data.zip", prompt)
         self.assertIn("file_read", prompt)
 
+    def test_module_collects_without_streamlit(self):
+        script = f"""
+import builtins
+import importlib.util
+import unittest
+
+real_import = builtins.__import__
+def without_streamlit(name, *args, **kwargs):
+    if name == "streamlit" or name.startswith("streamlit."):
+        raise ModuleNotFoundError(name)
+    return real_import(name, *args, **kwargs)
+
+builtins.__import__ = without_streamlit
+spec = importlib.util.spec_from_file_location("test_streamlit_upload", {str(Path(__file__))!r})
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+assert suite.countTestCases() == 9
+for name in (
+    "test_entry_sends_attachment_without_text",
+    "test_entry_sends_text_with_attachment",
+    "test_entry_deletes_pending_attachment",
+):
+    assert getattr(getattr(module.StreamlitUploadTests, name), "__unittest_skip__", False)
+assert not getattr(
+    module.StreamlitUploadTests.test_extract_text_limits_lines,
+    "__unittest_skip__",
+    False,
+)
+pure_names = (
+    "test_extract_text_limits_lines",
+    "test_image_data_uri",
+    "test_save_upload_classifies_and_sanitizes_text",
+    "test_save_upload_rejects_oversize",
+    "test_build_prompt_injects_text_and_references_binary",
+)
+pure_suite = unittest.TestSuite(
+    module.StreamlitUploadTests(name) for name in pure_names
+)
+result = unittest.TestResult()
+pure_suite.run(result)
+assert result.testsRun == len(pure_names)
+assert result.wasSuccessful()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script], cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @requires_app_test
     def test_entry_sends_attachment_without_text(self):
         attachment = self._attachment()
         with self._app_with_attachment(attachment) as app:
@@ -136,6 +193,7 @@ class StreamlitUploadTests(unittest.TestCase):
         self.assertEqual(user["attachments"][0]["name"], "demo.txt")
         self.assertEqual(app.session_state.pending_attachments, [])
 
+    @requires_app_test
     def test_entry_sends_text_with_attachment(self):
         attachment = self._attachment()
         with self._app_with_attachment(attachment) as app:
@@ -147,6 +205,7 @@ class StreamlitUploadTests(unittest.TestCase):
         self.assertEqual(user["attachments"][0]["name"], "demo.txt")
         self.assertEqual(app.session_state.pending_attachments, [])
 
+    @requires_app_test
     def test_entry_deletes_pending_attachment(self):
         attachment = self._attachment()
         with self._app_with_attachment(attachment) as app:
