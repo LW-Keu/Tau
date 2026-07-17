@@ -451,11 +451,11 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 #### 8.10.6 接入建议
 - daily_report 阶段加 "今日 Reminders" 段 (用例 1)
 - daily_report 阶段加 "今日会议" 段 (用例 3)
-- 新建 `scripts/contacts_lookup.py` (用例 6)
-- 新建 `scripts/active_window.py` (用例 4)
+- 新建 `memory/contacts_lookup.py` (用例 6)
+- 新建 `memory/active_window.py` (用例 4)
 
 #### 8.10.7 asrun 统一 AppleScript 入口 (R8 落地 + R9 三app实战)
-- **位置**: `scripts/asrun` (88 行, 2823B, R8 创建 + R9 演进)
+- **位置**: `memory/asrun` (R8 创建 + R9 演进; 2026-07-17 自 scripts/ 迁入)
 - **功能**: 统一封装 `osascript` 调用, 支持 `-e` 内联代码 / `-f` .scpt 文件 / `-t` 超时秒 / `--pretty` 人类可读
 - **默认参数**: timeout=60s (Music/Photos 首次启动建议 120+)
 - **返回结构**: `{"mode", "source_preview", "rc", "stdout", "stderr", "elapsed_ms"}` (结构化 JSON, 可解析)
@@ -509,7 +509,7 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 | **Contacts 模糊查询** | `tell application "Contacts" to every person whose name contains "X"` | 邮件前置查询 (需 TCC) | R6 用例 |
 | **文件模式稳定脚本** | `tell application "X"\n  set v to ...\n  return v\nend tell` | 避免 native 对象直接拼接导致的 -2741 | R9/R10 实战 |
 
-- **调用模板**: `python3 scripts/asrun -e '<script>' -t 120 --pretty`
+- **调用模板**: `python3 memory/asrun -e '<script>' -t 120 --pretty`
 - **TCC 未授权**: 返回 `-1743`; 需用户在 **系统设置 → 隐私与安全 → 自动化** 授予权限
 - **sdef 反查**: `sdef "/System/Applications/X.app" | grep -E 'class name|element type'`
 
@@ -534,7 +534,11 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 - ⚠️ 需 TCC 授权：Reminders/Calendar/Notes/Mail/Contacts/System Events
 - ❌ 沙箱限制：Chrome (TCC + sandbox)
 
-**调用模板**: `python3 scripts/asrun -e '<script>' -t 120 --pretty`
+> **勘误 (R72/R73, 2026-07-16)**：上述「需 TCC 授权」措辞应理解为 **session-scoped 授权依赖**，不是「物理边界 / 不可越」。
+> 同 shell 不同时刻可能命中或拒绝 (R11 全 ❌ -1743，R72 同路径全 ✅ rc=0)。
+> 与本节同期定性：把这里当作「需要授权 + 授权有会话漂移」使用更准确，详见 `autonomous_reports/errata/R11-R13_TCC_session_scoped.md`。
+
+**调用模板**: `python3 memory/asrun -e '<script>' -t 120 --pretty`
 **TCC 排查**: 返回 `-1743`; 用户在 **系统设置 → 隐私与安全 → 自动化** 打勾
 **sdef 反查**: `sdef "/System/Applications/X.app" | grep -E 'class name|element type'`
 

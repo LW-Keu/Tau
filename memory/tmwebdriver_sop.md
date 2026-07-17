@@ -1,7 +1,7 @@
 # TMWebDriver SOP
 
 - 直接用web_scan/web_execute_js工具。本文件只记录特性和坑。
-- 底层：`../TMWebDriver.py`通过Chrome扩展接管用户浏览器（保留登录态/Cookie）
+- 底层：`../external/TMWebDriver/`通过Chrome扩展接管用户浏览器（保留登录态/Cookie）
 - 非Selenium/Playwright，保留用户浏览器登录态
 
 ## 通用特性
@@ -41,8 +41,8 @@ fetch('PDF_URL').then(r=>r.blob()).then(b=>{
 - 某些SPA页面需CDP `Page.bringToFront`切到前台才会加载数据
 
 ## CDP桥(tmwd_cdp_bridge扩展) ⭐首选
-扩展路径：`TMWebDriver/tmwd_cdp_bridge/`(需安装，含debugger权限)
-⚠TID约定标识：首次运行自动生成到`TMWebDriver/tmwd_cdp_bridge/config.js`(已gitignore)，扩展通过manifest引用
+扩展路径：`external/TMWebDriver/tmwd_cdp_bridge/`(需安装，含debugger权限)
+⚠TID约定标识：首次运行自动生成到`external/TMWebDriver/tmwd_cdp_bridge/config.js`(已gitignore)，扩展通过manifest引用
 调用：`web_execute_js` script直传JSON字符串（工具层自动识别对象格式，走WS→background.js cmd路由）
 ```js
 // 直接传JSON字符串作为script参数，无需DOM操作
@@ -152,13 +152,13 @@ d.save_skill('get_title', 'document.title', description='获取页面标题')
 skill = d.get_skill('get_title')    # {'js': ..., 'description': ..., 'use_count': ...}
 ```
 
-- 技能文件存于 `TMWebDriver/skills_schema/<domain>.json`，可手动编辑
+- 技能文件存于 `external/TMWebDriver/skills_schema/<domain>.json`，可手动编辑
 - `{{var}}` 占位符由 `execute_skill(**kwargs)` 替换
 - 内置种子文件：`bilibili.com.json`（get_page_text / get_video_list / search）、`google.com.json`（search / get_search_results）
 
 ## multipost（多平台一键发布）
 ```python
-from TMWebDriver import MultiPublisher
+from external.TMWebDriver import MultiPublisher
 pub = MultiPublisher(TMWebDriver())
 
 # 视频发布（B站 + 抖音）
@@ -184,7 +184,7 @@ pub.publish_dynamic(
 ## 连不上排查
 web_scan失败时按序排查（自动检测优先，用户参与放最后）：
 ①浏览器没开？→检查浏览器进程是否在跑(tasklist/ps)，没有则启动并打开正常URL（⚠about:blank等内部页不加载扩展）
-②WS后台挂了？→本机18766端口没监听即dead→手动**后台持续运行**`from TMWebDriver import TMWebDriver; TMWebDriver()`起master
+②WS后台挂了？→本机18766端口没监听即dead→手动**后台持续运行**`from external.TMWebDriver import TMWebDriver; TMWebDriver()`起master
 ③扩展没装？→读Chrome用户目录下`Secure Preferences`→`extensions.settings`中找`path`含`tmwd_cdp_bridge`的条目
   找到→扩展已装，排查其他原因；没找到→走web_setup_sop
 ④以上都正常仍连不上→请求用户协助

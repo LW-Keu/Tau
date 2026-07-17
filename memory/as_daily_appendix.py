@@ -6,12 +6,12 @@ Daily Report AppleScript Appendix Generator
 R8 落地: 从 macOS Reminders / Calendar 读取当日待办与日程,
 输出 JSON 供 daily_report Phase 2 整编时作为附加附录合并。
 
-位置: scripts/as_daily_appendix.py
+位置: memory/as_daily_appendix.py
 依赖: 仅 Python 标准库 + macOS osascript
 用法:
-    python scripts/as_daily_appendix.py reminders         # 人读格式
-    python scripts/as_daily_appendix.py calendar --json   # JSON 格式
-    python scripts/as_daily_appendix.py both --json       # 合并 JSON
+    python memory/as_daily_appendix.py reminders         # 人读格式
+    python memory/as_daily_appendix.py calendar --json   # JSON 格式
+    python memory/as_daily_appendix.py both --json       # 合并 JSON
 
 输出 JSON 结构(与 report_data.json 扁平 schema 对齐, additive):
     {

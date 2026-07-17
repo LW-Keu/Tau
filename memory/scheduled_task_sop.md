@@ -25,3 +25,7 @@ max_delay_hours（可选，默认6）：超过schedule多少小时后不再触�
 - once类型：执行一次后冷却100年（实际效果为永久跳过）
 - 任务文件只管"干什么"，报告路径由scheduler自动生成注入prompt
 - sche_tasks目录在../，即code root下
+
+## 避坑（已验证）
+- `.tau/email_report.sent` 是**文件**，不是目录；scheduler 用它判断日报是否已发送，勿手动建同名目录。
+- 若 scheduler 日志出现高频 `send_email` 失败重试：先查 `.tau/tauchain.json` 的 SMTP 凭证/收件人是否有效，再查 `email_send.py` 的 to_addrs 降级逻辑；常见根因是凭证缺失导致 SMTP 认证失败，而非 scheduler 超时。

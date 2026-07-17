@@ -54,11 +54,11 @@ python3 --version
 
 ### 创建配置文件
 
-进入项目文件夹，把 `taukey_template.py` 复制一份，重命名为 `.tau/taukey.py`。
+进入项目文件夹，把 `examples/taukey_template.py` 复制一份，重命名为 `.tau/taukey.py`。
 
 用任意文本编辑器打开 `.tau/taukey.py`，填入你的 API 信息。**选一种填就行**，不用的配置删掉或留着不管都行。
 
-> 💡 也可以运行交互式向导 `python assets/scripts/configure_taukey.py`，按提示选择厂商、填入 Key 即可自动生成 `.tau/taukey.py`。
+> 💡 也可以运行交互式向导 `python setup/configure_taukey.py`，按提示选择厂商、填入 Key 即可自动生成 `.tau/taukey.py`。
 
 ### 配置示例
 
@@ -103,7 +103,7 @@ native_claude_config = {
 }
 ```
 
-> 💡 还支持 `native_oai_config`（OpenAI 标准工具调用）、`sider_cookie`（Sider）等，详见 `taukey_template.py` 中的注释。
+> 💡 还支持 `native_oai_config`（OpenAI 标准工具调用）、`sider_cookie`（Sider）等，详见 `examples/taukey_template.py` 中的注释。
 
 ### 关键规则
 

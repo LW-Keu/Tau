@@ -6,7 +6,7 @@ Uses TMWebDriver's execute_js to inject page automation — same principle as
 MultiPost's chrome.scripting.executeScript, but with Python orchestration.
 
 Usage:
-    from TMWebDriver import TMWebDriver, MultiPublisher
+    from external.TMWebDriver import TMWebDriver, MultiPublisher
 
     driver = TMWebDriver()
     publisher = MultiPublisher(driver)
@@ -485,7 +485,7 @@ if __name__ == "__main__":
     =========================
     Import this module to use:
 
-        from TMWebDriver import TMWebDriver, MultiPublisher
+        from external.TMWebDriver import TMWebDriver, MultiPublisher
 
         driver = TMWebDriver()
         publisher = MultiPublisher(driver)

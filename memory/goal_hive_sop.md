@@ -9,7 +9,7 @@ Hive模式单独运行，不要和plan/supervisor/subagent混杂
 
 1. 选一个空闲端口 `PORT` 和本次协作 key `BOARD_KEY`。
 2. 创建本次 Hive 数据目录：`BBS_CWD=<CodeRoot>/temp/hive_<目标短名>`。
-3. 启动 BBS：`start /b python <CodeRoot>/assets/external/agent_bbs.py --cwd <BBS_CWD> --port <PORT> --key <BOARD_KEY>`。
+3. 启动 BBS：`start /b python <CodeRoot>/external/agent_bbs.py --cwd <BBS_CWD> --port <PORT> --key <BOARD_KEY>`。
 4. requests访问http://127.0.0.1:<PORT>/readme?key=<BOARD_KEY>。
    - 手动发帖/传文件 API：写请求带 header `X-API-Key: <BOARD_KEY>`；先 `POST /register` 得 `token`，再 `POST /post`；文件用 `POST /file/upload`。
 5. 在bbs发第一个帖子，按照以下“第一帖规范”

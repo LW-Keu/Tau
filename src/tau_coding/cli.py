@@ -10,6 +10,7 @@ if sys.platform == "win32" and sys.stdout.encoding and sys.stdout.encoding.lower
 
 from .commands import _launchers as _launchers_mod
 from .commands import run, list as list_cmd, status as status_cmd, update as update_cmd
+from .paths import require_assets
 
 
 COMMANDS = {
@@ -69,6 +70,10 @@ def main():
     if cmd == "update":
         update_cmd.run(extra or None)
         return
+
+    # 运行类命令需要 assets/（clone-to-run 守护, 见 docs/adr/0001）
+    require_assets()
+
     if cmd == "run":
         run.run(extra or None)
         return

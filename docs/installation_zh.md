@@ -79,7 +79,7 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"        # 核心 + UI 依赖
-cp taukey_template.py .tau/taukey.py     # 填入你的 LLM API Key
+cp examples/taukey_template.py .tau/taukey.py     # 填入你的 LLM API Key
 python launch.pyw
 ```
 
@@ -88,9 +88,9 @@ python launch.pyw
 ### 配置 LLM Key
 
 1. 打开已安装的 `Tau` 目录。
-2. 如果没有 `.tau/taukey.py`，从 `taukey_template.py` 复制一份。
+2. 如果没有 `.tau/taukey.py`，从 `examples/taukey_template.py` 复制一份。
 3. 填入一个真实可用的模型服务商配置。**不要**把示例 Key 当真。
-4. 不确定字段含义时，先读 `taukey_template.py` 里的注释。
+4. 不确定字段含义时，先读 `examples/taukey_template.py` 里的注释。
 
 Tau 支持：
 
@@ -100,7 +100,7 @@ Tau 支持：
 可选配置向导：
 
 ```bash
-python assets/scripts/configure_taukey.py
+python setup/configure_taukey.py
 ```
 
 ### 前端启动方式
@@ -195,7 +195,7 @@ uv pip install -e ".[ui]"
 
 - `.tau/taukey.py`、`memory/`、`skills/`、`temp/` 和用户成果：本地优先。
 - `src/tau_coding/*`、`src/tau_agent/*`、`src/tau_ai/*`、`apps/*`、
-  `TMWebDriver/*` 等代码：通常 upstream 优先，除非用户另有说明。
+  `external/TMWebDriver/*` 等代码：通常 upstream 优先，除非用户另有说明。
 - 明确解决冲突后，再 `git add` 并提交合并。
 
 ---
@@ -243,15 +243,15 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"
-cp taukey_template.py .tau/taukey.py
+cp examples/taukey_template.py .tau/taukey.py
 ```
 
 ### 第 2 步：安全配置 Key
 
-- 编辑 `.tau/taukey.py` 前先读 `taukey_template.py`。
+- 编辑 `.tau/taukey.py` 前先读 `examples/taukey_template.py`。
 - 只配置用户真实提供的 Key。
 - 不要把完整 Key 打印回给用户。
-- 用户不确定时，运行 `python assets/scripts/configure_taukey.py`，或询问要使用哪家模型服务商。
+- 用户不确定时，运行 `python setup/configure_taukey.py`，或询问要使用哪家模型服务商。
 
 建议提问：
 

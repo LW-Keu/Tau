@@ -13,8 +13,9 @@
 | `memory/email_config.py` | 字段契约 + `save/load/validate/infer_provider` 库 API |
 | `memory/email_send.py` | 当日 docx 定位 + SMTP 发送 + 幂等（`__main__` 可手跑） |
 | `memory/email_setup_sop.md` | Agent 配置流程（SOP，L3 Skill） |
+| `setup/configure_tauchain.py` | 人类交互式配置向导（v2.2+，多账号入口） |
 | `assets/email_providers.json` | SMTP 推断表（按域名匹配） |
-| `assets/email_daily_report.task.json` | 调度任务定义（样例，需拷贝到 `sche_tasks/`） |
+| `examples/email_daily_report.task.json` | 调度任务定义（样例，需拷贝到 `sche_tasks/`） |
 | `.tau/tauchain.json` | 配置落点（含密码，`0o600`，gitignored） |
 
 ## 快速配置（Agent SOP）
@@ -108,7 +109,6 @@ agent 会读这些 env → 调 `save_email_config` → 跑测试邮件。
 ## 已被删除（v2.1 之前存在，不要再调用）
 
 - `mailer/`（整包）
-- `assets/scripts/configure_tauchain.py`（v2.2+ 人类交互式向导，邮件多账号入口）
 - `tau_cli/email_setup.py`（v1 维护工具，已 `git rm`）
 - `python -m tau_cli.email_setup {setup,migrate,test}`（命令不再可用）
 

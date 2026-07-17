@@ -2,10 +2,10 @@
 """configure_tauchain.py - 人类首次配置 Tau 邮件 SMTP。
 
 用法:
-  python assets/scripts/configure_tauchain.py                # 交互模式（默认）
-  python assets/scripts/configure_tauchain.py --interactive  # 同上
-  python assets/scripts/configure_tauchain.py --non-interactive  # 读环境变量
-  python assets/scripts/configure_tauchain.py --send-test    # 配置后立即发一封测试邮件
+  python setup/configure_tauchain.py                # 交互模式（默认）
+  python setup/configure_tauchain.py --interactive  # 同上
+  python setup/configure_tauchain.py --non-interactive  # 读环境变量
+  python setup/configure_tauchain.py --send-test    # 配置后立即发一封测试邮件
 
 写入与字段契约统一来自 memory.email_config（禁止自带 json.dump 绕开校验）。
 """
@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(__file__).resolve().parent.parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 

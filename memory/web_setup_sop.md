@@ -9,14 +9,14 @@
 ## 前置：检测浏览器
 
 ## 安装 tmwd_cdp_bridge 扩展
-扩展路径: `../TMWebDriver/tmwd_cdp_bridge/`（MV3 Chrome 扩展，含 CDP debugger + scripting + cookie 能力）
+扩展路径: `../external/TMWebDriver/tmwd_cdp_bridge/`（MV3 Chrome 扩展，含 CDP debugger + scripting + cookie 能力）
 
 ### 自动打开扩展管理页
 `chrome://extensions` 无法通过命令行或 JS 打开，需用剪贴板+地址栏方案
 
 ### 安装步骤（chrome扩展页难以自动化）
 1. 打开扩展管理页，开启「开发者模式」
-2. 点击「加载已解压的扩展程序」，选择 `TMWebDriver/tmwd_cdp_bridge/` 目录，或让用户直接拖入
+2. 点击「加载已解压的扩展程序」，选择 `external/TMWebDriver/tmwd_cdp_bridge/` 目录，或让用户直接拖入
 3. 显示“错误”不用管，一般只是因为还没连上GA
 
 ## 验证

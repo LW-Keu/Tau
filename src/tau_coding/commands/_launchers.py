@@ -50,7 +50,7 @@ LAUNCHERS: dict[str, dict] = {
         "name": "configure",
         "help": "运行初始配置向导 (configure_taukey.py)",
         "desc": "首次安装后配置 API Key、模型参数等基础设置",
-        "cmd": ["python", "{PROJECT_DIR}/assets/scripts/configure_taukey.py"],
+        "cmd": ["python", "{PROJECT_DIR}/setup/configure_taukey.py"],
     },
 }
 

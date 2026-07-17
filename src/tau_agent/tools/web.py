@@ -5,7 +5,7 @@ driver = None
 
 def first_init_driver():
     global driver
-    from TMWebDriver import TMWebDriver
+    from external.TMWebDriver import TMWebDriver
     driver = TMWebDriver()
     for i in range(20):
         time.sleep(1)
@@ -40,7 +40,7 @@ def web_scan(tabs_only=False, switch_tab_id=None, text_only=False, maxlen=35000)
             }
         }
         if not tabs_only:
-            from TMWebDriver import simphtml
+            from external.TMWebDriver import simphtml
             importlib.reload(simphtml); result["content"] = simphtml.get_html(driver, cutlist=True, maxchars=maxlen, text_only=text_only)
             if text_only: result['content'] = smart_format(result['content'], max_str_len=maxlen//3, omit_str='\n\n[omitted long content]\n\n')
         return result
@@ -54,7 +54,7 @@ def web_execute_js(script, switch_tab_id=None, no_monitor=False):
         if driver is None: first_init_driver()
         if len(driver.get_all_sessions()) == 0: return {"status": "error", "msg": "没有可用的浏览器标签页，查L3记忆分析原因。"}
         if switch_tab_id: driver.default_session_id = switch_tab_id
-        from TMWebDriver import simphtml
+        from external.TMWebDriver import simphtml
         result = simphtml.execute_js_rich(script, driver, no_monitor=no_monitor)
         return result
     except Exception as e: return {"status": "error", "msg": format_error(e)}

@@ -22,7 +22,7 @@ C = {
     'blue': '\033[94m', 'magenta': '\033[95m', 'cyan': '\033[96m', 'white': '\033[97m',
 }
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TAU_DIR = os.path.join(PROJECT_ROOT, '.tau')
 TAUKPY_PATH = os.path.join(TAU_DIR, 'taukey.py')
 

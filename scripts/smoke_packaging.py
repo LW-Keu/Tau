@@ -5,7 +5,7 @@ import subprocess, sys, tempfile, os
 TOPLEVEL = ["tau_coding", "tau_coding.paths", "tau_coding.taumain",
             "tau_coding.cli", "tau_coding.reflect.scheduler",
             "tau_agent", "tau_agent.plugins.hooks", "tau_ai",
-            "TMWebDriver", "TMWebDriver.simphtml", "memory.email_config"]
+            "external.TMWebDriver", "external.TMWebDriver.simphtml", "memory.email_config"]
 
 def main():
     code = "import " + ", ".join(TOPLEVEL)

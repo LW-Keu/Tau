@@ -14,7 +14,7 @@ import shutil
 import tempfile
 import importlib
 
-# memory/ 用裸名 import（与 daily_report_* 一致，无 __init__.py）
+# memory/ 工具用裸名 import（sys.path 指向 memory/，与 daily_report_* 一致）
 MEM_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "memory"
 )
@@ -204,7 +204,18 @@ def main():
     print("=== testing memory/email_config.py ===")
     tmp = tempfile.mkdtemp(prefix="email_cfg_test_")
     os.environ["TAU_HOME"] = tmp
-    # reload 让 CONFIG_DIR / CONFIG_FILE 常量用新 TAU_HOME 重新求值
+    # infer_provider 读 ASSETS/email_providers.json, 拷一份进隔离环境
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.makedirs(os.path.join(tmp, "assets"), exist_ok=True)
+    shutil.copy(
+        os.path.join(root, "assets", "email_providers.json"),
+        os.path.join(tmp, "assets", "email_providers.json"),
+    )
+    # reload 让 CONFIG_DIR / CONFIG_FILE 常量用新 TAU_HOME 重新求值。
+    # TAU 实际在 tau_coding.paths 里求值, 必须先 reload 它, 否则
+    # email_config reload 时拿到的是缓存的旧 TAU (指向真实 .tau/)。
+    import tau_coding.paths
+    importlib.reload(tau_coding.paths)
     importlib.reload(email_config)
     try:
         tests = [

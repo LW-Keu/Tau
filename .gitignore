@@ -84,6 +84,14 @@ memory/L4_raw_sessions/*
 !memory/procmem_scanner.py
 !memory/procmem_scanner_sop.md
 
+# macOS automation agent tools (l3_capability_inventory §8.10)
+!memory/asrun
+!memory/as_probe.py
+!memory/as_daily_appendix.py
+!memory/active_window.py
+!memory/contacts_lookup.py
+!memory/snapread.py
+
 # TMWebDriver SOP
 !memory/tmwebdriver_sop.md
 
@@ -146,7 +154,7 @@ sche_tasks/*.log
 !sche_tasks/*.json
 !sche_tasks/*.sh
 # CDP Bridge 密钥配置（首次运行自动生成）
-TMWebDriver/tmwd_cdp_bridge/config.js
+external/TMWebDriver/tmwd_cdp_bridge/config.js
 assets/copilot_proxy.pyw
 **log.*
 

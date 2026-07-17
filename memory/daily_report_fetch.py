@@ -8,7 +8,7 @@ config 驱动 memory/daily_report_sources.json:
   - 多路归一化 + 按真实 URL 去重 -> temp/bing_raw_<YYYYMMDD>.json {_meta, records}
 入口零编辑: python memory/daily_report_fetch.py [--date YYYY-MM-DD] [--out PATH] [--min N] [--engine both]
 纯函数 unwrap_bing_url / rel_to_abs / dedup_records 可单测 (见 scripts/smoke_daily_report_fetch.py)。
-R15 (2026-06-27): 引入 TMWebDriver (../TMWebDriver.py) 作为首选 Bing 采集引擎;
+R15 (2026-06-27): 引入 TMWebDriver (../external/TMWebDriver/) 作为首选 Bing 采集引擎;
   保留 Playwright 作为降级;TMWebDriver 走 18766 WS 接管用户浏览器避免每次开新 Context。
 """
 import argparse, base64, json, os, re, sys, urllib.parse, urllib.request
@@ -167,7 +167,7 @@ def fetch_bing(categories: dict, scraped_at: datetime) -> list:
 
 # ─── Bing 通道 (TMWebDriver, R15 2026-06-27 新增, 首选引擎) ───
 #
-# 通过 ../TMWebDriver.py 接入用户浏览器(保留登录态/Cookie); 无需每次开新 Context。
+# 通过 ../external/TMWebDriver/ 接入用户浏览器(保留登录态/Cookie); 无需每次开新 Context。
 # 适合 15 查询量级; 不适合高频/并发。
 # API 摘要 (见 memory/tmwebdriver_sop.md):
 #   d = TMWebDriver()                    # 启动/接入 18766 WS master
@@ -180,7 +180,7 @@ def fetch_bing_tmwebdriver(categories: dict, scraped_at: datetime) -> list:
     _tmwd_path = os.path.join(_SCRIPT_DIR, '..')
     if _tmwd_path not in _sys.path:
         _sys.path.insert(0, _tmwd_path)
-    from TMWebDriver import TMWebDriver  # 惰性: master 未启时让上层捕获 ImportError/连接错误
+    from external.TMWebDriver import TMWebDriver  # 惰性: master 未启时让上层捕获 ImportError/连接错误
     records = []
     d = None
     try:

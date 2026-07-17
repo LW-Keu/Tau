@@ -55,7 +55,7 @@ git clone https://github.com/lllIlIlIlll/tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"            # 核心 + UI 依赖
-cp taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
+cp examples/taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
 ```
 
 > `.[ui]` 会一次性安装以下 UI 后端(可单独 pip 装其一):
@@ -84,7 +84,7 @@ oai_config = {
 | `claude`(不含 `native`) | Claude 兼容 | Claude API 服务 |
 | `native` + `claude` / `oai` | 标准工具调用 | 较弱模型推荐,工具调用更规范 |
 
-> 不想手填?运行向导:`tau configure`(即 `assets/scripts/configure_taukey.py`)。
+> 不想手填?运行向导:`tau configure`(即 `setup/configure_taukey.py`)。
 
 ### 3. 启动
 
@@ -136,7 +136,7 @@ Tau/
 ├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai
 ├── apps/         # 多前端:common · cli · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
-├── TMWebDriver/  # 浏览器自动化(保留登录态)+ Site Skills + 多平台发布
+├── external/     # 外部组件:TMWebDriver(浏览器自动化,保留登录态) · agent_bbs
 ├── sche_tasks/   # 计划任务
 ├── docs/         # 文档
 └── assets/       # 系统提示词 · 工具 schema · 模板 · 脚本

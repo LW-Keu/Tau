@@ -3,7 +3,7 @@
 > spec: `docs/specs/2026-06-21-email-feature-refactor-design.md`
 > 触发：用户表达"配置邮箱 / 设置发件箱 / 帮我配邮件 / SMTP 配一下"等设置意图
 > **不在邮件发不出去/链路故障时执行**——那是 email_report 故障排查 SOP（待写）
-> **v3 变更**：邮件模块从 `mailer/` 迁至 `memory/`（库）+ `assets/scripts/configure_tauchain.py`（v2.2+ 活跃维护的人类交互式向导）。授权码从 keychain 改为 `.tau/tauchain.json` 明文存储（受 `.gitignore` + 文件权限 `600` 保护）。
+> **v3 变更**：邮件模块从 `mailer/` 迁至 `memory/`（库）+ `setup/configure_tauchain.py`（v2.2+ 活跃维护的人类交互式向导）。授权码从 keychain 改为 `.tau/tauchain.json` 明文存储（受 `.gitignore` + 文件权限 `600` 保护）。
 
 ## 阶段 1 · 确认意图
 
@@ -88,13 +88,13 @@ email_config.save_email_config(cfg)  # 自动 mkdir .tau/ + chmod 0o600
 唯一交互式配置入口：
 
 ```text
-assets/scripts/configure_tauchain.py
+setup/configure_tauchain.py
 ```
 
 设计要点：
 - **复用库**：写入与字段契约复用 `memory.email_config.save_email_config`（不再自带写逻辑），杜绝字段漂移；按邮箱域名调 `memory.email_config.infer_provider` 自动推断 SMTP。
 - **交互 + 非交互双模式**：
-  - 交互：`python assets/scripts/configure_tauchain.py`（默认模式，逐项问 4 个必填 + 推断 SMTP）
+  - 交互：`python setup/configure_tauchain.py`（默认模式，逐项问 4 个必填 + 推断 SMTP）
   - 非交互（CI/CD）：`--non-interactive` + 环境变量（`TAU_SMTP_HOST`、`TAU_SMTP_PORT`、`TAU_SMTP_USER`、`TAU_SMTP_PASS`、`TAU_TO_ADDRS` 等）
   - 配置后验证：`--send-test` 调 `memory.email_report.send()` 发一封测试邮件
 - **安全**：生成 `.tau/tauchain.json`，文件权限 `0o600`，原配置自动备份到 `.tau/tauchain.json.bak.<timestamp>`。
@@ -129,7 +129,7 @@ email_config.save_email_config(cfg)
   > 服务器返回 {错误原文}。配置已保留，如需帮助把这段错误贴出来。
 
 - **email_config 写入失败 / 未配置（阶段 4 / 5）** →
-  > `.tau/tauchain.json` 不存在或字段缺失，错误 {X}。请跑 `python assets/scripts/configure_tauchain.py`（首次配置）。
+  > `.tau/tauchain.json` 不存在或字段缺失，错误 {X}。请跑 `python setup/configure_tauchain.py`（首次配置）。
   > 权限问题：`chmod 600 .tau/tauchain.json`。
 
 ## 重试入口

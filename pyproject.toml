@@ -47,8 +47,8 @@ py-modules = []
 
 [tool.setuptools.packages.find]
 where = [".", "src"]
-include = ["memory*", "TMWebDriver*", "tau_ai*", "tau_agent*", "tau_coding*"]
-exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*"]
+include = ["memory*", "tau_ai*", "tau_agent*", "tau_coding*", "external.TMWebDriver*"]
+exclude = ["apps*", "tests*", "scripts*", "docs*", "assets*", "sche_tasks*", "temp*", "examples*", "setup*"]
 namespaces = false
 
 [tool.setuptools.package-data]

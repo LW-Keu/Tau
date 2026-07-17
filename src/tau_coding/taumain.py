@@ -36,7 +36,7 @@ if not os.path.exists(mem_insight):
     t = str(ASSETS / f'template/global_mem_insight_template{lang_suffix}.txt')
     template = Path(t).read_text(encoding='utf-8') if os.path.exists(t) else ''
     open(mem_insight, 'w', encoding='utf-8').write(template)
-cdp_cfg = str(TAU_HOME / 'TMWebDriver/tmwd_cdp_bridge/config.js')
+cdp_cfg = str(TAU_HOME / 'external/TMWebDriver/tmwd_cdp_bridge/config.js')
 if not os.path.exists(cdp_cfg):
     try:
         os.makedirs(os.path.dirname(cdp_cfg), exist_ok=True)
