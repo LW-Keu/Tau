@@ -26,6 +26,11 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TAU_DIR = os.path.join(PROJECT_ROOT, '.tau')
 TAUKPY_PATH = os.path.join(TAU_DIR, 'taukey.py')
 
+# 生成骨架：从该模板读全文，把激活配置注入两个标记之间（单一文本源）
+TAUKEY_TEMPLATE = os.path.join(PROJECT_ROOT, 'assets', 'template', 'taukey_template.py')
+INJECTION_BEGIN = '# >>> TAU_CONFIGURE_INJECTION_POINT >>>'
+INJECTION_END = '# <<< TAU_CONFIGURE_INJECTION_POINT <<<'
+
 # ── 模型厂商定义 ───────────────────────────────────────────────────────────
 
 LLM_PROVIDERS = [
@@ -966,19 +971,25 @@ def _var_type_info(cfg):
 
 
 def generate_taukey(llm_cfgs, platform_configs):
-    """生成 taukey.py 内容"""
+    """从 assets/template/taukey_template.py 生成 taukey.py。
+
+    模板文件是唯一骨架（含全部文档注释）；本函数只组装激活配置块，
+    注入到模板的两个 TAU_CONFIGURE_INJECTION_POINT 标记之间（标记保留，
+    重新运行向导时就地替换）。
+    """
+    with open(TAUKEY_TEMPLATE, 'r', encoding='utf-8') as f:
+        template = f.read()
+    if INJECTION_BEGIN not in template or INJECTION_END not in template:
+        raise SystemExit(f'[ERROR] 模板缺少注入标记: {TAUKEY_TEMPLATE}')
+
     lines = []
-    lines.append("# ══════════════════════════════════════════════════════════════════════════════")
-    lines.append(f"#  Tau — taukey.py (由 configure.py 自动生成 @ {datetime.now().strftime('%Y-%m-%d %H:%M')})")
-    lines.append("# ══════════════════════════════════════════════════════════════════════════════")
-    lines.append("")
-    lines.append("# ── 停止符 ──────────────────────────────────────────────────────────────────")
+    lines.append(f"# ── 以下激活配置由 configure.py 生成 @ {datetime.now().strftime('%Y-%m-%d %H:%M')}（重新运行向导会就地替换）──")
     lines.append("_SETUP_DONE = 'configure.py'  # 删除此行可重新触发配置向导")
     lines.append("")
 
     # Mixin 配置
     names = [c['name'] for c in llm_cfgs]
-    lines.append("# ── Mixin 故障转移 ──────────────────────────────────────────────────────────")
+    lines.append("# ── Mixin 故障转移 ──")
     lines.append("mixin_config = {")
     lines.append(f"    'llm_nos': {names},")
     lines.append("    'max_retries': 10,")
@@ -1004,7 +1015,7 @@ def generate_taukey(llm_cfgs, platform_configs):
         else:
             var_name = var_prefix
 
-        lines.append(f"# ── {cfg['name']} ({session_type}) ─────────────────────────────────────────────")
+        lines.append(f"# ── {cfg['name']} ({session_type}) ──")
         lines.append(f"{var_name} = {{")
         _write_config_fields(lines, cfg)
         lines.append("}")
@@ -1012,25 +1023,17 @@ def generate_taukey(llm_cfgs, platform_configs):
 
     # 平台配置
     if platform_configs:
-        lines.append("# ══════════════════════════════════════════════════════════════════════════════")
-        lines.append("#  聊天平台集成")
-        lines.append("# ══════════════════════════════════════════════════════════════════════════════")
+        lines.append("# ── 聊天平台集成 ──")
         lines.append("")
         for pc in platform_configs:
             for key, val in pc['config'].items():
                 _write_platform_value(lines, key, val)
             lines.append("")
 
-    # 尾部
-    lines.append("# ══════════════════════════════════════════════════════════════════════════════")
-    lines.append("#  配置完毕！运行: python taumain.py  (终端 REPL)")
-    if platform_configs:
-        for pc in platform_configs:
-            p = pc['platform']
-            lines.append(f"#  或: python {p['file']}  ({p['name']})")
-    lines.append("# ══════════════════════════════════════════════════════════════════════════════")
-
-    return '\n'.join(lines)
+    block = '\n'.join(lines).rstrip()
+    pre, rest = template.split(INJECTION_BEGIN, 1)
+    _, post = rest.split(INJECTION_END, 1)
+    return f"{pre}{INJECTION_BEGIN}\n{block}\n{INJECTION_END}{post}"
 
 def _write_config_fields(lines, cfg):
     """写入配置字典的键值对（缩进的 'key': value, 格式）"""

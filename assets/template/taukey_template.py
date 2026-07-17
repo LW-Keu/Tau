@@ -5,7 +5,8 @@
 #  ┌─────────────────────────────────────────────────────────────────────────┐
 #  │ 快速上手：只需 3 步                                                      │
 #  │  1. 把本文件复制为 .tau/taukey.py                                          │
-#  │  2. 在下面的"推荐最优配置"区域填入你的 apikey                              │
+#  │  2. 从下方注释块中挑一个配置，取消注释（或交给 `tau configure` 生成），       │
+#  │     填入你的 apikey                                                       │
 #  │  3. 运行 python taumain.py / python launch.pyw                        │
 #  └─────────────────────────────────────────────────────────────────────────┘
 #
@@ -113,13 +114,23 @@
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  激活配置区（本文件中唯一应存在未注释配置的位置）
+# ══════════════════════════════════════════════════════════════════════════════
+#  手动配置：从下方注释块中挑一个，取消注释后使用（或直接在本区编写）。
+#  `tau configure` 向导：生成的激活配置会插入到下面两个标记之间（标记请保留，
+#  重新运行向导时会就地替换）。
+# >>> TAU_CONFIGURE_INJECTION_POINT >>>
+# <<< TAU_CONFIGURE_INJECTION_POINT <<<
+
+
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║                     ★ 推荐最优配置（新手从这里开始）★                      ║
+# ║                     ★ 推荐配置示例（注释状态，取消注释后生效）★            ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 #
 #  推荐使用 mixin 故障转移 + 多个 native session 的方式。
 #  mixin 会按 llm_nos 列表顺序尝试，第一个失败自动切下一个，非常省心。
-#  填好下面的 apikey/apibase 后即可使用。
+#  取消注释需要的配置块，填好 apikey/apibase 后即可使用。
 
 
 # ── Mixin 故障转移（最推荐的方式）──────────────────────────────────────────
@@ -127,13 +138,13 @@
 #  引）。约束：引用的 session 必须全是 Native 系列（NativeClaudeSession 和
 #  NativeOAISession 可以混用）或者全不是 Native，不能 Native 与非 Native 混。
 #  请你按需
-mixin_config = {
-    'llm_nos': ['gpt-native'],   # 按优先级排列；Claude 与 GPT 混用
-    # 'llm_nos': ['cc-relay-1', 'cc-relay-2', 'gpt-native'],  # 按优先级排列；Claude 与 GPT 混用，注意: 启用时需要启用'cc-relay-1', 'cc-relay-2'配置!
-    'max_retries': 10,           # int；整个 rotation 的总重试次数上限
-    'base_delay': 0.5,           # float 秒；指数退避起始延迟（retry n 时延迟≈base_delay * 2^n）
-    # 'spring_back': 300,        # int 秒；切到备用节点后多久再尝试回到第一个节点
-}
+# mixin_config = {
+#     'llm_nos': ['gpt-native'],   # 按优先级排列；Claude 与 GPT 混用
+#     # 'llm_nos': ['cc-relay-1', 'cc-relay-2', 'gpt-native'],  # 按优先级排列；Claude 与 GPT 混用，注意: 启用时需要启用'cc-relay-1', 'cc-relay-2'配置!
+#     'max_retries': 10,           # int；整个 rotation 的总重试次数上限
+#     'base_delay': 0.5,           # float 秒；指数退避起始延迟（retry n 时延迟≈base_delay * 2^n）
+#     # 'spring_back': 300,        # int 秒；切到备用节点后多久再尝试回到第一个节点
+# }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -285,23 +296,23 @@ mixin_config = {
 #  适合 GPT/o 系列、Gemini 或任何 OAI 兼容且支持原生 tool 字段的模型。
 #  和 NativeClaudeSession 共用大部分逻辑（继承关系），只是请求走 OAI 协议。
 
-native_oai_config = {
-    'name': 'gpt-native',                           # /llms 显示名 & mixin 引用名
-    'apikey': 'sk-<your-openai-key>',                # Bearer 鉴权
-    'apibase': 'https://api.openai.com/v1',          # 补齐到 /v1/chat/completions
-    'model': 'gpt-5.4',                              # gpt-5/o 系列
-    'api_mode': 'chat_completions',                  # 'chat_completions'（默认）|'responses'
-    # 'reasoning_effort': 'high',                    # none|minimal|low|medium|high|xhigh
-                                                     # chat_completions → payload.reasoning_effort
-                                                     # responses        → payload.reasoning.effort
-    'max_retries': 3,                                # int 默认 1
-    'connect_timeout': 10,                           # int 秒 默认 5（最小 1）
-    'read_timeout': 120,                             # int 秒 默认 30（最小 5）
-    # 'temperature': 1.0,                            # float 默认 1.0
-    # 'max_tokens': 8192,                            # int 默认 8192
-    # 'proxy': 'http://127.0.0.1:2082',              # 可选单 session HTTP 代理
-    # 'context_win': 16000,                          # int 默认 24000；历史裁剪阈值
-}
+# native_oai_config = {
+#     'name': 'gpt-native',                           # /llms 显示名 & mixin 引用名
+#     'apikey': 'sk-<your-openai-key>',                # Bearer 鉴权
+#     'apibase': 'https://api.openai.com/v1',          # 补齐到 /v1/chat/completions
+#     'model': 'gpt-5.4',                              # gpt-5/o 系列
+#     'api_mode': 'chat_completions',                  # 'chat_completions'（默认）|'responses'
+#     # 'reasoning_effort': 'high',                    # none|minimal|low|medium|high|xhigh
+#                                                      # chat_completions → payload.reasoning_effort
+#                                                      # responses        → payload.reasoning.effort
+#     'max_retries': 3,                                # int 默认 1
+#     'connect_timeout': 10,                           # int 秒 默认 5（最小 1）
+#     'read_timeout': 120,                             # int 秒 默认 30（最小 5）
+#     # 'temperature': 1.0,                            # float 默认 1.0
+#     # 'max_tokens': 8192,                            # int 默认 8192
+#     # 'proxy': 'http://127.0.0.1:2082',              # 可选单 session HTTP 代理
+#     # 'context_win': 16000,                          # int 默认 24000；历史裁剪阈值
+# }
 
 # ── 也可以走 Responses API ──────────────────────────────────────────────────
 #  对接 OpenAI /v1/responses 端点。reasoning_effort 会以 reasoning.effort

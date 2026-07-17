@@ -14,6 +14,7 @@ _Avoid_: 配置脚本、安装脚本
 
 **示例 (Example)**:
 供用户拷贝或模仿的样品(配置底版、任务定义、输出样例、接入 demo),集中存放于 `examples/`。运行时不读;拷出改字后才生效。
+例外:taukey 配置底版存放于 `assets/template/`(`setup/configure_taukey.py` 以其为骨架生成 `.tau/taukey.py`)。
 _Avoid_: 样板、样例片段
 
 **外部组件 (External Component)**:

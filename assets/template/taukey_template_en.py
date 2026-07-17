@@ -28,31 +28,31 @@
 #  Official Anthropic endpoint. apikey starting with 'sk-ant-' is auto-sent
 #  as x-api-key; any other prefix uses Authorization: Bearer.
 #  Model suffix '[1m]' triggers the 1M-context beta (stripped before sending).
-native_claude_config = {
-    'name': 'claude',                         # display name & mixin reference
-    'apikey': 'sk-ant-<your-anthropic-key>',
-    'apibase': 'https://api.anthropic.com',
-    'model': 'claude-opus-4-7[1m]',           # or 'claude-sonnet-4-6'
-    'thinking_type': 'adaptive',              # 'adaptive' | 'enabled' | 'disabled'
-    # 'thinking_budget_tokens': 32768,        # required if thinking_type='enabled'
-    # 'max_retries': 3,
-    # 'read_timeout': 180,
-}
+# native_claude_config = {
+#     'name': 'claude',                         # display name & mixin reference
+#     'apikey': 'sk-ant-<your-anthropic-key>',
+#     'apibase': 'https://api.anthropic.com',
+#     'model': 'claude-opus-4-7[1m]',           # or 'claude-sonnet-4-6'
+#     'thinking_type': 'adaptive',              # 'adaptive' | 'enabled' | 'disabled'
+#     # 'thinking_budget_tokens': 32768,        # required if thinking_type='enabled'
+#     # 'max_retries': 3,
+#     # 'read_timeout': 180,
+# }
 
 
 # ── 2. NativeOAISession — OpenAI direct ──────────────────────────────────────
 #  Standard OpenAI chat/completions endpoint. Also works for any OpenAI-
 #  compatible provider that supports native function-calling tool fields.
-native_oai_config = {
-    'name': 'gpt',                            # display name & mixin reference
-    'apikey': 'sk-<your-openai-key>',
-    'apibase': 'https://api.openai.com/v1',
-    'model': 'gpt-5.4',                       # or 'o4', 'gpt-5.3-codex', etc.
-    'api_mode': 'chat_completions',           # or 'responses' for /v1/responses
-    # 'reasoning_effort': 'high',             # none|minimal|low|medium|high|xhigh
-    # 'max_retries': 3,
-    # 'read_timeout': 120,
-}
+# native_oai_config = {
+#     'name': 'gpt',                            # display name & mixin reference
+#     'apikey': 'sk-<your-openai-key>',
+#     'apibase': 'https://api.openai.com/v1',
+#     'model': 'gpt-5.4',                       # or 'o4', 'gpt-5.3-codex', etc.
+#     'api_mode': 'chat_completions',           # or 'responses' for /v1/responses
+#     # 'reasoning_effort': 'high',             # none|minimal|low|medium|high|xhigh
+#     # 'max_retries': 3,
+#     # 'read_timeout': 120,
+# }
 
 
 # ── 3. Mixin failover (optional) ─────────────────────────────────────────────

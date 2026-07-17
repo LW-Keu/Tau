@@ -17,7 +17,7 @@ def _load_taukeys():
         _taukey_path = legacy
         with open(legacy, encoding='utf-8') as f: return json.load(f)
     raise Exception(
-        f'[ERROR] {p} not found. Run `tau configure` to generate one from taukey_template.'
+        f'[ERROR] {p} not found. Run `tau configure`, or copy assets/template/taukey_template.py and fill in your key.'
     )
 
 def reload_taukeys():

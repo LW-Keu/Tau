@@ -79,7 +79,7 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"        # Core + UI dependencies
-cp examples/taukey_template.py .tau/taukey.py     # Fill in your LLM API key
+cp assets/template/taukey_template.py .tau/taukey.py     # Fill in your LLM API key
 python launch.pyw
 ```
 
@@ -88,9 +88,9 @@ Full guide: [GETTING_STARTED.md](GETTING_STARTED.md)
 ### Configure your LLM key
 
 1. Open the installed `Tau` directory.
-2. If `.tau/taukey.py` does not exist, copy it from `examples/taukey_template.py`.
+2. If `.tau/taukey.py` does not exist, copy it from `assets/template/taukey_template.py`.
 3. Fill in one provider. Do **not** paste example keys as real keys.
-4. If you are unsure about the fields, read the comments in `examples/taukey_template.py` first.
+4. If you are unsure about the fields, read the comments in `assets/template/taukey_template.py` first.
 
 Tau supports:
 
@@ -244,12 +244,12 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"
-cp examples/taukey_template.py .tau/taukey.py
+cp assets/template/taukey_template.py .tau/taukey.py
 ```
 
 ### Step 2: Configure keys safely
 
-- Read `examples/taukey_template.py` before editing `.tau/taukey.py`.
+- Read `assets/template/taukey_template.py` before editing `.tau/taukey.py`.
 - Configure only keys the user actually provides.
 - Never print the full key back to the user.
 - If the user is unsure, run `python setup/configure_taukey.py` or ask which provider they want to use.

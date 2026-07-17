@@ -79,7 +79,7 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"        # 核心 + UI 依赖
-cp examples/taukey_template.py .tau/taukey.py     # 填入你的 LLM API Key
+cp assets/template/taukey_template.py .tau/taukey.py     # 填入你的 LLM API Key
 python launch.pyw
 ```
 
@@ -88,9 +88,9 @@ python launch.pyw
 ### 配置 LLM Key
 
 1. 打开已安装的 `Tau` 目录。
-2. 如果没有 `.tau/taukey.py`，从 `examples/taukey_template.py` 复制一份。
+2. 如果没有 `.tau/taukey.py`，从 `assets/template/taukey_template.py` 复制一份。
 3. 填入一个真实可用的模型服务商配置。**不要**把示例 Key 当真。
-4. 不确定字段含义时，先读 `examples/taukey_template.py` 里的注释。
+4. 不确定字段含义时，先读 `assets/template/taukey_template.py` 里的注释。
 
 Tau 支持：
 
@@ -243,12 +243,12 @@ git clone https://github.com/lsdefine/Tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"
-cp examples/taukey_template.py .tau/taukey.py
+cp assets/template/taukey_template.py .tau/taukey.py
 ```
 
 ### 第 2 步：安全配置 Key
 
-- 编辑 `.tau/taukey.py` 前先读 `examples/taukey_template.py`。
+- 编辑 `.tau/taukey.py` 前先读 `assets/template/taukey_template.py`。
 - 只配置用户真实提供的 Key。
 - 不要把完整 Key 打印回给用户。
 - 用户不确定时，运行 `python setup/configure_taukey.py`，或询问要使用哪家模型服务商。

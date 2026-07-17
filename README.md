@@ -55,7 +55,7 @@ git clone https://github.com/lllIlIlIlll/tau.git
 cd Tau
 uv venv
 uv pip install -e ".[ui]"            # 核心 + UI 依赖
-cp examples/taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
+cp assets/template/taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
 ```
 
 > `.[ui]` 会一次性安装以下 UI 后端(可单独 pip 装其一):
