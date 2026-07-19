@@ -2,7 +2,7 @@
 # 启动: set GOAL_STATE=temp/xxx.json && python -m tau_coding.taumain --reflect tau_coding.reflect.goal_mode
 # 配置: agent按SOP写好state json，通过环境变量GOAL_STATE指定路径
 import os, json, time
-from tau_coding.paths import TAU_HOME, TEMP
+from tau_paths import TAU_HOME, TEMP
 
 INTERVAL = 3   # check间隔短，agent跑完立刻再检查
 ONCE = False

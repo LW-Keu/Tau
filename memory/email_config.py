@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from tau_coding.paths import TAU, ASSETS
+from tau_paths import TAU, ASSETS
 CONFIG_DIR: str = str(TAU)
 CONFIG_FILE: str = str(TAU / "tauchain.json")
 

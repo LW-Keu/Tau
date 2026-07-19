@@ -23,11 +23,11 @@ class TestTaukeyPath(unittest.TestCase):
         self._env_patcher = mock.patch.dict(os.environ, env, clear=True)
         self._env_patcher.start()
         self.addCleanup(self._env_patcher.stop)
-        # Reload tau_coding.paths and tau_ai with TAU_HOME=tmp.
+        # Reload tau_paths and tau_ai with TAU_HOME=tmp.
         for mod in list(sys.modules):
-            if mod == "tau_coding.paths" or mod == "tau_ai" or mod.startswith("tau_ai."):
+            if mod == "tau_paths" or mod == "tau_ai" or mod.startswith("tau_ai."):
                 del sys.modules[mod]
-        from tau_coding.paths import TAU, TAUKEY_PATH  # noqa
+        from tau_paths import TAU, TAUKEY_PATH  # noqa
         from tau_ai.keys import _load_taukeys, reload_taukeys  # noqa
         self.TAU = TAU
         self.TAUKEY_PATH = TAUKEY_PATH

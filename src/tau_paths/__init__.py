@@ -1,6 +1,8 @@
 """唯一仓库根锚点。所有'仓库根相对'路径解析的单一来源。
 TAU_HOME 可被环境变量覆盖（scheduled task / 容器 / CI 友好）；
-否则回溯到本文件上两级（src/ 的父目录 = 仓库根）。"""
+否则回溯到本文件上两级（src/ 的父目录 = 仓库根）。
+作为 stdlib-only 叶子模块，被 tau_ai/tau_agent/tau_coding/apps 共享
+（依赖方向见 docs/superpowers/specs/2026-07-15-tau-coding-package-migration-design.md）。"""
 import os
 from pathlib import Path
 

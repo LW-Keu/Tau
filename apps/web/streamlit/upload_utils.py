@@ -3,7 +3,7 @@ import os
 import time
 import uuid
 
-from tau_coding.paths import TEMP
+from tau_paths import TEMP
 
 
 UPLOAD_DIR = TEMP / "uploads"

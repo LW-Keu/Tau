@@ -212,10 +212,10 @@ def main():
         os.path.join(tmp, "assets", "email_providers.json"),
     )
     # reload 让 CONFIG_DIR / CONFIG_FILE 常量用新 TAU_HOME 重新求值。
-    # TAU 实际在 tau_coding.paths 里求值, 必须先 reload 它, 否则
+    # TAU 实际在 tau_paths 里求值, 必须先 reload 它, 否则
     # email_config reload 时拿到的是缓存的旧 TAU (指向真实 .tau/)。
-    import tau_coding.paths
-    importlib.reload(tau_coding.paths)
+    import tau_paths
+    importlib.reload(tau_paths)
     importlib.reload(email_config)
     try:
         tests = [

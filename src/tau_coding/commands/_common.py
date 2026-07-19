@@ -3,7 +3,7 @@
 启动类命令都通过 launch_frontend() Popen 子进程,internal 命令用各自的 run() 实现。
 """
 import os, subprocess, sys
-from tau_coding.paths import TAU_HOME
+from tau_paths import TAU_HOME
 
 PROJECT_DIR = str(TAU_HOME)
 

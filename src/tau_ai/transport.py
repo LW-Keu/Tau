@@ -1,6 +1,6 @@
 import os, re, time, requests
 from datetime import datetime
-from tau_coding.paths import TEMP
+from tau_paths import TEMP
 from .trim import safeprint
 print = safeprint
 

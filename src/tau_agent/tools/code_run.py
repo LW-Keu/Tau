@@ -1,6 +1,6 @@
 import os, re, sys, time, threading, tempfile, subprocess
 from .utils import smart_format
-from tau_coding.paths import TEMP, ASSETS
+from tau_paths import TEMP, ASSETS
 
 def code_run(code, code_type="python", timeout=60, cwd=None, code_cwd=None, stop_signal=None, maxlen=10000):
     """代码执行器

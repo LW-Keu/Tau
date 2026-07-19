@@ -10,7 +10,7 @@ if sys.platform == "win32" and sys.stdout.encoding and sys.stdout.encoding.lower
 
 from .commands import _launchers as _launchers_mod
 from .commands import run, list as list_cmd, status as status_cmd, update as update_cmd
-from .paths import require_assets
+from tau_paths import require_assets
 
 
 COMMANDS = {

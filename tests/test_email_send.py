@@ -21,8 +21,8 @@ class TestEmailSend(unittest.TestCase):
         os.environ["TAU_HOME"] = self.tmp
         # reload 顺序: paths(锚 TAU_HOME) → email_config → email_send
         # 模块级常量 (DONE/SENT/EMAIL_LOG/CONFIG_FILE) 只在 import 时求值一次。
-        import tau_coding.paths
-        importlib.reload(tau_coding.paths)
+        import tau_paths
+        importlib.reload(tau_paths)
         import memory.email_config
         importlib.reload(memory.email_config)
         import memory.email_send
@@ -38,10 +38,10 @@ class TestEmailSend(unittest.TestCase):
     def tearDown(self):
         # 清 env + reload 回默认, 避免常量残留污染后续套件
         os.environ.pop("TAU_HOME", None)
-        import tau_coding.paths
+        import tau_paths
         import memory.email_config
         import memory.email_send
-        importlib.reload(tau_coding.paths)
+        importlib.reload(tau_paths)
         importlib.reload(memory.email_config)
         importlib.reload(memory.email_send)
         shutil.rmtree(self.tmp, ignore_errors=True)

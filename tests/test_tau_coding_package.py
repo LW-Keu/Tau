@@ -19,7 +19,7 @@ def find_spec(name):
 class TestTauCodingPackage(unittest.TestCase):
     def test_new_modules_have_specs(self):
         modules = (
-            "tau_coding.paths", "tau_coding.taumain", "tau_coding.cli",
+            "tau_coding.taumain", "tau_coding.cli",
             "tau_coding.reflect.autonomous", "tau_coding.reflect.goal_mode",
             "tau_coding.reflect.scheduler",
             "tau_coding.reflect.agent_team_worker",
@@ -60,7 +60,7 @@ class TestTauCodingPackage(unittest.TestCase):
         # 干净子进程：清空 PYTHONPATH、cwd≠仓库根，一把导入全部顶层包。
         # 验证 editable install 下无残留 path-hack（不靠 cwd / PYTHONPATH 也能 import）。
         toplevel = [
-            "tau_coding", "tau_coding.paths", "tau_coding.taumain",
+            "tau_coding", "tau_paths", "tau_coding.taumain",
             "tau_coding.cli", "tau_coding.reflect.scheduler",
             "tau_agent", "tau_agent.plugins.hooks", "tau_ai",
             "external.TMWebDriver", "external.TMWebDriver.simphtml",

@@ -18,7 +18,7 @@ try:
 except Exception: pass
 from tau_agent.handler import TauHandler
 from tau_agent.tools.utils import smart_format, get_global_memory, format_error, consume_file
-from .paths import TAU_HOME, MEMORY, ASSETS, TEMP
+from tau_paths import TAU_HOME, MEMORY, ASSETS, TEMP
 
 def load_tool_schema(suffix=''):
     global TOOLS_SCHEMA
