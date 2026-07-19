@@ -385,7 +385,7 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 ### 8.12 v1.2.4 待办与已知缺口
 1. **utils/ 和 bin/ 仍待建** (TODO 1 涉及 check_venv.sh)
 2. **handler.py 2 个 patch 待批准** (R3 报告, 用户返回后决策)
-3. **scripts/ 无生产脚本** - 需将临时 ad-hoc 脚本标准化 (例如 daily_report_build_today.py 移入 scripts/)
+3. **scripts/ 已并入 tests/** (2026-07-19) - 原 smoke_*.py 烟测迁入 tests/ 或并入 test_*_package.py; scripts/ 目录已删
 4. **pip binary 缺失** - 装包需 `python -m pip` 模式
 5. **scheduler_stderr 报 requests 缺包** (R1 发现) - 待 R5 排查是否 venv 切换问题
 

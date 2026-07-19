@@ -20,15 +20,27 @@ class TestTauAgentPackage(unittest.TestCase):
         self.assertEqual(TauHandler.__module__, "tau_agent.handler")
 
     def test_tool_symbols_come_from_tau_agent(self):
-        from tau_agent.tools.code_run import code_run
-        from tau_agent.tools.file_io import file_read
-        from tau_agent.tools.utils import smart_format
-        from tau_agent.tools.web import web_scan
+        from tau_agent.tools.code_run import code_run, ask_user
+        from tau_agent.tools.file_io import file_read, file_patch
+        from tau_agent.tools.utils import smart_format, format_error, consume_file, get_global_memory
+        from tau_agent.tools.web import web_scan, web_execute_js, first_init_driver
 
-        self.assertEqual(code_run.__module__, "tau_agent.tools.code_run")
-        self.assertEqual(file_read.__module__, "tau_agent.tools.file_io")
-        self.assertEqual(smart_format.__module__, "tau_agent.tools.utils")
-        self.assertEqual(web_scan.__module__, "tau_agent.tools.web")
+        cases = [
+            (code_run, "tau_agent.tools.code_run"),
+            (ask_user, "tau_agent.tools.code_run"),
+            (file_read, "tau_agent.tools.file_io"),
+            (file_patch, "tau_agent.tools.file_io"),
+            (smart_format, "tau_agent.tools.utils"),
+            (format_error, "tau_agent.tools.utils"),
+            (consume_file, "tau_agent.tools.utils"),
+            (get_global_memory, "tau_agent.tools.utils"),
+            (web_scan, "tau_agent.tools.web"),
+            (web_execute_js, "tau_agent.tools.web"),
+            (first_init_driver, "tau_agent.tools.web"),
+        ]
+        for symbol, expected in cases:
+            with self.subTest(symbol=symbol.__name__):
+                self.assertEqual(symbol.__module__, expected)
 
     def test_old_core_modules_are_removed(self):
         for module in ("core.agent_loop", "core.handler", "core.tools"):

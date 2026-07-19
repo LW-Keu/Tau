@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -54,6 +55,25 @@ class TestTauCodingPackage(unittest.TestCase):
         result = subprocess.run([sys.executable, "-c", code],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_clean_subprocess_imports_all_toplevel(self):
+        # 干净子进程：清空 PYTHONPATH、cwd≠仓库根，一把导入全部顶层包。
+        # 验证 editable install 下无残留 path-hack（不靠 cwd / PYTHONPATH 也能 import）。
+        toplevel = [
+            "tau_coding", "tau_coding.paths", "tau_coding.taumain",
+            "tau_coding.cli", "tau_coding.reflect.scheduler",
+            "tau_agent", "tau_agent.plugins.hooks", "tau_ai",
+            "external.TMWebDriver", "external.TMWebDriver.simphtml",
+            "memory.email_config",
+        ]
+        code = "import " + ", ".join(toplevel)
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        with tempfile.TemporaryDirectory() as d:
+            result = subprocess.run(
+                [sys.executable, "-c", code], cwd=d, env=env,
+                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0,
+                         f"clean-subprocess import failed:\n{result.stderr}")
 
     def test_reflect_module_target_resolves(self):
         from tau_coding.taumain import _load_reflect

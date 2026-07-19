@@ -7,7 +7,7 @@ config 驱动 memory/daily_report_sources.json:
   - RSS 通道 (stdlib, 无新依赖) 直拉有 feed 的源
   - 多路归一化 + 按真实 URL 去重 -> temp/bing_raw_<YYYYMMDD>.json {_meta, records}
 入口零编辑: python memory/daily_report_fetch.py [--date YYYY-MM-DD] [--out PATH] [--min N] [--engine both]
-纯函数 unwrap_bing_url / rel_to_abs / dedup_records 可单测 (见 scripts/smoke_daily_report_fetch.py)。
+纯函数 unwrap_bing_url / rel_to_abs / dedup_records 可单测 (见 tests/test_daily_report_fetch.py)。
 R15 (2026-06-27): 引入 TMWebDriver (../external/TMWebDriver/) 作为首选 Bing 采集引擎;
   保留 Playwright 作为降级;TMWebDriver 走 18766 WS 接管用户浏览器避免每次开新 Context。
 """
