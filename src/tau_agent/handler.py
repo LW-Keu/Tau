@@ -1,5 +1,5 @@
 import os, re, json, sys
-from typing import Any, Protocol
+from typing import Protocol
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 
@@ -16,10 +16,10 @@ class HostContext(Protocol):
 
     TauHandler reaches back into its parent for four things only:
     ``task_dir`` (file-based keyinfo/intervene injection), ``verbose``,
-    the front-end-registered ``_turn_end_hooks``, and ``llmclient`` (solely
-    to snapshot ``backend.history`` for inline_eval in do_code_run). Depending
-    on this Protocol — not on src/tau_coding/taumain.Tau — keeps the agent core
-    reusable and unit-testable without a full host.
+    the front-end-registered ``_turn_end_hooks``, and a serialized history
+    snapshot (consumed as the ``history`` var in do_code_run's inline_eval
+    namespace). Depending on this Protocol — not on src/tau_coding/taumain.Tau
+    — keeps the agent core reusable and unit-testable without a full host.
 
     ``_turn_end_hooks`` is attached lazily by front ends
     (``if not hasattr(agent, '_turn_end_hooks'): agent._turn_end_hooks = {}``),
@@ -30,7 +30,10 @@ class HostContext(Protocol):
     task_dir: str | None
     verbose: bool
     _turn_end_hooks: dict
-    llmclient: Any  # has .backend.history; narrowed to a history accessor in stage B
+
+    def history_snapshot(self) -> str:
+        """Serialized LLM history for inline_eval's ``history`` namespace var."""
+        ...
 
 
 class TauHandler(BaseHandler):
@@ -66,7 +69,7 @@ class TauHandler(BaseHandler):
         code_cwd = os.path.normpath(self.cwd)
         maxlen = max(3000, 10000 // args.get('_tool_num', 1))
         if code_type == 'python' and args.get("inline_eval"):
-            ns = {'handler':self, 'parent':self.parent, 'history':json.dumps(self.parent.llmclient.backend.history)}
+            ns = {'handler':self, 'history':self.parent.history_snapshot()}
             old_cwd = os.getcwd()
             try:
                 os.chdir(cwd)

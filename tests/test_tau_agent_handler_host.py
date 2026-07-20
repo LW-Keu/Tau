@@ -1,18 +1,19 @@
-"""Stage A proof: TauHandler runs without a concrete Tau instance.
+"""TauHandler runs without a concrete Tau instance (HostContext decoupling).
 
 TauHandler historically depended on src/tau_coding/taumain.Tau as its parent.
 These tests construct it against a lightweight FakeHost satisfying the
 HostContext Protocol, then exercise every parent reach-back path:
 
-* turn_end_callback — touches parent.task_dir (:315/:316 consume_file) and
-  parent._turn_end_hooks (:319).
-* do_update_working_checkpoint — whose _get_anchor_prompt reads
-  parent.verbose (:285).
-* do_code_run inline_eval — snapshots parent.llmclient.backend.history (:46).
+* turn_end_callback — touches parent.task_dir and parent._turn_end_hooks.
+* do_update_working_checkpoint — whose _get_anchor_prompt reads parent.verbose.
+* do_code_run inline_eval — reads parent.history_snapshot() into the ns.
 
-If these pass, the agent core is unit-testable independent of the host,
-which is the whole point of the HostContext decoupling.
+Stage B narrowed the protocol: FakeHost no longer fakes an llmclient, so the
+suite proves the agent core needs only three attributes + history_snapshot().
+The reverse test guards that ns['parent'] is gone (undocumented coupling surface
+closed); the documented `handler` and `history` ns vars are unaffected.
 """
+import json
 import os
 import tempfile
 import unittest
@@ -20,24 +21,16 @@ import unittest
 from tau_agent.handler import HostContext, TauHandler
 
 
-class _FakeBackend:
-    def __init__(self):
-        self.history = [{"role": "user", "content": "hi"}]
-
-
-class _FakeClient:
-    def __init__(self):
-        self.backend = _FakeBackend()
-
-
 class FakeHost:
-    """Minimal HostContext for unit tests — no LLM network, no queue, no Tau."""
+    """Minimal HostContext for unit tests — no LLM, no queue, no Tau."""
 
     def __init__(self, task_dir=None, verbose=False):
         self.task_dir = task_dir
         self.verbose = verbose
         self._turn_end_hooks = {}
-        self.llmclient = _FakeClient()
+
+    def history_snapshot(self):
+        return json.dumps([{"role": "user", "content": "hi"}])
 
 
 class _FakeResponse:
@@ -80,8 +73,8 @@ class TestHandlerHostDecoupling(unittest.TestCase):
         self.assertIn("did the thing", self.handler.history_info[-1])
 
     def test_dispatch_runs_real_tool_without_tau(self):
-        # do_update_working_checkpoint -> _get_anchor_prompt reads parent.verbose
-        # (:285). Default index=0 so skip=False, forcing the full anchor path.
+        # do_update_working_checkpoint -> _get_anchor_prompt reads parent.verbose.
+        # Default index=0 so skip=False, forcing the full anchor path.
         gen = self.handler.dispatch(
             "update_working_checkpoint",
             {"key_info": "remember this"},
@@ -91,8 +84,8 @@ class TestHandlerHostDecoupling(unittest.TestCase):
         self.assertEqual(self.handler.working.get("key_info"), "remember this")
 
     def test_do_code_run_inline_eval_reads_host_history(self):
-        # The inline_eval branch (:46) snapshots parent.llmclient.backend.history
-        # into the eval namespace. FakeHost provides it; the code stashes it in _r.
+        # The inline_eval branch calls parent.history_snapshot() into ns['history'];
+        # the eval code stashes it in _r.
         gen = self.handler.dispatch(
             "code_run",
             {"type": "python", "inline_eval": True, "code": "_r = history"},
@@ -106,6 +99,24 @@ class TestHandlerHostDecoupling(unittest.TestCase):
             outcome = e.value
         self.assertIsNotNone(outcome, "dispatch did not return a StepOutcome")
         self.assertIn("hi", str(outcome.data))
+
+    def test_inline_eval_namespace_no_longer_exposes_parent(self):
+        # Stage B removed ns['parent'] — eval code referencing it must fail
+        # gracefully (caught by do_code_run's outer except), proving the
+        # undocumented coupling surface is closed while `handler`/`history` stay.
+        gen = self.handler.dispatch(
+            "code_run",
+            {"type": "python", "inline_eval": True, "code": "_r = parent"},
+            _FakeResponse(""),
+        )
+        outcome = None
+        try:
+            while True:
+                next(gen)
+        except StopIteration as e:
+            outcome = e.value
+        self.assertIsNotNone(outcome)
+        self.assertIn("Error", str(outcome.data))
 
 
 if __name__ == "__main__":

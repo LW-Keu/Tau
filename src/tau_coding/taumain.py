@@ -122,6 +122,11 @@ class Tau:
         if model: return b.backend.model.lower()
         return f"{type(b.backend).__name__}/{b.backend.name}"
 
+    def history_snapshot(self) -> str:
+        """Serialized LLM history — consumed as the ``history`` var in
+        do_code_run's inline_eval namespace (see tau_agent.handler)."""
+        return json.dumps(self.llmclient.backend.history)
+
     def abort(self):
         if not self.is_running: return
         print('Abort current task...')
