@@ -1,4 +1,5 @@
 import os, re, json, sys
+from typing import Any, Protocol
 if sys.stdout is None: sys.stdout = open(os.devnull, "w")
 if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 
@@ -10,9 +11,31 @@ from .tools.file_io import file_read, file_patch, file_write
 from .tools.web import web_scan, web_execute_js
 from tau_paths import MEMORY
 
+class HostContext(Protocol):
+    """Minimal host surface TauHandler depends on, instead of the concrete Tau.
+
+    TauHandler reaches back into its parent for four things only:
+    ``task_dir`` (file-based keyinfo/intervene injection), ``verbose``,
+    the front-end-registered ``_turn_end_hooks``, and ``llmclient`` (solely
+    to snapshot ``backend.history`` for inline_eval in do_code_run). Depending
+    on this Protocol — not on src/tau_coding/taumain.Tau — keeps the agent core
+    reusable and unit-testable without a full host.
+
+    ``_turn_end_hooks`` is attached lazily by front ends
+    (``if not hasattr(agent, '_turn_end_hooks'): agent._turn_end_hooks = {}``),
+    so a fresh host may lack the attribute; TauHandler reads it via getattr with
+    an empty-dict default (see turn_end_callback).
+    """
+
+    task_dir: str | None
+    verbose: bool
+    _turn_end_hooks: dict
+    llmclient: Any  # has .backend.history; narrowed to a history accessor in stage B
+
+
 class TauHandler(BaseHandler):
     '''Tau 工具库，包含多种工具的实现。工具函数自动加上了 do_ 前缀。实际工具名没有前缀。'''
-    def __init__(self, parent, last_history=None, cwd='./temp'):
+    def __init__(self, parent: HostContext, last_history=None, cwd='./temp'):
         self.parent = parent
         self.working = {}
         self.cwd = os.path.abspath(cwd);  self.current_turn = 0
