@@ -1,8 +1,8 @@
-"""Stage 0: typed event contract + default_render golden.
+"""Stage 0/1: typed event contract + default_render golden.
 
 Validates that render_event reproduces agent_loop.py's current verbose string
-output for each event type. Stage 1 will check the same golden against real
-agent_runner_loop sessions (byte-for-byte diff).
+output for each event type. Stage 1 checks the same golden against real
+agent_runner_loop sessions (byte-for-byte diff vs the legacy string loop).
 
 expected strings are built from get_pretty_json() dynamically so the args-fence
 format stays in lockstep with agent_loop.py:37 — no hand-rolled JSON.
@@ -13,9 +13,11 @@ from tau_agent.agent_loop import get_pretty_json
 from tau_agent.events import (
     AssistantTextChunk,
     AssistantTextDone,
-    ToolCallEnd,
+    RawText,
     ToolCallStart,
     ToolOutputChunk,
+    ToolOutputEnd,
+    ToolOutputStart,
     TurnEnded,
     TurnStarted,
     render_event,
@@ -49,9 +51,10 @@ class TestRenderEvent(unittest.TestCase):
     def test_assistant_text_done_emits_blank_line(self):
         self.assertEqual(render_event(AssistantTextDone()), "\n\n")
 
-    def test_tool_call_start_matches_agent_loop_header(self):
-        # Mirrors agent_loop.py:78 (🛠️ header + 4-backtick args fence) glued
-        # to :85 (5-backtick output fence-open).
+    def test_tool_call_start_is_header_only(self):
+        # Mirrors agent_loop.py:78 only (🛠️ header + 4-backtick args fence).
+        # The 5-backtick output fence-open is a separate ToolOutputStart event,
+        # because :85 is gated behind the tool actually yielding.
         out = render_event(ToolCallStart("file_read", {"path": "/x"}))
         pretty = get_pretty_json({"path": "/x"})
         expected = (
@@ -59,15 +62,20 @@ class TestRenderEvent(unittest.TestCase):
             "````text\n"
             f"{pretty}\n"
             "````\n"
-            "`````\n"
         )
         self.assertEqual(out, expected)
+
+    def test_tool_output_start_opens_fence(self):
+        self.assertEqual(render_event(ToolOutputStart()), "`````\n")
 
     def test_tool_output_chunk_passthrough(self):
         self.assertEqual(render_event(ToolOutputChunk("[Action] Reading\n")), "[Action] Reading\n")
 
-    def test_tool_call_end_closes_fence(self):
-        self.assertEqual(render_event(ToolCallEnd()), "`````\n")
+    def test_tool_output_end_closes_fence(self):
+        self.assertEqual(render_event(ToolOutputEnd()), "`````\n")
+
+    def test_raw_text_passthrough(self):
+        self.assertEqual(render_event(RawText("anything\n")), "anything\n")
 
     def test_turn_ended_is_silent(self):
         self.assertEqual(render_event(TurnEnded({"result": "EXITED"})), "")
@@ -81,9 +89,10 @@ class TestRenderEvent(unittest.TestCase):
             AssistantTextChunk(" world"),
             AssistantTextDone(),
             ToolCallStart("file_read", {"path": "/x"}, tool_id="t1"),
+            ToolOutputStart(),
             ToolOutputChunk("[Action] Reading\n"),
             ToolOutputChunk("content here"),
-            ToolCallEnd(),
+            ToolOutputEnd(),
             TurnEnded({"result": "CURRENT_TASK_DONE"}),
         ]
         out = "".join(render_events(events))
@@ -92,7 +101,8 @@ class TestRenderEvent(unittest.TestCase):
             "\n\n**LLM Running (Turn 1) ...**\n\n"
             "Hello world\n\n"
             "🛠️ Tool: `file_read`  📥 args:\n````text\n"
-            f"{pretty}\n````\n`````\n"
+            f"{pretty}\n````\n"
+            "`````\n"
             "[Action] Reading\ncontent here"
             "`````\n"
         )

@@ -1,20 +1,24 @@
 """Typed event contract for the agent run loop.
 
-Stage 0 of the typed-event refactor (issue 1.2): defines the structured events
-that will replace agent_runner_loop's rendered-string yields. Nothing consumes
-these yet — agent_runner_loop still yields strings. default_render() is a
-spec-grade reimplementation of the current verbose string output so that stage 1
-(rewiring the loop to yield events) can validate byte-for-byte equivalence via
-real-session diff.
+Stage 0/1 of the typed-event refactor (issue 1.2): defines the structured
+events that will replace agent_runner_loop's rendered-string yields.
+default_render() is a spec-grade reimplementation of the current verbose string
+output so stage 1 can validate byte-for-byte equivalence via real-session diff.
 
 Events mirror the yield points in agent_loop.py:
   TurnStarted        <- :54 (turn dict) + :55 (header)
   AssistantTextChunk <- :61 yield from response_gen (LLM token stream)
   AssistantTextDone  <- :62 '\\n\\n'
-  ToolCallStart      <- :78 (header + args fence) + :85 (output fence-open)
+  ToolCallStart      <- :78 (🛠️ header + args fence) — header only
+  ToolOutputStart    <- :85 (output fence-open) — gated behind tool yielding
   ToolOutputChunk    <- :88 yield from proxy (tool execution output)
-  ToolCallEnd        <- :87 (output fence-close)
+  ToolOutputEnd      <- :87 (output fence-close)
+  RawText            <- non-verbose path (passthrough, not yet structured)
   TurnEnded          <- loop exit
+
+ToolOutputStart is split from ToolCallStart because agent_loop.py:85 only fires
+after ``v = next(gen)`` succeeds — a tool that returns without yielding emits
+no fence. Keeping them separate lets render stay faithful to that case.
 """
 from dataclasses import dataclass
 
@@ -49,11 +53,23 @@ class AssistantTextDone:
 
 @dataclass
 class ToolCallStart:
-    """A tool invocation begins — header + args fence + output fence-open."""
+    """A tool invocation begins — renders the header + args fence (agent_loop.py:78).
+
+    The output fence-open (:85) is a separate ToolOutputStart event because it
+    only fires when the tool actually yields (gated behind ``v = next(gen)``).
+    """
 
     tool_name: str
     args: dict
     tool_id: str = ""
+
+
+@dataclass
+class ToolOutputStart:
+    """Output fence-open (agent_loop.py:85) — only emitted when the tool yields
+    at least once, so render stays faithful to the no-yield case."""
+
+    pass
 
 
 @dataclass
@@ -64,10 +80,19 @@ class ToolOutputChunk:
 
 
 @dataclass
-class ToolCallEnd:
-    """The tool invocation finished — output fence-close."""
+class ToolOutputEnd:
+    """Output fence-close (agent_loop.py:87)."""
 
     pass
+
+
+@dataclass
+class RawText:
+    """Pass-through rendered text for paths not yet structured (non-verbose mode,
+    which uses _clean_content whole-output + compact tool headers). Stage 2
+    replaces these with proper structured events."""
+
+    text: str
 
 
 @dataclass
@@ -81,8 +106,7 @@ def render_event(event, verbose: bool = True) -> str:
     """Default string rendering — byte-for-byte golden for agent_runner_loop's
     current verbose output. Stage 1 validates this against real sessions.
 
-    Non-verbose is a separate path (agent_loop.py:63-66 cleans and emits whole);
-    only verbose is fully specified here.
+    Non-verbose is carried by RawText passthrough (not yet structured).
     """
     if isinstance(event, TurnStarted):
         turnstr = (
@@ -99,11 +123,15 @@ def render_event(event, verbose: bool = True) -> str:
         return "\n\n" if verbose else ""
     if isinstance(event, ToolCallStart):
         pretty = get_pretty_json(event.args)
-        return f"🛠️ Tool: `{event.tool_name}`  📥 args:\n````text\n{pretty}\n````\n`````\n"
+        return f"🛠️ Tool: `{event.tool_name}`  📥 args:\n````text\n{pretty}\n````\n"
+    if isinstance(event, ToolOutputStart):
+        return "`````\n"
     if isinstance(event, ToolOutputChunk):
         return event.text
-    if isinstance(event, ToolCallEnd):
+    if isinstance(event, ToolOutputEnd):
         return "`````\n"
+    if isinstance(event, RawText):
+        return event.text
     if isinstance(event, TurnEnded):
         return ""
     return ""
