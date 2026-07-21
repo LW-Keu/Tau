@@ -53,6 +53,9 @@ class SubAgentState:
     updated_at: float = field(default_factory=time.time)
     last_done: str = ""
     monitor_threads: List[threading.Thread] = field(default_factory=list)
+    # Stage 2c: typed event stream from agent_runner_loop_events; used to
+    # extract the last turn's summary/text without regex-parsing reply strings.
+    events: list = field(default_factory=list)
 
 subagents: Dict[str, SubAgentState] = {}
 sub_lock = threading.RLock()
@@ -70,30 +73,36 @@ def now_ms() -> int:
 def short_id() -> str:
     return uuid.uuid4().hex[:8]
 
-_TURN_SPLIT_RE = re.compile(r'\**LLM Running \(Turn \d+\) \.\.\.\**')
-_SUMMARY_RE = re.compile(r'<summary>(.*?)</summary>\s*', re.DOTALL)
-
-def extract_last_summary(full: str) -> str:
-    """Extract the latest <summary> content for in-progress display."""
-    matches = _SUMMARY_RE.findall(full or "")
-    if not matches:
+def _last_turn_text(events, running: bool) -> str:
+    """Extract the last turn's summary (if running) or text reply (if stopped)
+    from typed events. Replaces extract_last_summary / extract_last_text_reply,
+    which regex-parsed the accumulated rendered string."""
+    from tau_agent.events import TurnStarted, TurnEnded, render_event
+    last_turn_idx = -1
+    for i, e in enumerate(events):
+        if isinstance(e, TurnStarted):
+            last_turn_idx = i
+    if last_turn_idx < 0:
         return ""
-    s = matches[-1].strip()
-    return s[-1000:] if len(s) > 1000 else s
+    # Render only the last turn (verbose=False matches subagent mode).
+    text = "".join(render_event(e, verbose=False) for e in events[last_turn_idx:]
+                   if not isinstance(e, TurnEnded))
+    # Strip the leading turn header rendered by TurnStarted.
+    text = re.sub(r'^\s*\**(?:LLM Running|Turn) \(Turn \d+\) \.\.\.\**', '', text).strip()
+    if running:
+        m = re.search(r'<summary>(.*?)\s*</summary>', text, re.DOTALL)
+        if not m:
+            return ""
+        s = m.group(1).strip()
+        return s[-1000:] if len(s) > 1000 else s
+    else:
+        text = re.sub(r'<summary>.*?\s*</summary>\s*', '', text, flags=re.DOTALL)
+        text = re.sub(r'\[(Status|Info)\][^\n]*\n?', '', text)
+        text = text.strip()
+        return text[-3000:] if len(text) > 3000 else text
 
-def extract_last_text_reply(full: str) -> str:
-    """Extract only the last turn's text reply (like stapp.py fold_turns logic)."""
-    # Split by turn markers, take last segment
-    parts = _TURN_SPLIT_RE.split(full)
-    last = parts[-1] if parts else full
-    # Strip <summary> tags
-    last = _SUMMARY_RE.sub('', last)
-    # Strip [Status] and [Info] lines
-    last = re.sub(r'\[(Status|Info)\][^\n]*\n?', '', last)
-    # Strip trailing whitespace
-    last = last.strip()
-    # Cap length
-    return last[-3000:] if len(last) > 3000 else last
+
+
 
 def subagent_snapshot() -> list[dict]:
     with sub_lock:
@@ -101,7 +110,7 @@ def subagent_snapshot() -> list[dict]:
             {
                 "id": s.id,
                 "prompt": s.prompt,
-                "reply": (extract_last_summary(s.reply) if s.status == "running" else extract_last_text_reply(s.reply)) if s.reply else "",
+                "reply": _last_turn_text(s.events, s.status == "running"),
                 "status": s.status,
                 "created_at": s.created_at,
                 "updated_at": s.updated_at,
@@ -175,6 +184,42 @@ def monitor_display_queue(agent_id: str, dq: "queue.Queue", trigger_when_done: b
                 conductor_events.put({"type": "subagent_done", "id": agent_id, "reply": done})
             break
 
+
+def monitor_event_queue(agent_id: str, eq: "queue.Queue", trigger_when_done: bool):
+    """Consume one Tau event_queue (typed events).
+
+    Mirrors monitor_display_queue: accumulates the rendered reply and updates
+    the subagent state. trigger_when_done wakes the conductor loop.
+    """
+    from tau_agent.events import TurnEnded, render_event
+    acc = ""
+    while True:
+        event = eq.get()
+        text = render_event(event, verbose=False)
+        acc += text
+        with sub_lock:
+            s = subagents.get(agent_id)
+            if s:
+                s.events.append(event)
+                s.reply = acc
+                s.status = "running"
+                s.updated_at = time.time()
+        push_cards()
+        if isinstance(event, TurnEnded):
+            with sub_lock:
+                s = subagents.get(agent_id)
+                if s:
+                    s.reply = acc
+                    s.last_done = acc
+                    if s.status != "aborted":
+                        s.status = "stopped"
+                    s.updated_at = time.time()
+            push_cards()
+            if trigger_when_done:
+                conductor_events.put({"type": "subagent_done", "id": agent_id, "reply": acc})
+            break
+
+
 def start_subagent(prompt: str) -> dict:
     sid = short_id()
     agent = Tau()
@@ -185,8 +230,9 @@ def start_subagent(prompt: str) -> dict:
     state = SubAgentState(id=sid, agent=agent, prompt=prompt, status="running")
     with sub_lock:
         subagents[sid] = state
-    dq = agent.put_task(prompt, source=f"subagent:{sid}")
-    mt = threading.Thread(target=monitor_display_queue, args=(sid, dq, True), name=f"monitor-{sid}", daemon=True)
+    eq = queue.Queue()
+    agent.put_task(prompt, source=f"subagent:{sid}", events=eq)
+    mt = threading.Thread(target=monitor_event_queue, args=(sid, eq, True), name=f"monitor-{sid}", daemon=True)
     mt.start()
     state.monitor_threads.append(mt)
     push_cards()
@@ -215,8 +261,9 @@ def input_subagent(sid: str, msg: str) -> dict:
     s.reply = ""
     s.status = "running"
     s.updated_at = time.time()
-    dq = s.agent.put_task(msg, source=f"subagent:{sid}")
-    mt = threading.Thread(target=monitor_display_queue, args=(sid, dq, True), name=f"monitor-{sid}", daemon=True)
+    eq = queue.Queue()
+    s.agent.put_task(msg, source=f"subagent:{sid}", events=eq)
+    mt = threading.Thread(target=monitor_event_queue, args=(sid, eq, True), name=f"monitor-{sid}", daemon=True)
     mt.start()
     s.monitor_threads.append(mt)
     push_cards()
