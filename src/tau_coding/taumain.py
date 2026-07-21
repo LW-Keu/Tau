@@ -12,7 +12,8 @@ from tau_ai.keys import reload_taukeys
 from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, resolve_client
 from tau_ai.providers.openai import LLMSession, NativeOAISession
 from tau_ai.providers.claude import ClaudeSession, NativeClaudeSession
-from tau_agent.agent_loop import agent_runner_loop
+from tau_agent.agent_loop import agent_runner_loop_events
+from tau_agent.events import TurnStarted, render_event
 try:
     from tau_agent.plugins.hooks import discover_and_load; discover_and_load()
 except Exception: pass
@@ -175,21 +176,22 @@ class Tau:
                 if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] 此为 {ps} 个对话前设置的key_info，若已在新任务，先更新或清除工作记忆。\n'
             self.handler = handler  # although new handler, the **full** history is in llmclient, so it is full history!
             self.llmclient.log_path = self.log_path
-            gen = agent_runner_loop(self.llmclient, sys_prompt, raw_query, handler, TOOLS_SCHEMA, 
-                                    max_turns=80, verbose=self.verbose, yield_info=True)
+            events = agent_runner_loop_events(self.llmclient, sys_prompt, raw_query, handler, TOOLS_SCHEMA,
+                                              max_turns=80, verbose=self.verbose)
             try:
                 full_resp = ""; last_pos = 0; curr_turn = 0; turn_resps = []
-                for chunk in gen:
-                    if consume_file(self.task_dir, '_stop'): self.abort() 
+                for event in events:
+                    if consume_file(self.task_dir, '_stop'): self.abort()
                     if self.stop_sig: break
-                    if isinstance(chunk, dict) and 'turn' in chunk: 
-                        curr_turn = chunk['turn']; turn_resps.append(''); continue
+                    if isinstance(event, TurnStarted):
+                        curr_turn = event.turn; turn_resps.append(''); continue
+                    chunk = render_event(event, self.verbose)
                     full_resp += chunk;  turn_resps[-1] += chunk
-                    if len(full_resp) - last_pos > 30 or 'LLM Running' in chunk:
-                        display_queue.put({'next': full_resp[last_pos:] if self.inc_out else full_resp, 
+                    if len(full_resp) - last_pos > 30 or isinstance(event, TurnStarted):
+                        display_queue.put({'next': full_resp[last_pos:] if self.inc_out else full_resp,
                                            'source': source, 'turn': curr_turn, 'outputs': turn_resps[-2:]})
                         last_pos = len(full_resp)
-                if self.inc_out and last_pos < len(full_resp): display_queue.put({'next': full_resp[last_pos:], 'source': source, 
+                if self.inc_out and last_pos < len(full_resp): display_queue.put({'next': full_resp[last_pos:], 'source': source,
                                                                                   'turn': curr_turn, 'outputs': turn_resps[-2:]})
                 display_queue.put({'done': full_resp, 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
                 self.history = handler.history_info
