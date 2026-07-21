@@ -114,12 +114,6 @@ _TURN_MARKER_RE = re.compile(r"^\s*\**LLM Running \(Turn \d+\) \.\.\.\**\s*", re
 _TASKLIST_OPEN_RE = re.compile(r"^(\s*[-*+] )\[ \] ", re.MULTILINE)
 _TASKLIST_DONE_RE = re.compile(r"^(\s*[-*+] )\[[xX]\] ", re.MULTILINE)
 
-# `<tool_use>{...}</tool_use>` envelope emitted by the streaming layer in
-# llmcore. Agents emit one per tool call; the wrapped object always has
-# {"name": ..., "arguments": ...}. We replace the whole envelope so the raw
-# JSON braces/quotes never leak into the markdown render.
-_TOOL_USE_RE = re.compile(r"<tool_use>\s*(\{.*?\})\s*</tool_use>", re.DOTALL)
-
 # Agent-internal metadata tags. The sidebar's `S:` and the fold title already
 # surface the summary; the chat body should not show the raw tag. Stripping is
 # also required because `<summary>X</summary>\n<body>` (no blank line) is parsed
@@ -205,34 +199,6 @@ def _sanitize_candidates(raw) -> list[str]:
     return out
 
 
-def _render_tool_use_block(match) -> str:
-    """Render a `<tool_use>{...}</tool_use>` envelope as readable markdown.
-
-    For `ask_user` with candidates we deliberately render only the question —
-    the interactive picker (drained in `_drain_ask_user_events`) shows the
-    actual choices and owns the user input. Rendering candidates here too
-    would double up the visible card.
-
-    For `ask_user` without candidates (pure free-text prompt) the markdown
-    stays the source of truth, so we still emit `> 💬 question`.
-
-    All other tools collapse to a single `tool: <name>` line — the full fold
-    machinery still hides the raw turn body when fold-mode is on.
-    """
-    try:
-        obj = json.loads(match.group(1))
-    except Exception:
-        return match.group(0)
-    name = obj.get("name", "")
-    args = obj.get("arguments") or {}
-    if name == "ask_user":
-        question = (args.get("question") or "").strip()
-        if not question:
-            return ""
-        return f"\n> 💬 **{question}**\n"
-    return f"\n*tool: {name}*\n"
-
-
 def _extract_user_text(entry: dict) -> str:
     c = entry.get("content") if isinstance(entry, dict) else None
     if isinstance(c, str):
@@ -272,6 +238,45 @@ def fold_turns(text: str) -> list[dict]:
         if len(title) > 72: title = title[:72] + "..."
         segs.append({"type": "fold", "title": title, "content": content})
     return segs
+
+
+def _event_turns(events, verbose=True):
+    """Split a typed event sequence into turn strings.
+
+    All but the last turn are treated as completed folds; the last turn is the
+    live, streaming turn. Replaces regex-based turn-marker parsing for the main
+    UI path (fold_turns is kept for render_folded_text and legacy str paths).
+    """
+    from tau_agent.events import TurnStarted, TurnEnded, render_event
+    turns = []
+    current = ""
+    for event in events:
+        if isinstance(event, TurnStarted):
+            if current.strip() or turns:
+                turns.append(current)
+                current = ""
+        elif isinstance(event, TurnEnded):
+            continue
+        else:
+            current += render_event(event, verbose)
+    turns.append(current)
+    return turns
+
+
+def _turn_title(text):
+    """Extract a fold title from a completed turn's rendered text.
+
+    Same heuristic fold_turns used: <summary> first line, else first line of the
+    cleaned turn with args stripped.
+    """
+    cleaned = re.sub(r"`{3,}.*?`{3,}|<thinking>.*?</thinking>", "", text, flags=re.DOTALL)
+    ms = re.findall(r"<summary>\s*((?:(?!<summary>).)*?)\s*</summary>", cleaned, re.DOTALL)
+    if ms:
+        title = ms[0].strip().split("\n", 1)[0]
+        return (title[:72] + "...") if len(title) > 72 else title
+    first = cleaned.strip().split("\n", 1)[0]
+    first = re.sub(r",?\s*args:.*$", "", first)
+    return (first[:72] + "...") if len(first) > 72 else first
 
 
 def render_folded_text(text: str) -> str:
@@ -956,6 +961,9 @@ class ChatMessage:
     _done_summary: Optional[tuple] = field(default=None, repr=False)
     # Per-(seg_hash, width) Text cache; survives fold-toggle re-mounts.
     _seg_render_cache: dict = field(default_factory=dict, repr=False)
+    # Stage 2b2: typed event stream from agent_runner_loop_events; replaces
+    # regex-based string parsing (fold_turns) for the main UI path.
+    events: list = field(default_factory=list, repr=False)
 
 
 @dataclass
@@ -3322,9 +3330,9 @@ class TauTUI(App[None]):
                 return
 
     def _consume_event_queue(self, agent_id, task_id, eq, verbose=True):
-        """Stage 2b1 transitional path: consume typed events and render them back
-        to a string buffer, feeding the existing _on_stream path. This verifies
-        the event queue end-to-end without yet replacing tui's string parsing."""
+        """Stage 2b2: consume typed events, render to a buffer for the legacy
+        _on_stream path, and attach each event to the assistant message so the
+        main UI builds segments from event boundaries instead of string regex."""
         from tau_agent.events import TurnEnded, render_event
         buf = ""
         while True:
@@ -3332,11 +3340,11 @@ class TauTUI(App[None]):
             except queue.Empty: continue
             buf += render_event(event, verbose=verbose)
             done = isinstance(event, TurnEnded)
-            self.call_from_thread(self._on_stream, agent_id, task_id, buf, done)
+            self.call_from_thread(self._on_stream, agent_id, task_id, buf, done, event)
             if done:
                 return
 
-    def _on_stream(self, agent_id, task_id, text, done):
+    def _on_stream(self, agent_id, task_id, text, done, event=None):
         s = self.sessions.get(agent_id)
         if not s or s.current_task_id != task_id:
             return
@@ -3344,6 +3352,14 @@ class TauTUI(App[None]):
         if done:
             s.status = "idle"
             s.current_display_queue = None
+            s.current_event_queue = None
+        # Stage 2b2: event path stores raw events on the message so segments
+        # can be built from typed boundaries instead of string regex.
+        if event is not None:
+            for m in reversed(s.messages):
+                if m.role == "assistant" and m.task_id == task_id:
+                    m.events.append(event)
+                    break
         self._update_assistant(agent_id, text, task_id=task_id, done=done, refresh_chrome=True)
         # End-of-turn re-parse only; mid-stream `[...]` fragments would flash.
         if done:
@@ -3897,7 +3913,6 @@ class TauTUI(App[None]):
         try:
             text = _TASKLIST_OPEN_RE.sub(r"\1☐ ", text)
             text = _TASKLIST_DONE_RE.sub(r"\1✔ ", text)
-            text = _TOOL_USE_RE.sub(_render_tool_use_block, text)
             text = _META_TAG_RE.sub("", text)
             from io import StringIO
             from rich.console import Console
@@ -3928,19 +3943,29 @@ class TauTUI(App[None]):
 
     def _assistant_segments(self, m: ChatMessage, width: int) -> list[tuple]:
         """Return [(kind, body, fold_idx_or_None)]. kind ∈ {'text','fold-header','fold-body'}.
-        fold_idx is the position in fold_turns() output — stable across streaming since
-        new turns only append. Last segment carries the streaming suffix."""
-        raw = m.content or ""
-        # Cache final renders — Markdown re-parse on every resize is expensive over long history.
-        key = (len(raw), m.done, width, self.fold_mode, frozenset(m._toggled_folds))
+        Stage 2b2: fold boundaries come from the typed event stream (TurnStarted),
+        not from regex parsing of the rendered string."""
+        events = m.events
+        # Cache key tracks both event count and rendered length; either can change
+        # during streaming and both affect the resulting segments.
+        key = (len(events), len(m.content or ""), m.done, width, self.fold_mode, frozenset(m._toggled_folds))
         if m.done and m._cache_key == key and m._cached_body is not None:
             return m._cached_body
-        # No streaming suffix here — spinner lives in m._spinner_widget so Markdown
-        # rendering (unclosed code fences, paragraph whitespace stripping) can't eat it.
-        if not raw.strip():
-            return [("text", Text("（空）" if m.done else " ", style=C_DIM), None)]
-        cleaned = _ANSI_CONTROL_RE.sub("", raw)
-        raw_segs = fold_turns(cleaned)
+        if not events:
+            # Fallback for messages created before the event path (e.g. restored history).
+            if not (m.content or "").strip():
+                return [("text", Text("（空）" if m.done else " ", style=C_DIM), None)]
+            cleaned = _ANSI_CONTROL_RE.sub("", m.content)
+            raw_segs = fold_turns(cleaned)
+        else:
+            turns = _event_turns(events, verbose=True)
+            raw_segs = []
+            for idx, turn_text in enumerate(turns):
+                is_last = (idx == len(turns) - 1)
+                if not is_last:
+                    raw_segs.append({"type": "fold", "title": _turn_title(turn_text), "content": turn_text})
+                else:
+                    raw_segs.append({"type": "text", "content": turn_text})
         # Drop cache entries whose width changed — content keys with stale width
         # would never be hit again and would leak memory across resizes.
         if m._seg_render_cache and any(k[1] != width for k in m._seg_render_cache):
@@ -3968,7 +3993,7 @@ class TauTUI(App[None]):
                 if expanded:
                     out.append(("fold-body", cached_render(seg.get("content", "")), i))
             else:
-                content = _TURN_MARKER_RE.sub("", seg.get("content", ""), count=1)
+                content = seg.get("content", "")
                 # While streaming, the tail text segment grows every chunk — Markdown
                 # parsing it per chunk is the streaming-lag root cause. Render as plain
                 # Text during streaming; _stream_update_assistant swaps in the real
@@ -4269,10 +4294,13 @@ class TauTUI(App[None]):
         if (new_sig == m._segment_sig and m._segment_widgets
                 and new_sig and new_sig[-1][0] == "text"):
             width = self._messages_width()
-            raw = m.content or ""
-            cleaned = _ANSI_CONTROL_RE.sub("", raw)
-            last_seg = fold_turns(cleaned)[-1]
-            last_text = _TURN_MARKER_RE.sub("", last_seg.get("content", ""), count=1)
+            if m.events:
+                turns = _event_turns(m.events, verbose=True)
+            else:
+                raw = m.content or ""
+                cleaned = _ANSI_CONTROL_RE.sub("", raw)
+                turns = [seg.get("content", "") for seg in fold_turns(cleaned)]
+            last_text = turns[-1] if turns else ""
             last_widget = m._segment_widgets[-1]
             # During streaming use plain Text — Markdown parse per chunk is O(chunks ×
             # turn_len). Only on the terminal `done` chunk do we render Markdown once
@@ -4297,13 +4325,18 @@ class TauTUI(App[None]):
 
     def _assistant_sig_only(self, m: ChatMessage) -> tuple:
         # Topology signature without rendering bodies — used by the streaming fast path.
-        raw = m.content or ""
-        if not raw.strip():
-            return (("text", None),)
-        cleaned = _ANSI_CONTROL_RE.sub("", raw)
+        if m.events:
+            turns = _event_turns(m.events, verbose=True)
+        else:
+            raw = m.content or ""
+            if not raw.strip():
+                return (("text", None),)
+            cleaned = _ANSI_CONTROL_RE.sub("", raw)
+            turns = [seg.get("content", "") for seg in fold_turns(cleaned)]
         sig = []
-        for i, seg in enumerate(fold_turns(cleaned)):
-            if seg["type"] == "fold":
+        for i, turn_text in enumerate(turns):
+            is_last = (i == len(turns) - 1)
+            if not is_last:
                 sig.append(("fold-header", i))
                 if (not self.fold_mode) ^ (i in m._toggled_folds):
                     sig.append(("fold-body", i))
