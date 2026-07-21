@@ -134,9 +134,9 @@ class Tau:
         self.stop_sig = True
         if self.handler is not None: self.handler.code_stop_signal.append(1)
             
-    def put_task(self, query, source="user", images=None):
+    def put_task(self, query, source="user", images=None, events=None):
         display_queue = queue.Queue()
-        self.task_queue.put({"query": query, "source": source, "images": images or [], "output": display_queue})
+        self.task_queue.put({"query": query, "source": source, "images": images or [], "output": display_queue, "events": events})
         return display_queue
 
     # i know it is dangerous, but raw_query is dangerous enough it doesn't enlarge
@@ -159,6 +159,7 @@ class Tau:
         while True:
             task = self.task_queue.get()
             raw_query, source, display_queue = task["query"], task["source"], task["output"]
+            event_queue = task.get("events")
             raw_query = self._handle_slash_cmd(raw_query, display_queue)
             if raw_query is None:
                 self.task_queue.task_done(); continue
@@ -181,6 +182,8 @@ class Tau:
             try:
                 full_resp = ""; last_pos = 0; curr_turn = 0; turn_resps = []
                 for event in events:
+                    if event_queue is not None:
+                        event_queue.put(event)
                     if consume_file(self.task_dir, '_stop'): self.abort()
                     if self.stop_sig: break
                     if isinstance(event, TurnStarted):

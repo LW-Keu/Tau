@@ -969,6 +969,7 @@ class AgentSession:
     task_seq: int = 0
     current_task_id: Optional[int] = None
     current_display_queue: Optional[queue.Queue] = None
+    current_event_queue: Optional[queue.Queue] = None
     # Per-session input box state. Restored into the shared InputArea on session switch.
     input_text: str = ""
     input_history: list[str] = field(default_factory=list)
@@ -3291,17 +3292,19 @@ class TauTUI(App[None]):
         except Exception:
             pass
         try:
-            dq = sess.agent.put_task(text, source="user")
+            eq = queue.Queue()
+            dq = sess.agent.put_task(text, source="user", events=eq)
         except Exception as e:
             sess.status = "error"
             self._update_assistant(sess.agent_id, f"[ERROR] put_task: {e}", task_id=tid, refresh_chrome=True)
             return tid
         sess.current_display_queue = dq
+        sess.current_event_queue = eq
         threading.Thread(
-            target=self._consume_display_queue,
-            args=(sess.agent_id, tid, dq),
+            target=self._consume_event_queue,
+            args=(sess.agent_id, tid, eq, sess.agent.verbose),
             daemon=True,
-            name=f"tau-tui-consume-{sess.agent_id}-{tid}",
+            name=f"tau-tui-consume-events-{sess.agent_id}-{tid}",
         ).start()
         return tid
 
@@ -3316,6 +3319,21 @@ class TauTUI(App[None]):
             if "done" in item:
                 done_text = str(item.get("done") or buf)
                 self.call_from_thread(self._on_stream, agent_id, task_id, done_text, True)
+                return
+
+    def _consume_event_queue(self, agent_id, task_id, eq, verbose=True):
+        """Stage 2b1 transitional path: consume typed events and render them back
+        to a string buffer, feeding the existing _on_stream path. This verifies
+        the event queue end-to-end without yet replacing tui's string parsing."""
+        from tau_agent.events import TurnEnded, render_event
+        buf = ""
+        while True:
+            try: event = eq.get(timeout=0.25)
+            except queue.Empty: continue
+            buf += render_event(event, verbose=verbose)
+            done = isinstance(event, TurnEnded)
+            self.call_from_thread(self._on_stream, agent_id, task_id, buf, done)
+            if done:
                 return
 
     def _on_stream(self, agent_id, task_id, text, done):
