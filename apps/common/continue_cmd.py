@@ -3,7 +3,7 @@ Pure functions + one `install(cls)` monkey-patch entry. No side effects at impor
 """
 import ast, glob, json, os, re, time
 
-from tau_agent.events import RawText, TurnEnded
+from tau_agent.events import RawText, TurnEnded, TurnStarted, render_event, event_from_json
 
 _LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'temp', 'model_responses')
@@ -277,104 +277,84 @@ def _assistant_text(response_body):
                      and isinstance(b.get('text'), str) and b['text'].strip())
 
 
-def _format_tool_use(block):
-    """Match tau_agent.agent_loop:72 verbose tool-call header."""
-    name = block.get('name', '?')
-    args = block.get('input', {})
-    try: pretty = json.dumps(args, indent=2, ensure_ascii=False).replace('\\n', '\n')
-    except Exception: pretty = str(args)
-    return f"🛠️ Tool: `{name}`  📥 args:\n````text\n{pretty}\n````\n"
+def _events_log_path(txt_path: str) -> str:
+    """Structured event log alongside the legacy Prompt/Response text log."""
+    if txt_path.endswith('.txt'):
+        return txt_path[:-4] + '.events.jsonl'
+    return txt_path + '.events.jsonl'
 
 
-def _format_tool_result(content):
-    """Match tau_agent.agent_loop:79-81 five-backtick fence around tool output."""
-    if isinstance(content, list):
-        parts = []
-        for b in content:
-            if isinstance(b, dict) and b.get('type') == 'text':
-                parts.append(b.get('text', '') or '')
-            elif isinstance(b, str):
-                parts.append(b)
-        body = '\n'.join(parts)
-    else:
-        body = '' if content is None else str(content)
-    return f"`````\n{body}\n`````\n"
+def _read_events(path: str):
+    """Yield typed events from a JSON Lines file."""
+    try:
+        with open(path, encoding='utf-8', errors='replace') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    yield event_from_json(line)
+                except Exception:
+                    continue
+    except Exception:
+        return
 
 
-def _tool_results_from_prompt(prompt_body):
-    """Return {tool_use_id: formatted_fence} from a Prompt JSON's content blocks."""
-    try: msg = json.loads(prompt_body)
-    except Exception: return {}
-    if not isinstance(msg, dict): return {}
-    out = {}
-    for blk in msg.get('content', []) or []:
-        if isinstance(blk, dict) and blk.get('type') == 'tool_result':
-            tid = blk.get('tool_use_id') or ''
-            if tid: out[tid] = _format_tool_result(blk.get('content'))
-    return out
-
-
-def _format_response_segment(response_body, tool_results):
-    """Rebuild one LLM call's transcript slice: text blocks + tool_use headers +
-    matching tool_result fences. Mirrors tau_agent.agent_loop verbose output so fold_turns
-    sees the same string shape as live mode.
-    """
-    try: blocks = ast.literal_eval(response_body)
-    except Exception: return ''
-    if not isinstance(blocks, list): return ''
-    texts, tool_parts = [], []
-    for b in blocks:
-        if not isinstance(b, dict): continue
-        t = b.get('type')
-        if t == 'text':
-            s = b.get('text', '')
-            if isinstance(s, str) and s.strip(): texts.append(s)
-        elif t == 'tool_use':
-            tool_parts.append(_format_tool_use(b))
-            tid = b.get('id') or ''
-            if tid and tid in tool_results: tool_parts.append(tool_results[tid])
-    return '\n\n'.join(p for p in ['\n\n'.join(texts), '\n'.join(tool_parts)] if p)
+def _turns_from_events(events):
+    """Group an event stream into per-turn event lists."""
+    turns = []
+    current = []
+    for event in events:
+        if isinstance(event, TurnStarted):
+            if current:
+                turns.append(current)
+            current = [event]
+        else:
+            current.append(event)
+    if current:
+        turns.append(current)
+    return turns
 
 
 def extract_ui_messages(path):
     """Parse a model_responses log into [{role, content}, ...] for UI replay.
 
-    Each user-initiated round becomes one user bubble plus one assistant bubble.
-    Auto-continuation LLM calls are concatenated into the same assistant bubble,
-    separated by ``**LLM Running (Turn N) ...**`` markers. Tool calls and their
-    results are rendered into the assistant content using the same string format
-    that tau_agent.agent_loop yields live, so fold_turns can fold them identically.
+    User prompts are read from the legacy Prompt/Response text log (only the
+    text log carries the original user message), while assistant/tool rendering
+    is rebuilt from the structured `.events.jsonl` stream so it matches the
+    live event renderer instead of a reverse-engineered string shape.
     """
+    events_path = _events_log_path(path)
+    if not os.path.exists(events_path):
+        return []
     try:
-        with open(path, encoding='utf-8', errors='replace') as f: content = f.read()
-    except Exception: return []
+        with open(path, encoding='utf-8', errors='replace') as f:
+            content = f.read()
+    except Exception:
+        return []
     pairs = _pairs(content)
-    if not pairs: return []
-    # tool_results live in the *next* Prompt's content; index look-ahead.
-    next_tr = [{} for _ in pairs]
-    for i in range(len(pairs) - 1):
-        next_tr[i] = _tool_results_from_prompt(pairs[i + 1][0])
+    if not pairs:
+        return []
+    turns = _turns_from_events(_read_events(events_path))
+    # Guard against truncated/mismatched logs.
+    n = min(len(pairs), len(turns))
 
-    out, assistant, round_turn = [], None, 0
-    for i, (prompt, response) in enumerate(pairs):
+    out, assistant = [], None
+    for i in range(n):
+        prompt, _ = pairs[i]
         user = _user_text(prompt)
-        seg = _format_response_segment(response, next_tr[i])
+        seg = ''.join(render_event(event, verbose=True) for event in turns[i])
         if user:
-            if assistant is not None: out.append(assistant)
+            if assistant is not None:
+                out.append(assistant)
             out.append({'role': 'user', 'content': user})
-            # Turn 1 marker too — tau_agent.agent_loop yields one per LLM call, including the
-            # first, so fold_turns treats every non-last call uniformly as a fold.
-            assistant = {'role': 'assistant',
-                         'content': f"\n\n**LLM Running (Turn 1) ...**\n\n{seg}"}
-            round_turn = 1
+            assistant = {'role': 'assistant', 'content': seg}
         else:
             if assistant is None:
                 assistant = {'role': 'assistant', 'content': ''}
-                round_turn = 1
-            round_turn += 1
-            marker = f"\n\n**LLM Running (Turn {round_turn}) ...**\n\n"
-            assistant['content'] = (assistant['content'] or '') + marker + seg
-    if assistant is not None: out.append(assistant)
+            assistant['content'] = (assistant['content'] or '') + seg
+    if assistant is not None:
+        out.append(assistant)
     return [m for m in out if (m.get('content') or '').strip()]
 
 

@@ -20,7 +20,8 @@ ToolOutputStart is split from ToolCallStart because agent_loop.py:85 only fires
 after ``v = next(gen)`` succeeds — a tool that returns without yielding emits
 no fence. Keeping them separate lets render stay faithful to that case.
 """
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 
 from .agent_loop import get_pretty_json
 
@@ -145,3 +146,33 @@ def render_events(events, verbose: bool = True):
     """
     for event in events:
         yield render_event(event, verbose)
+
+
+# ---------------------------------------------------------------------------
+# JSON Lines persistence (stage 3): one event per line so history replay can
+# consume the structured stream instead of reverse-engineering rendered text.
+# ---------------------------------------------------------------------------
+
+_EVENT_TYPES = {cls.__name__: cls for cls in (
+    TurnStarted, AssistantTextChunk, AssistantTextDone,
+    ToolCallStart, ToolOutputStart, ToolOutputChunk, ToolOutputEnd,
+    RawText, TurnEnded,
+)}
+
+
+def event_to_json(event) -> str:
+    """Serialize a typed event to a single JSON line."""
+    payload = {"_type": type(event).__name__}
+    payload.update(asdict(event))
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def event_from_json(line: str):
+    """Deserialize one JSON line back to a typed event."""
+    data = json.loads(line)
+    name = data.pop("_type")
+    try:
+        cls = _EVENT_TYPES[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown event type: {name}") from exc
+    return cls(**data)

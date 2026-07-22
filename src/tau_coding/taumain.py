@@ -13,7 +13,7 @@ from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, resolve_c
 from tau_ai.providers.openai import LLMSession, NativeOAISession
 from tau_ai.providers.claude import ClaudeSession, NativeClaudeSession
 from tau_agent.agent_loop import agent_runner_loop_events
-from tau_agent.events import TurnStarted, render_event
+from tau_agent.events import TurnStarted, render_event, event_to_json
 try:
     from tau_agent.plugins.hooks import discover_and_load; discover_and_load()
 except Exception: pass
@@ -77,6 +77,7 @@ class Tau:
         self.inc_out = False; self.verbose = True; self.show_mode = 'text'
         self.peer_hint = True
         self.log_path = str(TEMP / f'model_responses/model_responses_{int(time.time()*1e6)%1000000:06d}.txt')
+        self.events_log_path = self.log_path.replace('.txt', '.events.jsonl')
         self.load_llm_sessions()
 
     def load_llm_sessions(self):
@@ -183,9 +184,18 @@ class Tau:
             self.llmclient.log_path = self.log_path
             events = agent_runner_loop_events(self.llmclient, sys_prompt, raw_query, handler, TOOLS_SCHEMA,
                                               max_turns=80, verbose=self.verbose)
+            events_fh = None
+            if self.events_log_path:
+                try:
+                    os.makedirs(os.path.dirname(self.events_log_path), exist_ok=True)
+                    events_fh = open(self.events_log_path, 'a', encoding='utf-8', errors='replace')
+                except Exception: events_fh = None
             try:
                 full_resp = ""; last_pos = 0; curr_turn = 0; turn_resps = []
                 for event in events:
+                    if events_fh is not None:
+                        try: events_fh.write(event_to_json(event) + '\n')
+                        except Exception: pass
                     if event_queue is not None:
                         event_queue.put(event)
                     if consume_file(self.task_dir, '_stop'): self.abort()
@@ -206,6 +216,9 @@ class Tau:
                 print(f"Backend Error: {format_error(e)}")
                 display_queue.put({'done': full_resp + f'\n```\n{format_error(e)}\n```', 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
             finally:
+                if events_fh is not None:
+                    try: events_fh.close()
+                    except Exception: pass
                 if self.stop_sig: print('User aborted the task.')
                 self.is_running = self.stop_sig = False
                 self.task_queue.task_done()

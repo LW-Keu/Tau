@@ -20,6 +20,8 @@ from tau_agent.events import (
     ToolOutputStart,
     TurnEnded,
     TurnStarted,
+    event_from_json,
+    event_to_json,
     render_event,
     render_events,
 )
@@ -107,6 +109,57 @@ class TestRenderEvent(unittest.TestCase):
             "`````\n"
         )
         self.assertEqual(out, expected)
+
+
+class TestEventSerialization(unittest.TestCase):
+    """Stage 3: JSON Lines persistence round-trips every event type."""
+
+    def _round_trip(self, event):
+        return event_from_json(event_to_json(event))
+
+    def test_turn_started_round_trips(self):
+        self.assertEqual(self._round_trip(TurnStarted(3)), TurnStarted(3))
+        self.assertEqual(self._round_trip(TurnStarted(3, task_mode=True)), TurnStarted(3, task_mode=True))
+
+    def test_assistant_text_chunk_round_trips(self):
+        self.assertEqual(self._round_trip(AssistantTextChunk("hi")), AssistantTextChunk("hi"))
+
+    def test_assistant_text_done_round_trips(self):
+        self.assertEqual(self._round_trip(AssistantTextDone()), AssistantTextDone())
+
+    def test_tool_call_start_round_trips(self):
+        event = ToolCallStart("bash", {"cmd": "ls"}, tool_id="t1")
+        self.assertEqual(self._round_trip(event), event)
+
+    def test_tool_output_events_round_trip(self):
+        self.assertEqual(self._round_trip(ToolOutputStart()), ToolOutputStart())
+        self.assertEqual(self._round_trip(ToolOutputChunk("out")), ToolOutputChunk("out"))
+        self.assertEqual(self._round_trip(ToolOutputEnd()), ToolOutputEnd())
+
+    def test_raw_text_round_trips(self):
+        self.assertEqual(self._round_trip(RawText("plain")), RawText("plain"))
+
+    def test_turn_ended_round_trips(self):
+        event = TurnEnded({"result": "EXITED", "data": {"x": 1}})
+        self.assertEqual(self._round_trip(event), event)
+
+    def test_full_sequence_renders_identically_after_round_trip(self):
+        events = [
+            TurnStarted(1),
+            AssistantTextChunk("Hello"),
+            AssistantTextDone(),
+            ToolCallStart("file_read", {"path": "/x"}, tool_id="t1"),
+            ToolOutputStart(),
+            ToolOutputChunk("content"),
+            ToolOutputEnd(),
+            TurnEnded({"result": "CURRENT_TASK_DONE"}),
+        ]
+        serialized = "\n".join(event_to_json(e) for e in events)
+        restored = [event_from_json(line) for line in serialized.splitlines()]
+        self.assertEqual(
+            "".join(render_events(restored)),
+            "".join(render_events(events)),
+        )
 
 
 if __name__ == "__main__":

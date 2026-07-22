@@ -3025,6 +3025,10 @@ class TauTUI(App[None]):
             try:
                 import shutil
                 shutil.copyfile(path, current_log)
+                src_events = path[:-4] + '.events.jsonl' if path.endswith('.txt') else path + '.events.jsonl'
+                dst_events = current_log[:-4] + '.events.jsonl' if current_log.endswith('.txt') else current_log + '.events.jsonl'
+                if os.path.isfile(src_events):
+                    shutil.copyfile(src_events, dst_events)
             except Exception:
                 pass
         def _finish():
