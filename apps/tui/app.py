@@ -3320,19 +3320,6 @@ class TauTUI(App[None]):
         ).start()
         return tid
 
-    def _consume_display_queue(self, agent_id, task_id, dq):
-        buf = ""
-        while True:
-            try: item = dq.get(timeout=0.25)
-            except queue.Empty: continue
-            if "next" in item:
-                buf += str(item.get("next") or "")
-                self.call_from_thread(self._on_stream, agent_id, task_id, buf, False)
-            if "done" in item:
-                done_text = str(item.get("done") or buf)
-                self.call_from_thread(self._on_stream, agent_id, task_id, done_text, True)
-                return
-
     def _consume_event_queue(self, agent_id, task_id, eq, verbose=True):
         """Stage 2b2: consume typed events, render to a buffer for the legacy
         _on_stream path, and attach each event to the assistant message so the
