@@ -2,6 +2,9 @@
 Pure functions + one `install(cls)` monkey-patch entry. No side effects at import.
 """
 import ast, glob, json, os, re, time
+
+from tau_agent.events import RawText, TurnEnded
+
 _LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'temp', 'model_responses')
 _LOG_GLOB = os.path.join(_LOG_DIR, 'model_responses_*.txt')
@@ -213,22 +216,25 @@ def restore(agent, path):
     n = sum(1 for l in summary if l.startswith('[USER]: '))
     return f'⚠️ 非 native 格式，已降级恢复 {n} 轮摘要（{name}）\n(请输入新问题继续)', False
 
-def handle(agent, query, display_queue):
+def handle(agent, query, event_queue):
     """Dispatch /continue or /continue N. Returns None if consumed else original query."""
     s = (query or '').strip()
     if s == '/continue':
-        display_queue.put({'done': format_list(list_sessions(exclude_pid=os.getpid())), 'source': 'system'})
+        event_queue.put(RawText(format_list(list_sessions(exclude_pid=os.getpid()))))
+        event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
         return None
     m = re.match(r'/continue\s+(\d+)\s*$', s)
     if m:
         sessions = list_sessions(exclude_pid=os.getpid())
         idx = int(m.group(1)) - 1
         if not (0 <= idx < len(sessions)):
-            display_queue.put({'done': f'❌ 索引越界（有效范围 1-{len(sessions)}）', 'source': 'system'})
+            event_queue.put(RawText(f'❌ 索引越界（有效范围 1-{len(sessions)}）'))
+            event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
             return None
         reset_conversation(agent, message=None)
         msg, _ = restore(agent, sessions[idx][0])
-        display_queue.put({'done': msg, 'source': 'system'})
+        event_queue.put(RawText(msg))
+        event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
         return None
     return query
 
@@ -394,10 +400,10 @@ def install(cls):
     """Wrap cls._handle_slash_cmd so /continue is handled before original dispatch."""
     orig = cls._handle_slash_cmd
     if getattr(orig, '_continue_patched', False): return
-    def patched(self, raw_query, display_queue):
+    def patched(self, raw_query, event_queue):
         if (raw_query or '').startswith('/continue'):
-            r = handle(self, raw_query, display_queue)
+            r = handle(self, raw_query, event_queue)
             if r is None: return None
-        return orig(self, raw_query, display_queue)
+        return orig(self, raw_query, event_queue)
     patched._continue_patched = True
     cls._handle_slash_cmd = patched

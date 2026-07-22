@@ -10,6 +10,8 @@ from __future__ import annotations
 import copy, os, threading, time
 from typing import Optional
 
+from tau_agent.events import RawText, TurnEnded
+
 
 _WRAPPER_ZH = """<system-reminder>
 这是用户的临时插问 (side question)。主 agent 仍在后台运行，**不会被打断**。
@@ -98,18 +100,20 @@ def _run(agent, question, deadline):
     except Exception as e: return f'❌ /btw 失败: {type(e).__name__}: {e}'
 
 
-def handle(agent, query, display_queue) -> Optional[str]:
+def handle(agent, query, event_queue) -> Optional[str]:
     """Slash-cmd entry (server-side, install path). Spawn worker; return None to consume."""
     question = _strip_cmd(query)
     if not question or question in ('help', '?', '-h', '--help'):
-        display_queue.put({'done': _help_text(), 'source': 'system'})
+        event_queue.put(RawText(_help_text()))
+        event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
         return None
     started = time.time()
     deadline = started + _TIMEOUT_SEC
 
     def worker():
         body = _run(agent, question, deadline)
-        display_queue.put({'done': _format(question, body, time.time() - started), 'source': 'system'})
+        event_queue.put(RawText(_format(question, body, time.time() - started)))
+        event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
 
     threading.Thread(target=worker, daemon=True, name='btw-sidequest').start()
     return None
@@ -130,13 +134,13 @@ def install(cls):
     orig = cls._handle_slash_cmd
     if getattr(orig, '_btw_patched', False): return
 
-    def patched(self, raw_query, display_queue):
+    def patched(self, raw_query, event_queue):
         s = (raw_query or '').strip()
         if s == '/btw' or s.startswith('/btw ') or s.startswith('/btw\t'):
-            r = handle(self, raw_query, display_queue)
+            r = handle(self, raw_query, event_queue)
             if r is None: return None
             return r
-        return orig(self, raw_query, display_queue)
+        return orig(self, raw_query, event_queue)
 
     patched._btw_patched = True
     cls._handle_slash_cmd = patched

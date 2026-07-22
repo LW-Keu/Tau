@@ -140,7 +140,8 @@ class Tau:
         return display_queue
 
     # i know it is dangerous, but raw_query is dangerous enough it doesn't enlarge
-    def _handle_slash_cmd(self, raw_query, display_queue):
+    def _handle_slash_cmd(self, raw_query, event_queue):
+        from tau_agent.events import RawText, TurnEnded
         if not raw_query.startswith('/'): return raw_query
         if _sm := re.match(r'/session\.(\w+)=(.*)', raw_query.strip()):
             k, v = _sm.group(1), _sm.group(2)
@@ -149,7 +150,8 @@ class Tau:
             try: v = json.loads(v)  # cover number parsing
             except (json.JSONDecodeError, ValueError): pass
             setattr(self.llmclient.backend, k, v)
-            display_queue.put({'done': smart_format(f"✅ session.{k} = {repr(v)}", max_str_len=500), 'source': 'system'})
+            event_queue.put(RawText(smart_format(f"✅ session.{k} = {repr(v)}", max_str_len=500)))
+            event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
             return None
         if raw_query.strip() == '/resume':
             return r'帮我看看最近有哪些会话可以恢复。读model_responses/目录，按修改时间取最近10个文件，从每个文件里找最后一个<history>...</history>块，用一句话总结每个会话在聊什么，列表给我选。注意读文件后要把字面的\n替换成真换行才能正确匹配。'
@@ -160,7 +162,9 @@ class Tau:
             task = self.task_queue.get()
             raw_query, source, display_queue = task["query"], task["source"], task["output"]
             event_queue = task.get("events")
-            raw_query = self._handle_slash_cmd(raw_query, display_queue)
+            if event_queue is None:
+                event_queue = queue.Queue()
+            raw_query = self._handle_slash_cmd(raw_query, event_queue)
             if raw_query is None:
                 self.task_queue.task_done(); continue
             self.is_running = True

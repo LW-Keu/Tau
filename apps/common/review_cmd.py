@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+from tau_agent.events import RawText, TurnEnded
+
 CODE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _PROMPT_DIR = 'review_sop'
 _INLINE_PROMPT_ZH = 'review_inline_prompt.txt'
@@ -50,13 +52,14 @@ _DEFAULT_REQUEST_EN = '(no specific request — default to uncommitted diff: run
 _HEADER_ZH = '> 🔍 /review (in-session) → 主 agent 当场审,直接 echo 报告\n\n'
 _HEADER_EN = '> 🔍 /review (in-session) → main agent reviews here, echoes the report inline\n\n'
 
-def handle(agent, body: str, display_queue) -> Optional[str]:
+def handle(agent, body: str, event_queue) -> Optional[str]:
     """body 是已剥离 `/review` 前缀的纯参数文本(由 install 剥离)。
-    help → 推 done;否则注入 user_request 到 inline prompt return 给主 agent。
+    help → 推 RawText+TurnEnded;否则注入 user_request 到 inline prompt return 给主 agent。
     不发任何 'done' message(否则前端 `if 'done': break + finally:agent.abort` 会干掉主 agent)。
     """
     if body in ('help', '?', '-h', '--help'):
-        display_queue.put({'done': _help_text(), 'source': 'system'})
+        event_queue.put(RawText(_help_text()))
+        event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
         return None
     en = os.environ.get('GA_LANG', '').strip().lower() == 'en'
     user_request = body or (_DEFAULT_REQUEST_EN if en else _DEFAULT_REQUEST_ZH)
@@ -67,15 +70,15 @@ def install(cls):
     """`/review` 一律接管,前缀剥离在此完成,handle 只接 body(职责单一)。"""
     orig = cls._handle_slash_cmd
     if getattr(orig, '_review_patched', False): return
-    def patched(self, raw_query, display_queue):
+    def patched(self, raw_query, event_queue):
         s = (raw_query or '').strip()
         if s == '/review':
             body = ''
         elif s.startswith('/review ') or s.startswith('/review\t'):
             body = s[len('/review'):].strip()
         else:
-            return orig(self, raw_query, display_queue)
-        r = handle(self, body, display_queue)
+            return orig(self, raw_query, event_queue)
+        r = handle(self, body, event_queue)
         return None if r is None else r
     patched._review_patched = True
     cls._handle_slash_cmd = patched
