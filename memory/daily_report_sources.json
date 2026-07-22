@@ -265,7 +265,12 @@
         "worldbank.org",
         "adb.org"
       ],
-      "rss": []
+      "rss": [
+        "https://www.rnz.co.nz/rss/world.xml",
+        "https://www.rnz.co.nz/rss/pacific.xml",
+        "https://www.abc.net.au/news/feed/51120/rss.xml",
+        "https://pina.com.fj/feed/"
+      ]
     },
     "latin_america": {
       "keywords": [

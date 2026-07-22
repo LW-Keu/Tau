@@ -26,6 +26,16 @@ RSS_TIMEOUT = 20
 
 # ─── 纯函数 (可单测) ──────────────────────────────────────────
 
+def normalize_domain(hostname: str) -> str:
+    """Lower-case, strip www. prefix, return bare domain for whitelist matching."""
+    h = hostname.lower().strip()
+    if h.startswith('www.'):
+        h = h[4:]
+    # strip port if any
+    h = h.split(':')[0]
+    return h
+
+
 def unwrap_bing_url(href: str) -> str:
     """Bing ck/a 跳转链 -> 真实 URL; 非跳转链或解码失败原样返回。
     形态: .../ck/a?...&u=a1<base64url(真实URL)>"""
@@ -244,8 +254,10 @@ def fetch_bing_urllib(categories: dict, scraped_at: datetime) -> list:
         if cat == 'rss':
             continue
         keywords = conf.get('keywords', []) or []
+        sites = conf.get('bing_sites', []) or []
         if not keywords: continue
-        q = ' OR '.join(f'"{k}"' for k in keywords)
+        # R9 (2026-07-22): urllib 通道必须尊重 bing_sites site: 约束，否则与通用关键词混抓
+        q = build_bing_url(keywords, sites)
         params = {'q': q, 'qft': 'interval="7"', 'setmkt': 'en-US', 'setlang': 'en'}
         url = 'https://www.bing.com/news/search?' + urllib.parse.urlencode(params)
         try:
@@ -256,12 +268,16 @@ def fetch_bing_urllib(categories: dict, scraped_at: datetime) -> list:
             print(f'[bing-urllib:{cat}] FAIL {e}', file=sys.stderr)
             continue
         n = 0
+        allowed_domains = set(normalize_domain(s) for s in sites)
         for m in _CARD.finditer(raw):
             href = m.group('url')
             if not href or 'bing.com/ck/' in href:
                 href = unwrap_bing_url(href)
             title = _html.unescape(m.group('title')).strip()
             if not href or not title: continue
+            # R9: 严格域名白名单，避免 Bing 把太平洋/非洲泛关键词结果混进来
+            if allowed_domains and normalize_domain(urllib.parse.urlparse(href).netloc) not in allowed_domains:
+                continue
             rest = m.group('rest')
             author = m.group('author')
             sm = _re.search(r'<div[^>]*>([^<]+)</div>', rest)
