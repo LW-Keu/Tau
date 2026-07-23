@@ -64,7 +64,7 @@
     "description": "当需要用户决策、提供额外信息或遇到无法自动解决的阻碍时，调用此工具中断任务并提问",
     "parameters": {"type": "object", "properties": {
       "question": {"type": "string", "description": "向用户提出的明确问题"},
-      "candidates": {"type": "array", "items": {"type": "string"}, "description": "提供给用户的可选快捷选项列表"}}}
+      "candidates": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "description": "提供给用户的可选快捷选项列表(每项必须为非空字符串,至少 1 项)"}}}
   }},
   {"type": "function", "function": {
     "name": "start_long_term_update",
