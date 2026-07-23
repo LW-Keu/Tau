@@ -7,11 +7,8 @@
 #    2. Uncomment one of the configs below and fill in your apikey
 #    3. Run `python taumain.py` or `python launch.pyw`
 #
-#  Tau auto-detects any variable whose name contains 'api'/'config'/'cookie'
-#  and picks the session class by keyword:
-#      name contains 'native' + 'claude'  → NativeClaudeSession  (Anthropic API)
-#      name contains 'native' + 'oai'     → NativeOAISession     (OpenAI API)
-#      name contains 'mixin'              → MixinSession         (failover)
+#  Set `type` explicitly: native_claude, native_oai, claude, oai, or mixin.
+#  Variable-name detection remains only for compatibility with old configs.
 #
 #  Native = tools go in the API's native `tool` field (function calling), same
 #  way Claude Code and Codex do it. Recommended for GPT / Claude / Gemini.
@@ -29,6 +26,7 @@
 #  as x-api-key; any other prefix uses Authorization: Bearer.
 #  Model suffix '[1m]' triggers the 1M-context beta (stripped before sending).
 # native_claude_config = {
+#     'type': 'native_claude',
 #     'name': 'claude',                         # display name & mixin reference
 #     'apikey': 'sk-ant-<your-anthropic-key>',
 #     'apibase': 'https://api.anthropic.com',
@@ -44,6 +42,7 @@
 #  Standard OpenAI chat/completions endpoint. Also works for any OpenAI-
 #  compatible provider that supports native function-calling tool fields.
 # native_oai_config = {
+#     'type': 'native_oai',
 #     'name': 'gpt',                            # display name & mixin reference
 #     'apikey': 'sk-<your-openai-key>',
 #     'apibase': 'https://api.openai.com/v1',
@@ -60,6 +59,7 @@
 #  Constraint: all referenced sessions must be Native (mixing Native Claude
 #  and Native OAI is fine; mixing Native with non-Native is not).
 # mixin_config = {
+#     'type': 'mixin',
 #     'llm_nos': ['claude', 'gpt'],
 #     'max_retries': 5,
 #     'base_delay': 0.5,

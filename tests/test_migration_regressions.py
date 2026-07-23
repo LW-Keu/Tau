@@ -1,8 +1,10 @@
 import ast
 import importlib.util
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -136,6 +138,26 @@ class MigrationRegressionTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("ResourceWarning", result.stderr)
+
+    def test_taumain_import_has_no_runtime_side_effects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env = {**os.environ, "TAU_HOME": directory}
+            env.pop("GA_LANG", None)
+            code = (
+                "import os,pathlib,tau_coding.taumain;"
+                "root=pathlib.Path(os.environ['TAU_HOME']);"
+                "assert 'GA_LANG' not in os.environ;"
+                "assert not (root/'memory').exists();"
+                "assert not (root/'external').exists()"
+            )
+            result = subprocess.run(
+                [sys.executable, "-c", code],
+                cwd=directory,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

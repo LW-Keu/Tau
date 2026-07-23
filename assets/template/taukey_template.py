@@ -12,22 +12,17 @@
 #
 #  ────────── Session 类型速查 ──────────
 #
-#  taumain.py 只扫描变量名同时包含 'api' / 'config' / 'cookie' 的条目，
-#  根据变量名里的关键字决定实例化哪个 Session 类型：
+#  每个模型配置用 `type` 字段明确指定 Session 类型；变量名推断仅兼容旧配置：
 #
-#      变量名关键字                          → Session 类             → 工具协议
+#      type                                 → Session 类             → 工具协议
 #      ─────────────────────────────────────────────────────────────────────────
-#      含 'native' 且 'claude'             → NativeClaudeSession    → API 原生 tool 字段
-#      含 'native' 且 'oai'               → NativeOAISession       → API 原生 tool 字段
-#      含 'claude'（不含 native）          → ClaudeSession          → 文本协议工具 (deprecated)
-#      含 'oai'（不含 native）             → LLMSession             → 文本协议工具 (deprecated)
-#      含 'mixin'                          → MixinSession           → 多 session 故障转移
+#      'native_claude'                     → NativeClaudeSession    → API 原生 tool 字段
+#      'native_oai'                        → NativeOAISession       → API 原生 tool 字段
+#      'claude'                            → ClaudeSession          → 文本协议工具 (deprecated)
+#      'oai'                               → LLMSession             → 文本协议工具 (deprecated)
+#      'mixin'                             → MixinSession           → 多 session 故障转移
 #                                                                      NativeClaudeSession 与
 #                                                                      NativeOAISession 可混用
-#
-#  优先级自上而下：native_claude_xxx 会走 NativeClaudeSession；如果变量名只写
-#  oai_claude_xxx 则依然会被 'claude' 抢先匹配，去走 ClaudeSession，所以命名要
-#  注意含义。
 #
 #  ────────── Native vs 非 Native 的区别 ──────────
 #
@@ -38,7 +33,7 @@
 #  「非 Native」 = 工具描述放在 text 字段里（文本协议），兼容性更强，
 #  但对于被 API tool 字段训 overfit 的模型（如 Claude Opus/Sonnet），效果可能打折。
 #
-#  → 新手推荐：优先用 native_claude_config / native_oai_config
+#  → 新手推荐：优先用 type='native_claude' / type='native_oai'
 #
 #  ────────── Prompt Cache 说明 ──────────
 #
@@ -139,6 +134,7 @@
 #  NativeOAISession 可以混用）或者全不是 Native，不能 Native 与非 Native 混。
 #  请你按需
 # mixin_config = {
+#     'type': 'mixin',
 #     'llm_nos': ['gpt-native'],   # 按优先级排列；Claude 与 GPT 混用
 #     # 'llm_nos': ['cc-relay-1', 'cc-relay-2', 'gpt-native'],  # 按优先级排列；Claude 与 GPT 混用，注意: 启用时需要启用'cc-relay-1', 'cc-relay-2'配置!
 #     'max_retries': 10,           # int；整个 rotation 的总重试次数上限
@@ -159,6 +155,7 @@
 #  这类渠道把 Claude Code 协议透传到上游，apikey 格式各异（sk-user-*, sk-*, cr_*
 #  等），统一走 Bearer 鉴权。必须设置 fake_cc_system_prompt=True。
 # native_claude_config0 = {
+#     'type': 'native_claude',
 #     'name': 'cc-relay-1',                        # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-user-<your-relay-key>',        # 非 sk-ant- 前缀 → Bearer 鉴权
 #     'apibase': 'https://<your-cc-switch-host>/claude/office',   # CC switch 端点
@@ -168,6 +165,7 @@
 # }
 
 # native_claude_config1 = {
+#     'type': 'native_claude',
 #     'name': 'cc-relay-2',                        # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-<your-second-relay-key>',
 #     'apibase': 'https://<your-second-host>',
@@ -184,6 +182,7 @@
 #  官方端点，apikey 以 sk-ant- 开头 → 自动切到 x-api-key 鉴权。
 #  真 Anthropic 端点不需要 fake_cc_system_prompt。
 # native_claude_config_anthropic = {
+#     'type': 'native_claude',
 #     'name': 'anthropic-direct',              # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-ant-<your-anthropic-key>', # sk-ant- 前缀 → 自动走 x-api-key 头
 #     'apibase': 'https://api.anthropic.com',  # NativeClaudeSession 自动附加 ?beta=true
@@ -215,6 +214,7 @@
 # ── 1c. CRS 反代 Claude Max ─────────────────────────────────────────────────
 #  CRS 需要 fake_cc_system_prompt=True
 # native_claude_config_crs = {
+#     'type': 'native_claude',
 #     'name': 'crs-claude-max',                # /llms 显示名
 #     'apikey': 'cr_<your-crs-key>',           # cr_ 开头 → Bearer 鉴权（64 位 hex）
 #     'apibase': 'https://<your-crs-host>/api',# CRS 的 Anthropic 兼容路径
@@ -235,6 +235,7 @@
 #    - 'claude-opus-4-7'           (最简)
 #  ⚠ 此通道不支持 SSE 流式，必须 stream=False。
 # native_claude_config_crs_gemini = {
+#     'type': 'native_claude',
 #     'name': 'crs-gemini-ultra',              # /llms 显示名
 #     'apikey': 'cr_<your-crs-gemini-key>',    # cr_ 前缀 → Bearer
 #     'apibase': 'https://<your-crs-gemini-host>/antigravity/api',
@@ -247,8 +248,9 @@
 
 # ── 1e. 智谱 GLM-5.1 (Anthropic 兼容协议) ──────────────────────────────────
 #  智谱提供了 Anthropic 兼容接口 /api/anthropic，走 NativeClaudeSession。
-#  变量名含 'native' + 'claude' 即可。apikey 是智谱格式 (xxx.yyy)。
+#  type='native_claude'。apikey 是智谱格式 (xxx.yyy)。
 # native_claude_glm_config = {
+#     'type': 'native_claude',
 #     'name': 'glm-5.1',                               # /llms 显示名
 #     'apikey': '<your-zhipu-apikey>',                 # 形如 f0f1b798xxxx.F8SSbzxxxx；非 sk-ant- → Bearer
 #     'apibase': 'https://open.bigmodel.cn/api/anthropic',  # 智谱 Anthropic 兼容端点
@@ -266,6 +268,7 @@
 #  Anthropic 路径更简洁，OAI 路径会返回 <think> 标签（M2.7 自带思考）。
 #  温度自动修正为 (0, 1]，支持 M2.7 / M2.5 全系列，204K 上下文。
 # native_claude_config_minimax = {
+#     'type': 'native_claude',
 #     'name': 'minimax-anthropic',                   # /llms 显示名
 #     'apikey': 'sk-<your-minimax-key>',             # 与 OAI 路径同一个 key
 #     'apibase': 'https://api.minimaxi.com/anthropic',  # Anthropic Messages 兼容端点
@@ -280,6 +283,7 @@
 #  官方硬要求透传 CC system prompt → fake_cc_system_prompt=True 必填。
 #  文档: https://www.kimi.com/code/docs/third-party-tools/other-coding-agents.html
 # native_claude_config_kimi = {
+#     'type': 'native_claude',
 #     'name': 'kimi-coding',                   # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-kimi-<your-kimi-coding-key>',  # Bearer 鉴权
 #     'apibase': 'https://api.kimi.com/coding',# Anthropic 兼容端点
@@ -291,12 +295,13 @@
 # ══════════════════════════════════════════════════════════════════════════════
 #  2. NativeOAISession — OpenAI 协议 + 原生工具
 # ══════════════════════════════════════════════════════════════════════════════
-#  变量名含 'native' 且 'oai'。走 OpenAI chat/completions 或 responses 端点，
+#  type='native_oai'。走 OpenAI chat/completions 或 responses 端点，
 #  但工具调用使用 API 原生 function calling 字段（与 Claude Code/Codex 一致）。
 #  适合 GPT/o 系列、Gemini 或任何 OAI 兼容且支持原生 tool 字段的模型。
 #  和 NativeClaudeSession 共用大部分逻辑（继承关系），只是请求走 OAI 协议。
 
 # native_oai_config = {
+#     'type': 'native_oai',
 #     'name': 'gpt-native',                           # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-<your-openai-key>',                # Bearer 鉴权
 #     'apibase': 'https://api.openai.com/v1',          # 补齐到 /v1/chat/completions
@@ -318,6 +323,7 @@
 #  对接 OpenAI /v1/responses 端点。reasoning_effort 会以 reasoning.effort
 #  字段写进 payload；运行时也可用 /session.reasoning_effort=high 现场调。
 # native_oai_config_responses = {
+#     'type': 'native_oai',
 #     'name': 'gpt-responses',                       # /llms 显示名
 #     'apikey': 'sk-<your-openai-key>',              # Bearer 鉴权
 #     'apibase': 'https://api.openai.com/v1',        # 补齐到 /v1/responses（因为 api_mode=responses）
@@ -335,9 +341,10 @@
 # ══════════════════════════════════════════════════════════════════════════════
 #  ⚠ 后续版本可能移除非 Native session。新用户请直接使用上面的 Native 配置。
 #  非 Native 把工具描述放在 text 字段里，兼容性广但对 overfit 模型效果打折。
-#  变量名含 'oai'（不含 native）→ LLMSession；含 'claude'（不含 native）→ ClaudeSession。
+#  type='oai' → LLMSession；type='claude' → ClaudeSession。
 #
 # oai_config = {
+#     'type': 'oai',
 #     'name': 'my-oai-proxy',                          # /llms 显示名 & mixin 引用名
 #     'apikey': 'sk-<your-proxy-key>',                 # Bearer 鉴权
 #     'apibase': 'http://<your-proxy-host>:2001',      # 自动补 /v1/chat/completions
@@ -353,8 +360,9 @@
 #     # 'context_win': 16000,                          # int 默认 24000；历史裁剪阈值
 # }
 #
-# # 多配几个也行，变量名含 'oai' 即可
+# # 多配几个也行，每项显式设置 type='oai'
 # # oai_config2 = {
+#     'type': 'oai',
 # #     'apikey': 'sk-...',
 # #     'apibase': 'http://your-proxy:2001',
 # #     'model': 'claude-opus-4-7',
@@ -369,6 +377,7 @@
 #  OAI 路径会返回 <think> 标签（M2.7 自带思考）；Anthropic 路径更简洁（见 1f）。
 #  温度自动修正为 (0, 1]，支持 M2.7/M2.5 全系列，204K 上下文。
 # oai_config_minimax = {
+#     'type': 'oai',
 #     'name': 'minimax-oai',                           # /llms 显示名
 #     'apikey': 'sk-<your-minimax-key>',               # 形如 sk-cp-xxxxxxxxx；Bearer 鉴权
 #     'apibase': 'https://api.minimaxi.com/v1',        # OAI 兼容端点
@@ -380,6 +389,7 @@
 # ── 4b. Kimi / Moonshot (OAI 兼容) ──────────────────────────────────────────
 #  注意：Kimi/Moonshot 温度会被 llmcore.py 强制改为 1.0，写什么都会被覆盖。
 # oai_config_kimi = {
+#     'type': 'oai',
 #     'name': 'kimi-k2',                             # /llms 显示名
 #     'apikey': 'sk-<your-moonshot-key>',            # Bearer 鉴权
 #     'apibase': 'https://api.moonshot.cn/v1',       # Moonshot OAI 端点
@@ -393,6 +403,7 @@
 #  OpenRouter 是最通用的多模型 OAI 中继，https://openrouter.ai/api/v1。
 #  model 名用 provider/model 格式（如 anthropic/claude-opus-4-7）。
 # oai_config_openrouter = {
+#     'type': 'oai',
 #     'name': 'openrouter-claude',                   # /llms 显示名 & mixin 引用名；省略则取 model
 #     'apikey': 'sk-or-<your-openrouter-key>',       # OpenRouter key 形如 sk-or-xxx；Bearer 鉴权
 #     'apibase': 'https://openrouter.ai/api/v1',     # 补齐到 /v1/chat/completions

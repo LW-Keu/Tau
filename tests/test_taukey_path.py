@@ -34,23 +34,8 @@ class TestTaukeyPath(unittest.TestCase):
         self._load = _load_taukeys
         self._reload = reload_taukeys
 
-        # The legacy JSON fallback in tau_ai/keys.py reads
-        # tau_ai/taukey.json from the loader's own __file__ directory,
-        # NOT from TAU_HOME. To exercise the "missing file" branch of
-        # the loader, we must hide this file for the duration of each test.
-        import shutil
         import tau_ai.keys as keys_module
-
-        self._legacy_json = Path(keys_module.__file__).with_name("taukey.json")
-        self._legacy_json_backup = None
-        if self._legacy_json.exists():
-            self._legacy_json_backup = self._legacy_json.with_suffix(".json.test_bak")
-            shutil.move(str(self._legacy_json), str(self._legacy_json_backup))
-
-        def _restore_legacy_json():
-            if self._legacy_json_backup and self._legacy_json_backup.exists():
-                shutil.move(str(self._legacy_json_backup), str(self._legacy_json))
-        self.addCleanup(_restore_legacy_json)
+        keys_module.LEGACY_TAUKEY_PATH = self.tmp / "missing-taukey.json"
 
     def test_path_constants_resolve_under_tau_home(self):
         self.assertEqual(self.TAU, Path(os.environ["TAU_HOME"]) / ".tau")

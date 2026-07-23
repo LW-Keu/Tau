@@ -67,22 +67,22 @@ cp assets/template/taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
 
 ### 2. 配置模型
 
-编辑 `.tau/taukey.py`,**变量命名决定接口格式**(不是模型名决定的):
+编辑 `.tau/taukey.py`，用 `type` 明确指定接口格式：
 
 ```python
-# 变量名含 'oai' → 走 OpenAI 兼容接口
-oai_config = {
+my_model = {
+    'type': 'native_oai',
     'apikey': 'sk-你的密钥',
     'apibase': 'http://你的API地址:端口',
     'model': '模型名称',
 }
 ```
 
-| 变量名包含 | 接口格式 | 适用 |
+| `type` | 接口格式 | 适用 |
 |---|---|---|
-| `oai` | OpenAI 兼容 | 多数 API 服务、GPT、Kimi、DeepSeek、GLM、Qwen、MiniMax… |
-| `claude`(不含 `native`) | Claude 兼容 | Claude API 服务 |
-| `native` + `claude` / `oai` | 标准工具调用 | 较弱模型推荐,工具调用更规范 |
+| `native_oai` | OpenAI 兼容 + 原生工具调用 | 多数 API 服务、GPT、Kimi、DeepSeek、GLM、Qwen、MiniMax… |
+| `native_claude` | Anthropic 兼容 + 原生工具调用 | Claude API 服务 |
+| `oai` / `claude` | 文本协议工具调用 | 旧渠道兼容 |
 
 > 不想手填?运行向导:`tau configure`(即 `setup/configure_taukey.py`)。
 

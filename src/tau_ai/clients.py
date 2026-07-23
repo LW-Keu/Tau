@@ -253,15 +253,35 @@ class NativeToolClient:
         return resp
 
 
-def resolve_session(cfg_name):
-    cfg = reload_taukeys()[0].get(cfg_name)
-    if not cfg: raise ValueError(f"Config '{cfg_name}' not in taukey")
-    if 'native' in cfg_name: return (NativeClaudeSession if 'claude' in cfg_name else NativeOAISession)(cfg=cfg)
-    if 'claude' in cfg_name: return ClaudeSession(cfg=cfg)
-    return LLMSession(cfg=cfg) if 'oai' in cfg_name else None
+_SESSION_TYPES = {
+    'native_claude': NativeClaudeSession,
+    'native_oai': NativeOAISession,
+    'claude': ClaudeSession,
+    'oai': LLMSession,
+}
 
-def resolve_client(cfg_name):
-    s = resolve_session(cfg_name)
+
+def config_kind(cfg_name, cfg):
+    if not isinstance(cfg, dict):
+        return None
+    if kind := cfg.get('type'):
+        if kind == 'mixin' or kind in _SESSION_TYPES: return kind
+        raise ValueError(f"Config '{cfg_name}' has unsupported type {kind!r}")
+    if 'mixin' in cfg_name: return 'mixin'
+    if not any(x in cfg_name for x in ('api', 'config', 'cookie')): return None
+    if 'native' in cfg_name: return 'native_claude' if 'claude' in cfg_name else 'native_oai'
+    if 'claude' in cfg_name: return 'claude'
+    return 'oai' if 'oai' in cfg_name else None
+
+
+def resolve_session(cfg_name, cfg=None):
+    cfg = reload_taukeys()[0].get(cfg_name) if cfg is None else cfg
+    if not cfg: raise ValueError(f"Config '{cfg_name}' not in taukey")
+    kind = config_kind(cfg_name, cfg)
+    return _SESSION_TYPES[kind](cfg=cfg) if kind in _SESSION_TYPES else None
+
+def resolve_client(cfg_name, cfg=None):
+    s = resolve_session(cfg_name, cfg)
     return (NativeToolClient(s) if isinstance(s, (NativeClaudeSession, NativeOAISession)) else ToolClient(s)) if s else None
 
 def fast_ask(prompt, cfg_name):

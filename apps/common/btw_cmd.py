@@ -130,17 +130,4 @@ def handle_frontend_command(agent, query) -> str:
 
 
 def install(cls):
-    """Idempotent monkey-patch: intercept /btw before original dispatch."""
-    orig = cls._handle_slash_cmd
-    if getattr(orig, '_btw_patched', False): return
-
-    def patched(self, raw_query, event_queue):
-        s = (raw_query or '').strip()
-        if s == '/btw' or s.startswith('/btw ') or s.startswith('/btw\t'):
-            r = handle(self, raw_query, event_queue)
-            if r is None: return None
-            return r
-        return orig(self, raw_query, event_queue)
-
-    patched._btw_patched = True
-    cls._handle_slash_cmd = patched
+    cls.register_slash_command('btw', handle)

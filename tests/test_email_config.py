@@ -13,6 +13,9 @@ import sys
 import shutil
 import tempfile
 import importlib
+from pathlib import Path
+
+import pytest
 
 # memory/ 工具用裸名 import（sys.path 指向 memory/，与 daily_report_* 一致）
 MEM_DIR = os.path.join(
@@ -25,6 +28,18 @@ import email_config  # noqa: E402
 
 PASSED = 0
 FAILED = 0
+
+
+@pytest.fixture(autouse=True)
+def isolated_config(tmp_path, monkeypatch):
+    config_dir = tmp_path / ".tau"
+    monkeypatch.setattr(email_config, "CONFIG_DIR", str(config_dir))
+    monkeypatch.setattr(email_config, "CONFIG_FILE", str(config_dir / "tauchain.json"))
+    monkeypatch.setattr(
+        email_config,
+        "_PROVIDERS_TABLE",
+        Path(__file__).resolve().parents[1] / "assets" / "email_providers.json",
+    )
 
 
 def _ok(name):

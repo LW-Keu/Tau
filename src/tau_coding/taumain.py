@@ -1,51 +1,26 @@
 import importlib
 import importlib.util
-import os, sys, threading, queue, time, json, re, random, locale
+import os, sys, threading, queue, time, json, re, random
 from pathlib import Path
-os.environ.setdefault('GA_LANG', 'zh' if any(k in (locale.getlocale()[0] or '').lower() for k in ('zh', 'chinese')) else 'en')
-if sys.stdout is None: sys.stdout = open(os.devnull, "w")
-elif hasattr(sys.stdout, 'reconfigure'): sys.stdout.reconfigure(errors='replace')
-if sys.stderr is None: sys.stderr = open(os.devnull, "w")
-elif hasattr(sys.stderr, 'reconfigure'): sys.stderr.reconfigure(errors='replace')
 
 from tau_ai.keys import reload_taukeys
-from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, resolve_client
+from tau_ai.clients import ToolClient, NativeToolClient, MixinSession, config_kind, resolve_client
 from tau_ai.providers.openai import LLMSession, NativeOAISession
 from tau_ai.providers.claude import ClaudeSession, NativeClaudeSession
 from tau_agent.agent_loop import agent_runner_loop_events
 from tau_agent.events import TurnStarted, render_event, event_to_json
-try:
-    from tau_agent.plugins.hooks import discover_and_load; discover_and_load()
-except Exception: pass
 from tau_agent.handler import TauHandler
 from tau_agent.tools.utils import smart_format, get_global_memory, format_error, consume_file
 from tau_paths import TAU_HOME, MEMORY, ASSETS, TEMP
+from .runtime import initialize_runtime, language_suffix
 
 def load_tool_schema(suffix=''):
     global TOOLS_SCHEMA
     TS = (ASSETS / f'tools_schema{suffix}.json').read_text(encoding='utf-8')
     TOOLS_SCHEMA = json.loads(TS if os.name == 'nt' else TS.replace('powershell', 'bash'))
-load_tool_schema()
-
-lang_suffix = '_en' if os.environ.get('GA_LANG', '') == 'en' else ''
-mem_dir = str(MEMORY)
-if not os.path.exists(mem_dir): os.makedirs(mem_dir)
-mem_txt = str(MEMORY / 'global_mem.txt')
-if not os.path.exists(mem_txt): open(mem_txt, 'w', encoding='utf-8').write('# [Global Memory - L2]\n')
-mem_insight = str(MEMORY / 'global_mem_insight.txt')
-if not os.path.exists(mem_insight):
-    t = str(ASSETS / f'template/global_mem_insight_template{lang_suffix}.txt')
-    template = Path(t).read_text(encoding='utf-8') if os.path.exists(t) else ''
-    open(mem_insight, 'w', encoding='utf-8').write(template)
-cdp_cfg = str(TAU_HOME / 'external/TMWebDriver/tmwd_cdp_bridge/config.js')
-if not os.path.exists(cdp_cfg):
-    try:
-        os.makedirs(os.path.dirname(cdp_cfg), exist_ok=True)
-        open(cdp_cfg, 'w', encoding='utf-8').write(f"const TID = '__ljq_{hex(random.randint(0, 99999999))[2:8]}';")
-    except Exception as e: print(f'[WARN] CDP config init failed: {e} — advanced web features (tmwebdriver) will be unavailable.')
 
 def get_system_prompt():
-    with open(str(ASSETS / f'prompts/sys_prompt{lang_suffix}.txt'), 'r', encoding='utf-8') as f: prompt = f.read()
+    with open(str(ASSETS / f'prompts/sys_prompt{language_suffix()}.txt'), 'r', encoding='utf-8') as f: prompt = f.read()
     prompt += f"\nToday: {time.strftime('%Y-%m-%d %a')}\n"
     prompt += get_global_memory()
     return prompt
@@ -67,7 +42,15 @@ def _load_reflect(target, current=None):
 
 
 class Tau:
+    _slash_commands = {}
+
+    @classmethod
+    def register_slash_command(cls, name, handler):
+        cls._slash_commands[name.lstrip('/')] = handler
+
     def __init__(self):
+        initialize_runtime()
+        load_tool_schema()
         os.makedirs(str(TEMP), exist_ok=True)
         self.lock = threading.Lock()
         self.task_dir = None
@@ -87,10 +70,10 @@ class Tau:
         except Exception: oldhistory = None
         llm_sessions = []
         for k, cfg in taukeys.items():
-            if not any(x in k for x in ['api', 'config', 'cookie']): continue
             try:
-                if 'mixin' in k: llm_sessions += [{'mixin_cfg': cfg}]
-                elif c := resolve_client(k): llm_sessions += [c]
+                kind = config_kind(k, cfg)
+                if kind == 'mixin': llm_sessions += [{'mixin_cfg': cfg}]
+                elif kind and (client := resolve_client(k, cfg)): llm_sessions += [client]
             except Exception as e: print(f'[WARN] skip LLM config {k}: {format_error(e)}')
         for i, s in enumerate(llm_sessions):
             if isinstance(s, dict) and 'mixin_cfg' in s:
@@ -144,6 +127,9 @@ class Tau:
     def _handle_slash_cmd(self, raw_query, event_queue):
         from tau_agent.events import RawText, TurnEnded
         if not raw_query.startswith('/'): return raw_query
+        name = raw_query[1:].split(None, 1)[0]
+        if handler := self._slash_commands.get(name):
+            return handler(self, raw_query, event_queue)
         if _sm := re.match(r'/session\.(\w+)=(.*)', raw_query.strip()):
             k, v = _sm.group(1), _sm.group(2)
             vfile = str(TEMP / v)

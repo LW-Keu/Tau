@@ -497,7 +497,7 @@ def check_e5_layout(docx_path: str) -> Tuple[bool, List[Dict[str, Any]]]:
         from docx.shared import Pt, Cm, RGBColor
     except ImportError:
         return False, [{"check": "E.5排版自检", "pass": False,
-                        "errors": ["需要 python-docx 库: pip install python-docx"]}]
+                        "errors": ["需要 python-docx 库: uv add python-docx"]}]
 
     doc = Document(docx_path)
 

@@ -991,6 +991,7 @@ def generate_taukey(llm_cfgs, platform_configs):
     names = [c['name'] for c in llm_cfgs]
     lines.append("# ── Mixin 故障转移 ──")
     lines.append("mixin_config = {")
+    lines.append("    'type': 'mixin',")
     lines.append(f"    'llm_nos': {names},")
     lines.append("    'max_retries': 10,")
     lines.append("    'base_delay': 0.5,")
@@ -1037,7 +1038,7 @@ def generate_taukey(llm_cfgs, platform_configs):
 
 def _write_config_fields(lines, cfg):
     """写入配置字典的键值对（缩进的 'key': value, 格式）"""
-    for key in ['name', 'apikey', 'apibase', 'model', 'api_mode',
+    for key in ['type', 'name', 'apikey', 'apibase', 'model', 'api_mode',
                 'fake_cc_system_prompt', 'thinking_type', 'thinking_budget_tokens',
                 'reasoning_effort', 'max_tokens', 'max_retries', 'connect_timeout',
                 'read_timeout', 'temperature', 'context_win',
@@ -1250,11 +1251,10 @@ def main():
             print(f"  {C['cyan']}  平台 {i} ({p['name']}):{C['reset']}  python {p['file']}")
     print()
 
-    # pip 依赖提示
     all_deps = sorted(platform_deps)
     if all_deps:
         print(f"  {C['yellow']}💡 提示：你需要安装以下依赖以使消息平台正常工作:{C['reset']}")
-        print(f"     {C['cyan']}pip install {' '.join(all_deps)}{C['reset']}")
+        print(f"     {C['cyan']}uv sync --extra all-apps{C['reset']}")
         print()
 
     # ── 入门示例 ──

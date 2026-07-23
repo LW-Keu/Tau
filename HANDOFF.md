@@ -94,7 +94,7 @@
 - **CLAUDE.md ≠ Tau 运行时**：本文件只供开发期 Claude Code 读；Tau 运行时 Agent 读的是 `assets/prompts/sys_prompt.txt` + `memory/`
 
 来自 memory（必须亲自 grep 验证 review subagent 的声称，不能直接采信 —— 这是这次 review 撞过的一个雷）：
-- `monorepo-offlimits-core-taumain-refs`：start_*.sh 与 memory SOP 仍引用 `-m core.taumain`，`core/` 已删，需要时手动改 `tau_core.launcher`
+- `monorepo-offlimits-core-taumain-refs`：旧启动入口已删除；后续检查应以当前包入口为准
 
 ---
 

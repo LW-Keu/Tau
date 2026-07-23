@@ -67,18 +67,9 @@ def handle(agent, body: str, event_queue) -> Optional[str]:
     return header + _render_prompt(user_request)
 
 def install(cls):
-    """`/review` 一律接管,前缀剥离在此完成,handle 只接 body(职责单一)。"""
-    orig = cls._handle_slash_cmd
-    if getattr(orig, '_review_patched', False): return
-    def patched(self, raw_query, event_queue):
+    def dispatch(self, raw_query, event_queue):
         s = (raw_query or '').strip()
-        if s == '/review':
-            body = ''
-        elif s.startswith('/review ') or s.startswith('/review\t'):
-            body = s[len('/review'):].strip()
-        else:
-            return orig(self, raw_query, event_queue)
+        body = s[len('/review'):].strip()
         r = handle(self, body, event_queue)
         return None if r is None else r
-    patched._review_patched = True
-    cls._handle_slash_cmd = patched
+    cls.register_slash_command('review', dispatch)

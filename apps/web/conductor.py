@@ -24,6 +24,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
 from pydantic import BaseModel
 
 from tau_coding.taumain import Tau
+from apps.common.event_projection import last_turn_text as _last_turn_text
 
 HOST = "127.0.0.1"
 PORT = 8900
@@ -72,37 +73,6 @@ def now_ms() -> int:
 
 def short_id() -> str:
     return uuid.uuid4().hex[:8]
-
-def _last_turn_text(events, running: bool) -> str:
-    """Extract the last turn's summary (if running) or text reply (if stopped)
-    from typed events. Replaces extract_last_summary / extract_last_text_reply,
-    which regex-parsed the accumulated rendered string."""
-    from tau_agent.events import TurnStarted, TurnEnded, render_event
-    last_turn_idx = -1
-    for i, e in enumerate(events):
-        if isinstance(e, TurnStarted):
-            last_turn_idx = i
-    if last_turn_idx < 0:
-        return ""
-    # Render only the last turn (verbose=False matches subagent mode).
-    text = "".join(render_event(e, verbose=False) for e in events[last_turn_idx:]
-                   if not isinstance(e, TurnEnded))
-    # Strip the leading turn header rendered by TurnStarted.
-    text = re.sub(r'^\s*\**(?:LLM Running|Turn) \(Turn \d+\) \.\.\.\**', '', text).strip()
-    if running:
-        m = re.search(r'<summary>(.*?)\s*</summary>', text, re.DOTALL)
-        if not m:
-            return ""
-        s = m.group(1).strip()
-        return s[-1000:] if len(s) > 1000 else s
-    else:
-        text = re.sub(r'<summary>.*?\s*</summary>\s*', '', text, flags=re.DOTALL)
-        text = re.sub(r'\[(Status|Info)\][^\n]*\n?', '', text)
-        text = text.strip()
-        return text[-3000:] if len(text) > 3000 else text
-
-
-
 
 def subagent_snapshot() -> list[dict]:
     with sub_lock:

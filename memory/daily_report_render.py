@@ -534,7 +534,7 @@ def render_docx(data: dict, output_dir: str = ".") -> str:
         from docx.oxml.ns import qn, nsdecls
         from docx.oxml import parse_xml
     except ImportError:
-        print("[ERROR] python-docx not installed. pip install python-docx", file=sys.stderr)
+        print("[ERROR] python-docx not installed. Run: uv add python-docx", file=sys.stderr)
         return ""
 
     d = parse_date(data["date"])

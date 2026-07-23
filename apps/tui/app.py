@@ -33,22 +33,13 @@ from itertools import count
 from typing import Any, Callable, Optional
 
 def _ensure_tui_deps() -> None:
-    """Try the imports; on first miss, pip-install the wheel and retry once.
-    Keeps `tau-cli` working on a fresh Python (Windows / macOS / Linux) where
-    Textual or Rich hasn't been installed yet. Bails with a clear message if
-    pip itself is unavailable or the install fails — never silently."""
-    import importlib.util, subprocess
+    """Fail with the supported uv command when TUI dependencies are missing."""
+    import importlib.util
     needed = ("rich", "textual")
     missing = [m for m in needed if importlib.util.find_spec(m) is None]
     if not missing: return
-    print(f"[tau-tui] installing {' '.join(missing)} into {sys.executable} ...", file=sys.stderr)
-    try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", *missing])
-    except Exception as e:
-        print(f"[tau-tui] auto-install failed: {e}\n    fix: {sys.executable} -m pip install {' '.join(missing)}",
-              file=sys.stderr)
-        raise SystemExit(2)
-    for m in missing: importlib.invalidate_caches()
+    print("[tau-tui] missing UI dependencies; run: uv sync --extra ui", file=sys.stderr)
+    raise SystemExit(2)
 
 
 _ensure_tui_deps()
@@ -66,7 +57,7 @@ try:
     from textual.widgets.option_list import Option
     from textual.widgets.selection_list import Selection
 except ModuleNotFoundError as exc:
-    print(f"[tau-tui] still missing: {exc.name}. Run: {sys.executable} -m pip install rich textual",
+    print(f"[tau-tui] still missing: {exc.name}. Run: uv sync --extra ui",
           file=sys.stderr)
     raise SystemExit(2) from exc
 
@@ -238,45 +229,6 @@ def fold_turns(text: str) -> list[dict]:
         if len(title) > 72: title = title[:72] + "..."
         segs.append({"type": "fold", "title": title, "content": content})
     return segs
-
-
-def _event_turns(events, verbose=True):
-    """Split a typed event sequence into turn strings.
-
-    All but the last turn are treated as completed folds; the last turn is the
-    live, streaming turn. Replaces regex-based turn-marker parsing for the main
-    UI path (fold_turns is kept for render_folded_text and legacy str paths).
-    """
-    from tau_agent.events import TurnStarted, TurnEnded, render_event
-    turns = []
-    current = ""
-    for event in events:
-        if isinstance(event, TurnStarted):
-            if current.strip() or turns:
-                turns.append(current)
-                current = ""
-        elif isinstance(event, TurnEnded):
-            continue
-        else:
-            current += render_event(event, verbose)
-    turns.append(current)
-    return turns
-
-
-def _turn_title(text):
-    """Extract a fold title from a completed turn's rendered text.
-
-    Same heuristic fold_turns used: <summary> first line, else first line of the
-    cleaned turn with args stripped.
-    """
-    cleaned = re.sub(r"`{3,}.*?`{3,}|<thinking>.*?</thinking>", "", text, flags=re.DOTALL)
-    ms = re.findall(r"<summary>\s*((?:(?!<summary>).)*?)\s*</summary>", cleaned, re.DOTALL)
-    if ms:
-        title = ms[0].strip().split("\n", 1)[0]
-        return (title[:72] + "...") if len(title) > 72 else title
-    first = cleaned.strip().split("\n", 1)[0]
-    first = re.sub(r",?\s*args:.*$", "", first)
-    return (first[:72] + "...") if len(first) > 72 else first
 
 
 def render_folded_text(text: str) -> str:
@@ -601,13 +553,14 @@ FRONTENDS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if FRONTENDS_DIR not in sys.path:
     sys.path.insert(0, FRONTENDS_DIR)
 
-# Side-effect imports activate /btw + /continue monkey-patches.
+# Shared command imports register /btw, /continue, and /review.
 import apps.common.chatapp_common as chatapp_common  # noqa: F401
 from apps.common.chatapp_common import format_restore
 from apps.common.btw_cmd import handle_frontend_command as btw_handle
 from apps.common.review_cmd import handle as review_handle
 from apps.common.continue_cmd import list_sessions as continue_list, extract_ui_messages as continue_extract
 from apps.common.export_cmd import last_assistant_text, export_to_temp, wrap_for_clipboard
+from apps.common.event_projection import event_turns as _event_turns, turn_title as _turn_title
 
 AgentFactory = Callable[[], Any]
 

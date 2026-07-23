@@ -17,7 +17,7 @@ try:
     import botpy
     from botpy.message import C2CMessage, GroupMessage
 except Exception:
-    print("Please install qq-botpy to use QQ module: pip install qq-botpy")
+    print("Please install app dependencies: uv sync --extra all-apps")
     sys.exit(1)
 
 agent = Tau(); agent.verbose = False

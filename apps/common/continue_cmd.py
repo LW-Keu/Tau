@@ -1,6 +1,4 @@
-"""`/continue` command: list & restore past model_responses sessions.
-Pure functions + one `install(cls)` monkey-patch entry. No side effects at import.
-"""
+"""`/continue` command: list and restore past model response sessions."""
 import ast, glob, json, os, re, time
 
 from tau_agent.events import RawText, TurnEnded, TurnStarted, render_event, event_from_json
@@ -377,13 +375,4 @@ def handle_frontend_command(agent, query, exclude_pid=None):
 
 
 def install(cls):
-    """Wrap cls._handle_slash_cmd so /continue is handled before original dispatch."""
-    orig = cls._handle_slash_cmd
-    if getattr(orig, '_continue_patched', False): return
-    def patched(self, raw_query, event_queue):
-        if (raw_query or '').startswith('/continue'):
-            r = handle(self, raw_query, event_queue)
-            if r is None: return None
-        return orig(self, raw_query, event_queue)
-    patched._continue_patched = True
-    cls._handle_slash_cmd = patched
+    cls.register_slash_command('continue', handle)

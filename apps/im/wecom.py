@@ -32,7 +32,7 @@ from tau_ai.keys import taukeys
 try:
     from wecom_aibot_sdk import WSClient, generate_req_id
 except Exception:
-    print("Please install wecom_aibot_sdk: pip install wecom_aibot_sdk")
+    print("Please install app dependencies: uv sync --extra all-apps")
     sys.exit(1)
 
 # ── Config ──────────────────────────────────────────────────────────

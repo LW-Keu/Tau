@@ -17,7 +17,7 @@ try:
     from dingtalk_stream import AckMessage, CallbackHandler, Credential, DingTalkStreamClient
     from dingtalk_stream.chatbot import ChatbotMessage
 except Exception:
-    print("Please install dingtalk-stream to use DingTalk: pip install dingtalk-stream")
+    print("Please install app dependencies: uv sync --extra all-apps")
     sys.exit(1)
 
 agent = Tau(); agent.verbose = False
