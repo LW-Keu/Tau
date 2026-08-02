@@ -55,6 +55,7 @@ class TauExecution:
     def __init__(self, tau_factory, prompt):
         self.agent = tau_factory()
         self.agent.inc_out = True
+        self.agent.peer_hint = False
         self.events, self.output = queue.Queue(), queue.Queue()
         self.display = self.agent.put_task(
             prompt, source="api", events=self.events,
@@ -292,6 +293,21 @@ async def _create_execution(tau_factory, prompt):
         raise
 
 
+async def _wait_for_completion(request, execution):
+    waiter = asyncio.create_task(asyncio.to_thread(execution.wait))
+    try:
+        while True:
+            if await request.is_disconnected():
+                raise asyncio.CancelledError
+            done, _ = await asyncio.wait((waiter,), timeout=0.05)
+            if done:
+                return waiter.result()
+    except asyncio.CancelledError:
+        await asyncio.to_thread(execution.abort)
+        await asyncio.shield(waiter)
+        raise
+
+
 class ExecutionStreamingResponse(StreamingResponse):
     def __init__(self, execution, delivered, content, **kwargs):
         self.execution, self.delivered = execution, delivered
@@ -357,11 +373,7 @@ def create_app(api_key, tau_factory=Tau):
                     "X-Accel-Buffering": "no",
                 },
             )
-        try:
-            result = await asyncio.to_thread(execution.wait)
-        except asyncio.CancelledError:
-            await asyncio.to_thread(execution.abort)
-            raise
+        result = await _wait_for_completion(request, execution)
         if result.error:
             raise APIError(500, result.error, "server_error", "tau_run_failed")
         return _completion(result)

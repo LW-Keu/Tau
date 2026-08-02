@@ -223,6 +223,7 @@ class FakeTau:
     def __init__(self, text="final answer", error=None):
         self.text, self.error = text, error
         self.inc_out = False
+        self.peer_hint = True
         self.verbose = True
         self.aborted = False
         self.events = self.display = None
@@ -267,6 +268,7 @@ def test_non_streaming_completion_uses_fresh_tau_and_standard_envelope():
     assert FakeTau.instances[0].prompt == "hello"
     assert FakeTau.instances[0].source == "api"
     assert FakeTau.instances[0].once is True
+    assert FakeTau.instances[0].peer_hint is False
 
 
 def test_non_streaming_runtime_failure_is_openai_error():
@@ -800,7 +802,7 @@ def _asgi_chat_scope(spec_version):
     }
 
 
-def _asgi_chat_receive(disconnect=False):
+def _asgi_chat_receive(disconnect=False, stream=True):
     request_sent = False
 
     async def receive():
@@ -811,7 +813,7 @@ def _asgi_chat_receive(disconnect=False):
                 "type": "http.request",
                 "body": json.dumps({
                     "model": "tau-agent",
-                    "stream": True,
+                    "stream": stream,
                     "messages": [{"role": "user", "content": "hello"}],
                 }).encode(),
                 "more_body": False,
@@ -821,6 +823,40 @@ def _asgi_chat_receive(disconnect=False):
         await asyncio.Future()
 
     return receive
+
+
+def test_non_streaming_disconnect_aborts_request_and_joins_waiter(monkeypatch):
+    agent, other = BlockingRunTau(), BlockingRunTau()
+    app = create_app("secret", tau_factory=lambda: agent)
+    responses = []
+    wait_finished = threading.Event()
+    original_wait = server.TauExecution.wait
+
+    def tracked_wait(execution):
+        try:
+            return original_wait(execution)
+        finally:
+            wait_finished.set()
+
+    monkeypatch.setattr(server.TauExecution, "wait", tracked_wait)
+
+    async def send(message):
+        responses.append(message)
+
+    async def disconnect_after_body():
+        with pytest.raises(asyncio.CancelledError):
+            await app(
+                _asgi_chat_scope("2.4"),
+                _asgi_chat_receive(disconnect=True, stream=False),
+                send,
+            )
+        assert agent.aborted is True
+        assert other.aborted is False
+        assert agent.run_finished.is_set()
+        assert wait_finished.is_set()
+        assert responses == []
+
+    asyncio.run(disconnect_after_body())
 
 
 def test_response_start_failure_aborts_before_stream_iteration():
