@@ -97,7 +97,10 @@ class TauExecution:
                 pass
             done = self._display_done()
             if done is None and not self.runner.is_alive():
-                done = self._display_done() or {"done": ""}
+                done = self._display_done() or {
+                    "done": "",
+                    "error": "Tau runner exited without a terminal result",
+                }
         self.runner.join(timeout=1)
         while True:
             try:
@@ -219,10 +222,19 @@ def _chunk(completion_id, created, delta=None, finish_reason=None):
     }
 
 
+def _missing_final_text(delivered, final):
+    if final.startswith(delivered):
+        return final[len(delivered):]
+    for size in range(min(len(delivered), len(final)), 0, -1):
+        if delivered.endswith(final[:size]):
+            return final[size:]
+    return final
+
+
 async def stream_completion(request, execution, delivered=None):
     completion_id = f"chatcmpl-{uuid.uuid4().hex}"
     created = int(time.time())
-    finished = False
+    finished, delivered_text = False, ""
     try:
         yield _sse(_chunk(completion_id, created, {"role": "assistant"}))
         while not finished:
@@ -232,6 +244,7 @@ async def stream_completion(request, execution, delivered=None):
             if event is None:
                 continue
             if event.kind == "delta":
+                delivered_text += event.text
                 yield _sse(_chunk(
                     completion_id, created, {"content": event.text},
                 ))
@@ -244,6 +257,11 @@ async def stream_completion(request, execution, delivered=None):
                     "code": "tau_run_failed",
                 }})
             else:
+                missing = _missing_final_text(delivered_text, event.text)
+                if missing:
+                    yield _sse(_chunk(
+                        completion_id, created, {"content": missing},
+                    ))
                 yield _sse(_chunk(
                     completion_id, created, finish_reason="stop",
                 ))
@@ -336,7 +354,11 @@ def create_app(api_key, tau_factory=Tau):
                     "X-Accel-Buffering": "no",
                 },
             )
-        result = await asyncio.to_thread(execution.wait)
+        try:
+            result = await asyncio.to_thread(execution.wait)
+        except asyncio.CancelledError:
+            await asyncio.to_thread(execution.abort)
+            raise
         if result.error:
             raise APIError(500, result.error, "server_error", "tau_run_failed")
         return _completion(result)

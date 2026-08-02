@@ -13,7 +13,10 @@ from apps.api import server
 from apps.api.server import APIError, build_prompt, create_app, parse_chat
 import tau_coding.taumain as taumain
 import tau_coding.cli as tau_cli
-from tau_agent.events import RawText, TurnEnded, TurnStarted
+from tau_agent.events import (
+    RawText, ToolCallStart, ToolOutputChunk, ToolOutputEnd, ToolOutputStart,
+    TurnEnded, TurnStarted,
+)
 from tau_coding.commands._launchers import LAUNCHERS
 
 
@@ -348,6 +351,62 @@ def test_streaming_completion_emits_role_progress_terminal_and_done():
     assert FakeTau.instances[0].aborted is False
 
 
+class PartialEventTau(FakeTau):
+    def __init__(self, text="final"):
+        super().__init__(text=text)
+
+    def run(self, once=False):
+        self.once = once
+        self.events.put(RawText(self.text))
+        self.display.put({"done": "final answer"})
+
+
+@pytest.mark.parametrize(("tau_factory", "expected"), [
+    (PartialEventTau, "final answer"),
+    (lambda: PartialEventTau(text="progress"), "progressfinal answer"),
+])
+def test_streaming_completion_reconciles_authoritative_display_text(
+    tau_factory, expected,
+):
+    client = TestClient(create_app("secret", tau_factory=tau_factory))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent", "stream": True,
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    chunks = [json.loads(value) for value in _sse_payloads(response.text)[:-1]]
+    content = "".join(
+        item["choices"][0]["delta"].get("content", "")
+        for item in chunks if "choices" in item
+    )
+    assert content == expected
+
+
+class ToolProgressTau(FakeTau):
+    def run(self, once=False):
+        self.once = once
+        self.events.put(ToolCallStart("shell", {"cmd": "pwd"}))
+        self.events.put(ToolOutputStart())
+        self.events.put(ToolOutputChunk("workspace"))
+        self.events.put(ToolOutputEnd())
+        self.events.put(TurnEnded({"result": "done"}))
+        self.display.put({"done": ""})
+
+
+def test_streaming_completion_renders_typed_tool_progress():
+    client = TestClient(create_app("secret", tau_factory=ToolProgressTau))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent", "stream": True,
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    chunks = [json.loads(value) for value in _sse_payloads(response.text)[:-1]]
+    content = "".join(
+        item["choices"][0]["delta"].get("content", "")
+        for item in chunks if "choices" in item
+    )
+    assert "Tool: `shell`" in content
+    assert "workspace" in content
+
+
 def test_streaming_runtime_failure_uses_error_frame_then_done():
     agent = FakeTau(error="backend exploded")
     client = TestClient(create_app("secret", tau_factory=lambda: agent))
@@ -450,7 +509,7 @@ def test_runner_completion_without_display_done_does_not_hang():
     waiter.join(timeout=1)
     assert not waiter.is_alive()
     assert result[0].text == ""
-    assert result[0].error is None
+    assert result[0].error == "Tau runner exited without a terminal result"
 
 
 class DuplicateDoneTau(FakeTau):
@@ -577,6 +636,43 @@ class BlockingFactory:
         self.agent = BlockingRunTau()
         self.created.set()
         return self.agent
+
+
+def test_non_streaming_request_cancellation_aborts_execution(monkeypatch):
+    agent = BlockingRunTau()
+    app = create_app("secret", tau_factory=lambda: agent)
+    wait_started = threading.Event()
+    original_wait = server.TauExecution.wait
+
+    def tracked_wait(execution):
+        wait_started.set()
+        return original_wait(execution)
+
+    monkeypatch.setattr(server.TauExecution, "wait", tracked_wait)
+
+    async def cancel_request():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test",
+        ) as client:
+            pending = asyncio.create_task(client.post(
+                "/v1/chat/completions", headers=_headers(), json={
+                    "model": "tau-agent",
+                    "messages": [{"role": "user", "content": "hello"}],
+                },
+            ))
+            assert await asyncio.to_thread(agent.run_started.wait, 1)
+            assert await asyncio.to_thread(wait_started.wait, 1)
+            pending.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await pending
+            try:
+                assert agent.aborted is True
+                assert await asyncio.to_thread(agent.run_finished.wait, 1)
+            finally:
+                agent.release_run.set()
+
+    asyncio.run(cancel_request())
 
 
 def test_request_cancelled_during_factory_aborts_eventual_execution():
