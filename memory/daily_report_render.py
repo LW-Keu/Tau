@@ -130,13 +130,13 @@ def _apply_para_format(para, line_spacing=None, space_before=None, space_after=N
 SECTIONS = [
     {"code": "S1", "num": "一", "title": "非传统安全领域涉华要闻",
      "subtitle": None, "count_range": (3, 5)},
-    {"code": "S2", "num": "二", "title": "各国非传统安全动向",
+    {"code": "S2", "num": "二", "title": "主要国家及国际组织的重要动向",
      "subtitle": None, "count_range": (5, 10)},
     {"code": "S3", "num": "三", "title": "其他热点或苗头性线索",
-     "subtitle": None, "count_range": (0, 99), "optional": True},
-    {"code": "S4", "num": "四", "title": "趋势观察",
+     "subtitle": None, "count_range": (0, 99), "optional": False},
+    {"code": "S4", "num": "四", "title": "本期要情与趋势分析",
      "subtitle": None, "count_range": (1, 1), "is_analysis": True},
-    {"code": "S5", "num": "五", "title": "情报价值研判",
+    {"code": "S5", "num": "五", "title": "重点关注信号的情报价值",
      "subtitle": None, "count_range": (3, 5), "is_signals": True},
 ]
 
@@ -357,10 +357,15 @@ def render_md(data: dict, output_dir: str = ".") -> str:
                     ("**行为体联动：**", trends.get("actor_dynamics", "")),
                     ("**涉华影响方向：**", trends.get("china_impact_direction", "")),
                 ]
+                has_any = False
                 for label, txt in sub_items:
                     if txt:
                         lines.append(f"{label}{txt}")
                         lines.append("")
+                        has_any = True
+                if not has_any:
+                    lines.append(EMPTY_NOTE)
+                    lines.append("")
             elif trends:
                 lines.append(trends)
                 lines.append("")

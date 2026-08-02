@@ -16,6 +16,7 @@ dependencies = [
     "beautifulsoup4>=4.12",           # simphtml.py
     "bottle>=0.12",                   # TMWebDriver.py
     "simple-websocket-server>=0.4",   # TMWebDriver.py
+    "python-docx>=1.2.0",
 ]
 
 [project.optional-dependencies]

@@ -40,7 +40,7 @@ class StartSubagentIn(BaseModel):
     prompt: str
 
 class SubagentActionIn(BaseModel):
-    action: str = "intervene"  # intervene | abort | kill
+    action: str = "intervene"  # intervene | keyinfo | input | stop | kill
     msg: str = ""
 
 @dataclass
@@ -219,6 +219,26 @@ def keyinfo_subagent(sid: str, msg: str) -> dict:
     s.updated_at = time.time()
     return {"id": sid, "status": "keyinfo_injected"}
 
+def intervene_subagent(sid: str, msg: str) -> dict:
+    """Steer a RUNNING subagent's next prompt via the _intervene file channel;
+    TauHandler.turn_end_callback consumes it at the end of the current turn.
+    (Unlike keyinfo which patches working memory directly, this is the
+    file-based protocol — also writable by any external process.)"""
+    with sub_lock:
+        s = subagents.get(sid)
+    if not s:
+        return {"error": "subagent not found", "id": sid}
+    if s.status != "running":
+        return {"error": "subagent is not running; use input to start a new round instead", "id": sid}
+    td = getattr(s.agent.handler.parent, 'task_dir', None)
+    if not td:
+        return {"error": "task_dir unavailable", "id": sid}
+    os.makedirs(td, exist_ok=True)
+    with open(os.path.join(td, '_intervene'), 'a', encoding='utf-8') as f:
+        f.write(msg + '\n')
+    s.updated_at = time.time()
+    return {"id": sid, "status": "intervene_queued"}
+
 def input_subagent(sid: str, msg: str) -> dict:
     """Start a new task round (used for input/reply when agent is stopped)."""
     with sub_lock:
@@ -248,7 +268,8 @@ def conductor_readme() -> str:
         "POST /subagent\tbody: {\"prompt\": \"...\"}\t启动新subagent，返回 {\"id\": \"xxx\"}",
         'POST /subagent/{id}\tbody: {\"action\": \"keyinfo\", \"msg\": \"...\"}\t注入key_info（agent下轮可见）',
         'POST /subagent/{id}\tbody: {\"action\": \"input\", \"msg\": \"...\"}\t开新一轮任务（agent停下后追加）',
-        'POST /subagent/{id}\tbody: {\"action\": \"stop\"}\t中断执行但保留（可继续input/reply）',
+        'POST /subagent/{id}\tbody: {"action": "intervene", "msg": "..."}\t插队干预运行中agent的下一条prompt（当轮结束生效）',
+        'POST /subagent/{id}\tbody: {"action": "stop"}\t中断执行但保留（可继续input/reply）',
         'POST /subagent/{id}\tbody: {\"action\": \"kill\"}\t彻底杀死（从卡片消失，不可复用）',
         "GET /chat?last=N\t返回最近N条对话（默认20）",
         "GET /subagent\t返回 {\"items\": [...]}\t查看所有subagent状态",
@@ -402,6 +423,10 @@ def api_subagent_action(sid: str, body: SubagentActionIn):
         s.updated_at = time.time()
         push_cards()
         return {"id": sid, "status": "stopped"}
+    if action in ("intervene", "steer"):
+        result = intervene_subagent(sid, body.msg)
+        if "error" not in result: result["instruction"] = "Intervention queued for the agent's next prompt. You MUST stop now and end your reply."
+        return result
     if action == "kill":
         s.agent.abort()
         s.status = "aborted"

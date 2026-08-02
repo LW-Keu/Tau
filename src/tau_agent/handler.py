@@ -320,10 +320,8 @@ class TauHandler(BaseHandler):
         else:
             tc = tool_calls[0]; tool_name, args = tc['tool_name'], tc['args']
             clean_args = {k: v for k, v in args.items() if not k.startswith('_')}
-            summary = f"调用工具{tool_name}, args: {clean_args}"
-            if tool_name == 'no_tool': summary = "直接回答了用户问题"
+            summary = _c.strip() or smart_format("直接回答了用户问题" if tool_name == 'no_tool' else f"调用工具{tool_name}, args: {clean_args}", max_str_len=40)
             next_prompt += "\n\n\n[SYSTEM] 必须在回复文本中包含<summary>！\n\n"
-            summary = smart_format(summary.replace('\n', ''), max_str_len=40)
         summary = smart_format(summary.replace('\n', ''), max_str_len=80)
         self.history_info.append(f'[Agent] {summary}')
         _plan = self._in_plan_mode()
@@ -331,7 +329,7 @@ class TauHandler(BaseHandler):
         if turn % 75 == 0 and (not _plan):
             next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。必须总结情况进行ask_user，不允许继续重试。"
         elif turn % 7 == 0:
-            next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。禁止无效重试。若无有效进展，必须切换策略：1. 探测物理边界 2. 请求用户协助。如有需要，可调用 update_working_checkpoint 保存关键上下文。"
+            next_prompt += f"\n\n[DANGER] 已连续执行第 {turn} 轮。禁止无效重试。若无有效进展，必须切换策略：1. 探测物理边界 2. 请求用户协助 3. 重读相关SOP。关键发现/已试方案须 file_write 落盘备查（不止 update_working_checkpoint）。"
         elif turn % 10 == 0: next_prompt += get_global_memory()
 
         if _plan and turn >= 10 and turn % 5 == 0:
@@ -342,5 +340,5 @@ class TauHandler(BaseHandler):
         injprompt = consume_file(self.parent.task_dir, '_intervene')
         if injkeyinfo: self.working['key_info'] = self.working.get('key_info', '') + f"\n[MASTER] {injkeyinfo}"
         if injprompt: next_prompt += f"\n\n[MASTER] {injprompt}\n"
-        for hook in getattr(self.parent, '_turn_end_hooks', {}).values(): hook(locals())
+        for hook in list(getattr(self.parent, '_turn_end_hooks', {}).values()): hook(locals())  # list快照:防hook执行中增删hooks
         return next_prompt
