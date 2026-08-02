@@ -57,6 +57,7 @@ class TauExecution:
             prompt, source="api", events=self.events,
         )
         self.cancelled = threading.Event()
+        self.lifecycle = threading.Lock()
         self.runner = threading.Thread(
             target=self._run, daemon=True,
         )
@@ -121,7 +122,10 @@ class TauExecution:
                 return ExecutionResult(event.text, event.error)
 
     def abort(self):
-        self.cancelled.set()
+        with self.lifecycle:
+            if self.cancelled.is_set():
+                return
+            self.cancelled.set()
         self.agent.stop_sig = True
         self.agent.abort()
 
@@ -263,6 +267,21 @@ async def _create_execution(tau_factory, prompt):
         raise
 
 
+class ExecutionStreamingResponse(StreamingResponse):
+    def __init__(self, execution, content, **kwargs):
+        self.execution = execution
+        super().__init__(content, **kwargs)
+
+    async def __call__(self, scope, receive, send):
+        succeeded = False
+        try:
+            await super().__call__(scope, receive, send)
+            succeeded = True
+        finally:
+            if not succeeded:
+                self.execution.abort()
+
+
 def create_app(api_key, tau_factory=Tau):
     if not api_key:
         raise ValueError("TAU_API_KEY must be set")
@@ -305,7 +324,8 @@ def create_app(api_key, tau_factory=Tau):
         except Exception as error:
             raise APIError(500, str(error), "server_error", "tau_init_failed")
         if chat.stream:
-            return StreamingResponse(
+            return ExecutionStreamingResponse(
+                execution,
                 stream_completion(request, execution),
                 media_type="text/event-stream",
                 headers={

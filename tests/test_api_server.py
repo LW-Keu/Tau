@@ -278,6 +278,7 @@ def _sse_payloads(text):
 
 
 def test_streaming_completion_emits_role_progress_terminal_and_done():
+    FakeTau.instances.clear()
     client = TestClient(create_app("secret", tau_factory=FakeTau))
     response = client.post("/v1/chat/completions", headers=_headers(), json={
         "model": "tau-agent", "stream": True,
@@ -296,6 +297,7 @@ def test_streaming_completion_emits_role_progress_terminal_and_done():
     assert content == "final answer"
     assert chunks[-1]["choices"][0]["finish_reason"] == "stop"
     assert payloads[-1] == "[DONE]"
+    assert FakeTau.instances[0].aborted is False
 
 
 def test_streaming_runtime_failure_uses_error_frame_then_done():
@@ -597,3 +599,90 @@ def test_abort_before_tau_is_running_latches_startup_cancellation():
     agent.release_startup.set()
     execution.wait()
     assert agent.proceeded.is_set() is False
+
+
+def test_response_start_failure_aborts_before_stream_iteration():
+    agent = BlockingRunTau()
+    app = create_app("secret", tau_factory=lambda: agent)
+    body_started = threading.Event()
+    request_sent = False
+
+    async def receive():
+        nonlocal request_sent
+        if not request_sent:
+            request_sent = True
+            return {
+                "type": "http.request",
+                "body": json.dumps({
+                    "model": "tau-agent",
+                    "stream": True,
+                    "messages": [{"role": "user", "content": "hello"}],
+                }).encode(),
+                "more_body": False,
+            }
+        await asyncio.Future()
+
+    async def send(message):
+        if message["type"] == "http.response.start":
+            raise RuntimeError("response start failed")
+        body_started.set()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.4"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/v1/chat/completions",
+        "raw_path": b"/v1/chat/completions",
+        "query_string": b"",
+        "headers": [
+            (b"authorization", b"Bearer secret"),
+            (b"content-type", b"application/json"),
+        ],
+        "client": ("127.0.0.1", 1234),
+        "server": ("test", 80),
+    }
+
+    async def fail_response_start():
+        with pytest.raises(RuntimeError, match="response start failed"):
+            await app(scope, receive, send)
+        assert await asyncio.to_thread(agent.run_started.wait, 1)
+        try:
+            assert body_started.is_set() is False
+            assert agent.aborted is True
+            assert await asyncio.to_thread(agent.run_finished.wait, 1)
+        finally:
+            agent.release_run.set()
+
+    asyncio.run(fail_response_start())
+
+
+class CountingAbortTau(FakeTau):
+    def __init__(self):
+        super().__init__()
+        self.run_started = threading.Event()
+        self.release_run = threading.Event()
+        self.abort_calls = 0
+
+    def run(self, once=False):
+        self.once = once
+        self.run_started.set()
+        self.release_run.wait(timeout=1)
+        self.display.put({"done": ""})
+
+    def abort(self):
+        self.abort_calls += 1
+
+
+def test_execution_abort_cleanup_is_idempotent():
+    from apps.api.server import TauExecution
+
+    agent = CountingAbortTau()
+    execution = TauExecution(lambda: agent, "hello")
+    assert agent.run_started.wait(timeout=1)
+    execution.abort()
+    execution.abort()
+    agent.release_run.set()
+    execution.wait()
+    assert agent.abort_calls == 1
