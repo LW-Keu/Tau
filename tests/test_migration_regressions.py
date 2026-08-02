@@ -22,6 +22,7 @@ NEGATIVE_TEST_SOURCES = {
     "tests/test_tau_ai_package.py",
     "tests/test_tau_coding_package.py",
 }
+LEGACY_LANGUAGE_VARIABLE = "GA" + "_LANG"
 LEGACY_PATTERNS = (
     re.compile(r"(?<![\w])(?:\.\.?/)*(?:core|tau_cli)/"),
     re.compile(r"(?<![\w])(?<!tau_coding/)(?<!tau_agent/)(?:\.\.?/)*(?:reflect|plugins)/"),
@@ -30,6 +31,7 @@ LEGACY_PATTERNS = (
     re.compile(r"/\s*(?P<q>['\"])(?:core|tau_cli|reflect|plugins)(?P=q)"),
     re.compile(r"(?:find_spec|import_module|__import__)\(\s*['\"](?:core|tau_cli|reflect|plugins)['\"]"),
     re.compile(r"sys\.modules\[\s*['\"](?:core|tau_cli|reflect|plugins)['\"]\s*\]"),
+    re.compile(rf"(?<![\w]){LEGACY_LANGUAGE_VARIABLE}(?![\w])"),
 )
 
 
@@ -60,6 +62,20 @@ class MigrationRegressionTests(unittest.TestCase):
         offenders = [relative for relative, text in _tracked_text_files()
                      if _legacy_hits(text)]
         self.assertEqual(offenders, [])
+
+    def test_removed_language_variable_does_not_select_english(self):
+        env = {**os.environ, LEGACY_LANGUAGE_VARIABLE: "en"}
+        env.pop("TAU_LANG", None)
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "from tau_coding.runtime import language_suffix;"
+             "assert language_suffix() == ''"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_legacy_scan_covers_path_module_and_string_forms(self):
         legacy = (
@@ -142,12 +158,11 @@ class MigrationRegressionTests(unittest.TestCase):
     def test_taumain_import_has_no_runtime_side_effects(self):
         with tempfile.TemporaryDirectory() as directory:
             env = {**os.environ, "TAU_HOME": directory}
-            env.pop("GA_LANG", None)
+            env.pop(LEGACY_LANGUAGE_VARIABLE, None)
             env.pop("TAU_LANG", None)
             code = (
                 "import os,pathlib,tau_coding.taumain;"
                 "root=pathlib.Path(os.environ['TAU_HOME']);"
-                "assert 'GA_LANG' not in os.environ;"
                 "assert 'TAU_LANG' not in os.environ;"
                 "assert not (root/'memory').exists();"
                 "assert not (root/'external').exists()"

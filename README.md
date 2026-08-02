@@ -184,7 +184,7 @@ Tau/
 - **Anthropic Claude 原生接口** — Claude Messages API
 - **Mixin 故障转移** — 多个 native session 可按优先级轮换,适合把主力模型和备用渠道组合起来
 
-启动时按系统语言自动切换中 / 英(`TAU_LANG`,兼容旧变量 `GA_LANG`)。
+启动时按系统语言自动切换中 / 英（可用 `TAU_LANG` 覆盖）。
 
 ## 📅 项目现状与演进
 

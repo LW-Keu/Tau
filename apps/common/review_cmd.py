@@ -24,7 +24,7 @@ _STUB_FALLBACK = (
 
 def _render_prompt(user_request: str) -> str:
     """加载 /review inline prompt 并注入 user_request + tau_root。"""
-    lang = os.environ.get('TAU_LANG', os.environ.get('GA_LANG', '')).strip().lower()
+    lang = os.environ.get('TAU_LANG', '').strip().lower()
     fname = _INLINE_PROMPT_EN if lang == 'en' else _INLINE_PROMPT_ZH
     fpath = os.path.join(CODE_ROOT, 'memory', _PROMPT_DIR, fname)
     tau_root = CODE_ROOT.replace('\\', '/')
@@ -61,7 +61,7 @@ def handle(agent, body: str, event_queue) -> Optional[str]:
         event_queue.put(RawText(_help_text()))
         event_queue.put(TurnEnded({"result": "SYSTEM_MESSAGE"}))
         return None
-    en = os.environ.get('TAU_LANG', os.environ.get('GA_LANG', '')).strip().lower() == 'en'
+    en = os.environ.get('TAU_LANG', '').strip().lower() == 'en'
     user_request = body or (_DEFAULT_REQUEST_EN if en else _DEFAULT_REQUEST_ZH)
     header = _HEADER_EN if en else _HEADER_ZH
     return header + _render_prompt(user_request)

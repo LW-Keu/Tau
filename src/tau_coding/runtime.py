@@ -7,7 +7,7 @@ from tau_paths import ASSETS, MEMORY, TAU_HOME
 
 
 def _lang():
-    return os.environ.get("TAU_LANG") or os.environ.get("GA_LANG", "")
+    return os.environ.get("TAU_LANG", "")
 
 
 def language_suffix():

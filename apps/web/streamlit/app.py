@@ -30,7 +30,7 @@ from apps.common.export_cmd import last_assistant_text, export_to_temp, wrap_for
 
 st.set_page_config(page_title="Cowork", layout="wide")
 
-LANG = os.environ.get('TAU_LANG', os.environ.get('GA_LANG', 'zh'))
+LANG = os.environ.get('TAU_LANG', 'zh')
 if LANG not in ('zh', 'en'): LANG = 'zh'
 I18N = {
     'zh': {

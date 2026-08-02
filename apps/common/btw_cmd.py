@@ -46,7 +46,7 @@ Question:
 _TIMEOUT_SEC = 120
 
 
-def _wrapper(): return _WRAPPER_EN if os.environ.get('TAU_LANG', os.environ.get('GA_LANG', '')) == 'en' else _WRAPPER_ZH
+def _wrapper(): return _WRAPPER_EN if os.environ.get('TAU_LANG', '') == 'en' else _WRAPPER_ZH
 
 
 def _strip_cmd(query):
