@@ -22,6 +22,10 @@ dependencies = [
 [project.optional-dependencies]
 # select extras, not all. match current task/env.
 # examples: .[ui] for GUI, bot deps only if bot needed.
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
 ui = [
     "streamlit>=1.58.0",              # apps/web/streamlit/
     "pywebview>=4.0",

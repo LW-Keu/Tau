@@ -2393,6 +2393,10 @@ all-apps = [
     { name = "uvicorn" },
     { name = "wecom-aibot-sdk" },
 ]
+api = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 ui = [
     { name = "aiohttp" },
     { name = "fastapi" },
@@ -2412,6 +2416,7 @@ requires-dist = [
     { name = "bottle", specifier = ">=0.12" },
     { name = "dingtalk-stream", marker = "extra == 'all-apps'", specifier = ">=0.20" },
     { name = "fastapi", marker = "extra == 'all-apps'", specifier = ">=0.110" },
+    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.110" },
     { name = "fastapi", marker = "extra == 'ui'", specifier = ">=0.110" },
     { name = "lark-oapi", marker = "extra == 'all-apps'", specifier = ">=1.0" },
     { name = "pillow", marker = "extra == 'all-apps'", specifier = ">=10.0" },
@@ -2432,10 +2437,11 @@ requires-dist = [
     { name = "textual", marker = "extra == 'all-apps'", specifier = ">=0.70" },
     { name = "textual", marker = "extra == 'ui'", specifier = ">=0.70" },
     { name = "uvicorn", marker = "extra == 'all-apps'", specifier = ">=0.29" },
+    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.29" },
     { name = "uvicorn", marker = "extra == 'ui'", specifier = ">=0.29" },
     { name = "wecom-aibot-sdk", marker = "extra == 'all-apps'", specifier = ">=1.0" },
 ]
-provides-extras = ["ui", "all-apps"]
+provides-extras = ["api", "ui", "all-apps"]
 
 [[package]]
 name = "tenacity"
