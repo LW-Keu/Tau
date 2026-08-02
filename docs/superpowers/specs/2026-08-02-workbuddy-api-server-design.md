@@ -11,7 +11,8 @@ stateless across HTTP requests.
 
 ## Success Criteria
 
-- `TAU_API_KEY=... tau api` starts the service on `127.0.0.1:8642`.
+- `tau api` loads `TAU_API_KEY` from `.tau/.env` and starts the service on
+  `127.0.0.1:8642`; an explicit process environment value overrides the file.
 - WorkBuddy can discover `tau-agent` through `GET /v1/models`.
 - WorkBuddy can call `POST /v1/chat/completions` in streaming and non-streaming
   modes.
@@ -69,10 +70,17 @@ No new runtime abstraction is added to `src/tau_agent` or `src/tau_coding`.
 
 ## Startup and Configuration
 
-The only supported public startup path is:
+Store the local API key in the checkout-scoped configuration file:
+
+```dotenv
+# .tau/.env
+TAU_API_KEY=your-local-key
+```
+
+Then start the service normally:
 
 ```bash
-TAU_API_KEY=your-local-key tau api
+tau api
 ```
 
 Defaults:
@@ -88,8 +96,16 @@ Defaults:
 this prevents accidental network exposure of an agent with terminal and file
 access.
 
-`TAU_API_KEY` must be non-empty. `tau api` refuses to start otherwise and
-prints a direct setup instruction. All `/v1/*` endpoints require
+The process environment takes precedence over `.tau/.env`, allowing CI and
+one-off launches to override the checkout-local value explicitly. The file is
+resolved as `<TAU_HOME>/.tau/.env`, not relative to the caller's working
+directory. Parsing is intentionally limited to `TAU_API_KEY=value` with
+optional single or double quotes; blank lines and comment lines are ignored.
+Malformed unrelated lines are ignored, while an empty or missing key remains
+an error. This uses the standard library and adds no runtime dependency.
+
+`TAU_API_KEY` must be non-empty after resolution. `tau api` refuses to start
+otherwise and prints a direct setup instruction. All `/v1/*` endpoints require
 `Authorization: Bearer <TAU_API_KEY>`. `/health` is unauthenticated.
 
 ## HTTP Contract
@@ -245,7 +261,9 @@ and single-user.
 Automated tests use an injected fake Tau factory; they do not require a real
 LLM key or network call. Coverage includes:
 
-- startup rejection without `TAU_API_KEY`
+- `.tau/.env` key loading with quoted and unquoted values
+- process-environment precedence over `.tau/.env`
+- startup rejection when neither source supplies `TAU_API_KEY`
 - successful and failed Bearer authentication
 - `/health` and `/v1/models` shapes
 - WorkBuddy-style request parsing
@@ -260,7 +278,7 @@ LLM key or network call. Coverage includes:
 
 After automated tests pass, perform a real local smoke test:
 
-1. Start `TAU_API_KEY=test-key tau api`.
+1. Write `TAU_API_KEY=test-key` to `.tau/.env` and start `tau api`.
 2. Call `/v1/models` with `curl`.
 3. Call `/v1/chat/completions` once with `stream: false`.
 4. Call it once with `stream: true` and confirm progress arrives before the
