@@ -35,7 +35,7 @@ def main():
         """),
     )
     parser.add_argument("command", nargs="?", help="命令名")
-    parser.add_argument("args", nargs="*", help="子命令参数")
+    parser.add_argument("args", nargs=argparse.REMAINDER, help="子命令参数")
     parser.add_argument("-v", "--version", action="store_true", help="显示版本")
 
     args, unknown = parser.parse_known_args()

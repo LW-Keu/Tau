@@ -1,6 +1,7 @@
 import asyncio
 import json
 import queue
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,6 +12,7 @@ from fastapi.testclient import TestClient
 from apps.api import server
 from apps.api.server import APIError, build_prompt, create_app, parse_chat
 import tau_coding.taumain as taumain
+import tau_coding.cli as tau_cli
 from tau_agent.events import RawText, TurnEnded, TurnStarted
 from tau_coding.commands._launchers import LAUNCHERS
 
@@ -115,6 +117,18 @@ def test_main_binds_loopback_and_accepts_port_override(monkeypatch):
     )
     server.main(["--port", "9001"])
     assert called == {"host": "127.0.0.1", "port": 9001}
+
+
+def test_tau_cli_preserves_api_launcher_argument_order(monkeypatch):
+    called = {}
+    monkeypatch.setattr(sys, "argv", ["tau", "api", "--port", "9001"])
+    monkeypatch.setattr(tau_cli, "require_assets", lambda: None)
+    monkeypatch.setattr(
+        tau_cli._launchers_mod, "run",
+        lambda name, args: called.update(name=name, args=args),
+    )
+    tau_cli.main()
+    assert called == {"name": "api", "args": ["--port", "9001"]}
 
 
 def test_health_is_public_and_models_require_bearer_auth():

@@ -65,7 +65,7 @@ def run(name: str, args):
     """分发到对应启动器。name 必须是 LAUNCHERS 的合法 key。
 
     内部仍按原 cli.py:83-92 的语义: flags 覆写 + cmd 模板选择。
-    保留 flags 字段以备未来扩展（当前 6 个 entry 未使用）。
+    保留 flags 字段以备未来扩展（当前 7 个 entry 未使用）。
     """
     entry = LAUNCHERS[name]
     cmd_parts = list(entry["cmd"])
