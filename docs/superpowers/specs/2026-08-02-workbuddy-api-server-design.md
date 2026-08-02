@@ -56,6 +56,9 @@ preserves Tau's current frontend contracts and avoids changing the agent loop.
 - `apps/api/__init__.py`: package marker.
 - `apps/api/server.py`: FastAPI application, request models, authentication,
   history conversion, per-request Tau runner, SSE encoding, and CLI entry.
+- `src/tau_coding/taumain.py`: add an opt-in one-task run mode so a
+  request-owned Tau runner exits after its completion; the default remains the
+  existing persistent frontend loop.
 - `src/tau_coding/commands/_launchers.py`: register the `tau api` launcher.
 - `pyproject.toml`: add an `api` optional dependency group and include FastAPI
   and uvicorn in the existing `ui` and `all-apps` groups.
@@ -171,8 +174,10 @@ For each request the adapter:
 
 1. Authenticates and validates the complete request before starting the stream.
 2. Builds the current Tau task from the supplied messages.
-3. Creates a fresh `Tau`, enables incremental output, and starts `Tau.run` in a
-   request-owned daemon thread.
+3. Creates a fresh `Tau`, enables incremental output, and starts
+   `Tau.run(once=True)` in a request-owned daemon thread. The opt-in `once`
+   mode exits after exactly one queued task; existing callers of `Tau.run()`
+   retain their persistent worker behavior.
 4. Calls `put_task` with an event queue and retains the returned display queue.
 5. Renders typed events into ordinary text deltas while monitoring the display
    queue for authoritative completion or failure.
