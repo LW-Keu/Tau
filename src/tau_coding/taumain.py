@@ -144,7 +144,7 @@ class Tau:
             return r'帮我看看最近有哪些会话可以恢复。读model_responses/目录，按修改时间取最近10个文件，从每个文件里找最后一个<history>...</history>块，用一句话总结每个会话在聊什么，列表给我选。注意读文件后要把字面的\n替换成真换行才能正确匹配。'
         return raw_query
 
-    def run(self, once=False):
+    def run(self, once: bool = False):
         while True:
             task = self.task_queue.get()
             raw_query, source, display_queue = task["query"], task["source"], task["output"]
