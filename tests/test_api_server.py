@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from apps.api import server
-from apps.api.server import APIError, build_prompt, create_app, parse_chat
+from apps.api.server import APIError, build_prompt, create_app, load_api_key, parse_chat
 import tau_coding.taumain as taumain
 import tau_coding.cli as tau_cli
 from tau_agent.events import (
@@ -105,8 +105,37 @@ def test_api_launcher_is_registered():
     assert LAUNCHERS["api"]["cmd"] == ["python", "{APPS}/api/server.py"]
 
 
-def test_main_refuses_to_start_without_api_key(monkeypatch):
+@pytest.mark.parametrize("line", [
+    "TAU_API_KEY=file-secret\n",
+    "TAU_API_KEY='file-secret'\n",
+    'TAU_API_KEY="file-secret"\n',
+])
+def test_load_api_key_from_tau_env(monkeypatch, tmp_path, line):
+    tau_dir = tmp_path / ".tau"
+    tau_dir.mkdir()
+    (tau_dir / ".env").write_text(
+        "# local API authentication\nINVALID LINE\n" + line,
+        encoding="utf-8",
+    )
     monkeypatch.delenv("TAU_API_KEY", raising=False)
+    monkeypatch.setattr(server, "TAU", tau_dir)
+    assert load_api_key() == "file-secret"
+
+
+def test_process_api_key_overrides_tau_env(monkeypatch, tmp_path):
+    tau_dir = tmp_path / ".tau"
+    tau_dir.mkdir()
+    (tau_dir / ".env").write_text(
+        "TAU_API_KEY=file-secret\n", encoding="utf-8",
+    )
+    monkeypatch.setenv("TAU_API_KEY", "process-secret")
+    monkeypatch.setattr(server, "TAU", tau_dir)
+    assert load_api_key() == "process-secret"
+
+
+def test_main_refuses_to_start_without_api_key(monkeypatch, tmp_path):
+    monkeypatch.delenv("TAU_API_KEY", raising=False)
+    monkeypatch.setattr(server, "TAU", tmp_path / ".tau")
     with pytest.raises(SystemExit) as raised:
         server.main([])
     assert raised.value.code == 2

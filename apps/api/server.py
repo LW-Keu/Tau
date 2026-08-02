@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from tau_agent.events import TurnStarted, render_event
 from tau_coding.taumain import Tau
+from tau_paths import TAU
 
 MODEL_ID = "tau-agent"
 
@@ -381,13 +382,37 @@ def create_app(api_key, tau_factory=Tau):
     return app
 
 
+def _read_env_key(path):
+    if not path.is_file():
+        return ""
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, separator, value = line.partition("=")
+        if separator and name.strip() == "TAU_API_KEY":
+            value = value.strip()
+            if (len(value) >= 2 and value[0] == value[-1]
+                    and value[0] in "'\""):
+                value = value[1:-1]
+            return value.strip()
+    return ""
+
+
+def load_api_key():
+    return (os.environ.get("TAU_API_KEY", "").strip()
+            or _read_env_key(TAU / ".env"))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Tau WorkBuddy-compatible API")
     parser.add_argument("--port", type=int, default=8642)
     args = parser.parse_args(argv)
-    api_key = os.environ.get("TAU_API_KEY", "").strip()
+    api_key = load_api_key()
     if not api_key:
-        parser.error("TAU_API_KEY is required; set it before running `tau api`")
+        parser.error(
+            "TAU_API_KEY is required; set it in .tau/.env or the process environment"
+        )
     uvicorn.run(create_app(api_key), host="127.0.0.1", port=args.port)
 
 
