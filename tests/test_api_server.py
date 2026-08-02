@@ -4,6 +4,7 @@ import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+import httpx2 as httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -492,3 +493,107 @@ def test_runner_done_racing_with_display_check_preserves_result():
 
     result = TauExecution(DoneAfterDisplayCheckTau, "hello").wait()
     assert result.text == "race result"
+
+
+class BlockingRunTau(FakeTau):
+    def __init__(self):
+        super().__init__()
+        self.run_started = threading.Event()
+        self.release_run = threading.Event()
+        self.run_finished = threading.Event()
+
+    def run(self, once=False):
+        self.once = once
+        self.run_started.set()
+        self.release_run.wait(timeout=2)
+        self.display.put({"done": ""})
+        self.run_finished.set()
+
+    def abort(self):
+        self.aborted = True
+        self.release_run.set()
+
+
+class BlockingFactory:
+    def __init__(self):
+        self.started = threading.Event()
+        self.release = threading.Event()
+        self.created = threading.Event()
+        self.agent = None
+
+    def __call__(self):
+        self.started.set()
+        self.release.wait(timeout=2)
+        self.agent = BlockingRunTau()
+        self.created.set()
+        return self.agent
+
+
+def test_request_cancelled_during_factory_aborts_eventual_execution():
+    factory = BlockingFactory()
+    app = create_app("secret", tau_factory=factory)
+
+    async def cancel_request():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test",
+        ) as client:
+            pending = asyncio.create_task(client.post(
+                "/v1/chat/completions", headers=_headers(), json={
+                    "model": "tau-agent",
+                    "messages": [{"role": "user", "content": "hello"}],
+                },
+            ))
+            assert await asyncio.to_thread(factory.started.wait, 1)
+            pending.cancel()
+            await asyncio.sleep(0)
+            factory.release.set()
+            with pytest.raises(asyncio.CancelledError):
+                await pending
+            assert await asyncio.to_thread(factory.created.wait, 1)
+            assert await asyncio.to_thread(factory.agent.run_started.wait, 1)
+            try:
+                assert factory.agent.aborted is True
+                assert await asyncio.to_thread(factory.agent.run_finished.wait, 1)
+            finally:
+                factory.agent.release_run.set()
+
+    asyncio.run(cancel_request())
+
+
+class StartupGateTau(FakeTau):
+    def __init__(self):
+        super().__init__()
+        self.is_running = False
+        self.stop_sig = False
+        self.run_entered = threading.Event()
+        self.release_startup = threading.Event()
+        self.proceeded = threading.Event()
+
+    def run(self, once=False):
+        self.once = once
+        self.run_entered.set()
+        self.release_startup.wait(timeout=1)
+        self.is_running = True
+        if not self.stop_sig:
+            self.proceeded.set()
+        self.display.put({"done": ""})
+        self.is_running = False
+
+    def abort(self):
+        if not self.is_running:
+            return
+        self.stop_sig = True
+
+
+def test_abort_before_tau_is_running_latches_startup_cancellation():
+    from apps.api.server import TauExecution
+
+    agent = StartupGateTau()
+    execution = TauExecution(lambda: agent, "hello")
+    assert agent.run_entered.wait(timeout=1)
+    assert agent.is_running is False
+    execution.abort()
+    agent.release_startup.set()
+    execution.wait()
+    assert agent.proceeded.is_set() is False

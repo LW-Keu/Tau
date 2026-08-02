@@ -56,6 +56,7 @@ class TauExecution:
         self.display = self.agent.put_task(
             prompt, source="api", events=self.events,
         )
+        self.cancelled = threading.Event()
         self.runner = threading.Thread(
             target=self._run, daemon=True,
         )
@@ -64,6 +65,9 @@ class TauExecution:
         self.pump.start()
 
     def _run(self):
+        if self.cancelled.is_set():
+            self.display.put({"done": ""})
+            return
         try:
             self.agent.run(once=True)
         except Exception as error:
@@ -117,6 +121,8 @@ class TauExecution:
                 return ExecutionResult(event.text, event.error)
 
     def abort(self):
+        self.cancelled.set()
+        self.agent.stop_sig = True
         self.agent.abort()
 
 
@@ -241,6 +247,22 @@ async def stream_completion(request, execution):
             execution.abort()
 
 
+async def _create_execution(tau_factory, prompt):
+    construction = asyncio.create_task(asyncio.to_thread(
+        TauExecution, tau_factory, prompt,
+    ))
+    try:
+        return await asyncio.shield(construction)
+    except asyncio.CancelledError:
+        try:
+            execution = await asyncio.shield(construction)
+        except Exception:
+            pass
+        else:
+            await asyncio.to_thread(execution.abort)
+        raise
+
+
 def create_app(api_key, tau_factory=Tau):
     if not api_key:
         raise ValueError("TAU_API_KEY must be set")
@@ -277,8 +299,8 @@ def create_app(api_key, tau_factory=Tau):
             raise APIError(400, "Request body must be valid JSON", code="invalid_json")
         chat = parse_chat(payload)
         try:
-            execution = await asyncio.to_thread(
-                TauExecution, app.state.tau_factory, build_prompt(chat),
+            execution = await _create_execution(
+                app.state.tau_factory, build_prompt(chat),
             )
         except Exception as error:
             raise APIError(500, str(error), "server_error", "tau_init_failed")
