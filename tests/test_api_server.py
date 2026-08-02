@@ -160,3 +160,79 @@ def test_build_prompt_labels_prior_workbuddy_history():
     assert "[USER]\nfirst" in prompt
     assert "[ASSISTANT]\nreply" in prompt
     assert prompt.endswith("Current user request:\ncontinue")
+
+
+class FakeTau:
+    instances = []
+
+    def __init__(self, text="final answer", error=None):
+        self.text, self.error = text, error
+        self.inc_out = False
+        self.verbose = True
+        self.aborted = False
+        self.events = self.display = None
+        self.__class__.instances.append(self)
+
+    def put_task(self, prompt, source="user", images=None, events=None):
+        self.prompt = prompt
+        self.events = events
+        self.display = queue.Queue()
+        return self.display
+
+    def run(self, once=False):
+        self.events.put(RawText(self.text))
+        item = {"done": self.text}
+        if self.error:
+            item["error"] = self.error
+        else:
+            self.events.put(TurnEnded({"result": "done"}))
+        self.display.put(item)
+
+    def abort(self):
+        self.aborted = True
+
+
+def test_non_streaming_completion_uses_fresh_tau_and_standard_envelope():
+    FakeTau.instances.clear()
+    client = TestClient(create_app("secret", tau_factory=FakeTau))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent",
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["object"] == "chat.completion"
+    assert body["model"] == "tau-agent"
+    assert body["choices"][0]["message"] == {
+        "role": "assistant", "content": "final answer",
+    }
+    assert body["choices"][0]["finish_reason"] == "stop"
+    assert FakeTau.instances[0].prompt == "hello"
+
+
+def test_non_streaming_runtime_failure_is_openai_error():
+    client = TestClient(create_app(
+        "secret", tau_factory=lambda: FakeTau(error="backend exploded"),
+    ))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent",
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    assert response.status_code == 500
+    assert response.json()["error"]["message"] == "backend exploded"
+
+
+def test_tau_initialization_failure_is_openai_error():
+    def fail_init():
+        raise RuntimeError("invalid Tau config")
+
+    client = TestClient(create_app("secret", tau_factory=fail_init))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent",
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    assert response.status_code == 500
+    assert response.json()["error"] == {
+        "message": "invalid Tau config", "type": "server_error",
+        "code": "tau_init_failed",
+    }
