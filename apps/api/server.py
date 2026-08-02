@@ -217,7 +217,7 @@ def _chunk(completion_id, created, delta=None, finish_reason=None):
     }
 
 
-async def stream_completion(request, execution):
+async def stream_completion(request, execution, delivered=None):
     completion_id = f"chatcmpl-{uuid.uuid4().hex}"
     created = int(time.time())
     finished = False
@@ -246,6 +246,8 @@ async def stream_completion(request, execution):
                     completion_id, created, finish_reason="stop",
                 ))
             yield _sse("[DONE]")
+            if delivered is not None:
+                delivered.set()
     finally:
         if not finished:
             execution.abort()
@@ -268,17 +270,15 @@ async def _create_execution(tau_factory, prompt):
 
 
 class ExecutionStreamingResponse(StreamingResponse):
-    def __init__(self, execution, content, **kwargs):
-        self.execution = execution
+    def __init__(self, execution, delivered, content, **kwargs):
+        self.execution, self.delivered = execution, delivered
         super().__init__(content, **kwargs)
 
     async def __call__(self, scope, receive, send):
-        succeeded = False
         try:
             await super().__call__(scope, receive, send)
-            succeeded = True
         finally:
-            if not succeeded:
+            if not self.delivered.is_set():
                 self.execution.abort()
 
 
@@ -324,9 +324,10 @@ def create_app(api_key, tau_factory=Tau):
         except Exception as error:
             raise APIError(500, str(error), "server_error", "tau_init_failed")
         if chat.stream:
+            delivered = asyncio.Event()
             return ExecutionStreamingResponse(
-                execution,
-                stream_completion(request, execution),
+                execution, delivered,
+                stream_completion(request, execution, delivered),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",

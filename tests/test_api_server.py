@@ -301,9 +301,8 @@ def test_streaming_completion_emits_role_progress_terminal_and_done():
 
 
 def test_streaming_runtime_failure_uses_error_frame_then_done():
-    client = TestClient(create_app(
-        "secret", tau_factory=lambda: FakeTau(error="backend exploded"),
-    ))
+    agent = FakeTau(error="backend exploded")
+    client = TestClient(create_app("secret", tau_factory=lambda: agent))
     response = client.post("/v1/chat/completions", headers=_headers(), json={
         "model": "tau-agent", "stream": True,
         "messages": [{"role": "user", "content": "hello"}],
@@ -314,6 +313,7 @@ def test_streaming_runtime_failure_uses_error_frame_then_done():
         "code": "tau_run_failed",
     }
     assert payloads[-1] == "[DONE]"
+    assert agent.aborted is False
 
 
 def test_streaming_runner_failure_uses_error_frame_then_done():
@@ -601,10 +601,26 @@ def test_abort_before_tau_is_running_latches_startup_cancellation():
     assert agent.proceeded.is_set() is False
 
 
-def test_response_start_failure_aborts_before_stream_iteration():
-    agent = BlockingRunTau()
-    app = create_app("secret", tau_factory=lambda: agent)
-    body_started = threading.Event()
+def _asgi_chat_scope(spec_version):
+    return {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": spec_version},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/v1/chat/completions",
+        "raw_path": b"/v1/chat/completions",
+        "query_string": b"",
+        "headers": [
+            (b"authorization", b"Bearer secret"),
+            (b"content-type", b"application/json"),
+        ],
+        "client": ("127.0.0.1", 1234),
+        "server": ("test", 80),
+    }
+
+
+def _asgi_chat_receive(disconnect=False):
     request_sent = False
 
     async def receive():
@@ -620,33 +636,26 @@ def test_response_start_failure_aborts_before_stream_iteration():
                 }).encode(),
                 "more_body": False,
             }
+        if disconnect:
+            return {"type": "http.disconnect"}
         await asyncio.Future()
+
+    return receive
+
+
+def test_response_start_failure_aborts_before_stream_iteration():
+    agent = BlockingRunTau()
+    app = create_app("secret", tau_factory=lambda: agent)
+    body_started = threading.Event()
 
     async def send(message):
         if message["type"] == "http.response.start":
             raise RuntimeError("response start failed")
         body_started.set()
 
-    scope = {
-        "type": "http",
-        "asgi": {"version": "3.0", "spec_version": "2.4"},
-        "http_version": "1.1",
-        "method": "POST",
-        "scheme": "http",
-        "path": "/v1/chat/completions",
-        "raw_path": b"/v1/chat/completions",
-        "query_string": b"",
-        "headers": [
-            (b"authorization", b"Bearer secret"),
-            (b"content-type", b"application/json"),
-        ],
-        "client": ("127.0.0.1", 1234),
-        "server": ("test", 80),
-    }
-
     async def fail_response_start():
         with pytest.raises(RuntimeError, match="response start failed"):
-            await app(scope, receive, send)
+            await app(_asgi_chat_scope("2.4"), _asgi_chat_receive(), send)
         assert await asyncio.to_thread(agent.run_started.wait, 1)
         try:
             assert body_started.is_set() is False
@@ -686,3 +695,28 @@ def test_execution_abort_cleanup_is_idempotent():
     agent.release_run.set()
     execution.wait()
     assert agent.abort_calls == 1
+
+
+def test_asgi_23_immediate_disconnect_aborts_before_stream_iteration():
+    agent = BlockingRunTau()
+    app = create_app("secret", tau_factory=lambda: agent)
+    body_started = threading.Event()
+
+    async def send(message):
+        if message["type"] == "http.response.start":
+            await asyncio.Future()
+        body_started.set()
+
+    async def disconnect_before_body():
+        await app(
+            _asgi_chat_scope("2.3"), _asgi_chat_receive(disconnect=True), send,
+        )
+        assert await asyncio.to_thread(agent.run_started.wait, 1)
+        try:
+            assert body_started.is_set() is False
+            assert agent.aborted is True
+            assert await asyncio.to_thread(agent.run_finished.wait, 1)
+        finally:
+            agent.release_run.set()
+
+    asyncio.run(disconnect_before_body())
