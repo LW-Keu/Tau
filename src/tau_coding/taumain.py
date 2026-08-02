@@ -144,7 +144,7 @@ class Tau:
             return r'帮我看看最近有哪些会话可以恢复。读model_responses/目录，按修改时间取最近10个文件，从每个文件里找最后一个<history>...</history>块，用一句话总结每个会话在聊什么，列表给我选。注意读文件后要把字面的\n替换成真换行才能正确匹配。'
         return raw_query
 
-    def run(self):
+    def run(self, once=False):
         while True:
             task = self.task_queue.get()
             raw_query, source, display_queue = task["query"], task["source"], task["output"]
@@ -153,7 +153,9 @@ class Tau:
                 event_queue = queue.Queue()
             raw_query = self._handle_slash_cmd(raw_query, event_queue)
             if raw_query is None:
-                self.task_queue.task_done(); continue
+                self.task_queue.task_done()
+                if once: return
+                continue
             self.is_running = True
             rquery = smart_format(raw_query.replace('\n', ' '), max_str_len=200)
             self.history.append(f"[USER]: {rquery}")
@@ -199,8 +201,9 @@ class Tau:
                 display_queue.put({'done': full_resp, 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
                 self.history = handler.history_info
             except Exception as e:
-                print(f"Backend Error: {format_error(e)}")
-                display_queue.put({'done': full_resp + f'\n```\n{format_error(e)}\n```', 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
+                error = format_error(e)
+                print(f"Backend Error: {error}")
+                display_queue.put({'done': full_resp + f'\n```\n{error}\n```', 'error': error, 'source': source, 'turn': curr_turn, 'outputs': turn_resps.copy()})
             finally:
                 if events_fh is not None:
                     try: events_fh.close()
@@ -209,6 +212,7 @@ class Tau:
                 self.is_running = self.stop_sig = False
                 self.task_queue.task_done()
                 if self.handler is not None: self.handler.code_stop_signal.append(1)
+            if once: return
 
 if __name__ == '__main__':
     import argparse
