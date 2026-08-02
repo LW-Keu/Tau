@@ -1,4 +1,4 @@
-import asyncio, os, queue, sys, threading, time, uuid
+import asyncio, json, os, queue, sys, threading, time, uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -7,9 +7,9 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
-from tau_agent.events import TurnEnded, render_event
+from tau_agent.events import render_event
 from tau_coding.taumain import Tau
 
 MODEL_ID = "tau-agent"
@@ -41,18 +41,27 @@ class ExecutionResult:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class ExecutionEvent:
+    kind: str
+    text: str = ""
+    error: str | None = None
+
+
 class TauExecution:
     def __init__(self, tau_factory, prompt):
         self.agent = tau_factory()
         self.agent.inc_out = True
-        self.events = queue.Queue()
+        self.events, self.output = queue.Queue(), queue.Queue()
         self.display = self.agent.put_task(
             prompt, source="api", events=self.events,
         )
         self.runner = threading.Thread(
             target=self._run, daemon=True,
         )
+        self.pump = threading.Thread(target=self._pump, daemon=True)
         self.runner.start()
+        self.pump.start()
 
     def _run(self):
         try:
@@ -60,12 +69,52 @@ class TauExecution:
         except Exception as error:
             self.display.put({"done": "", "error": str(error)})
 
+    def _display_done(self):
+        while True:
+            try:
+                item = self.display.get_nowait()
+            except queue.Empty:
+                return None
+            if "done" in item:
+                return item
+
+    def _pump(self):
+        done = None
+        while done is None:
+            try:
+                event = self.events.get(timeout=0.05)
+                text = render_event(event, self.agent.verbose)
+                if text:
+                    self.output.put(ExecutionEvent("delta", text))
+            except queue.Empty:
+                pass
+            done = self._display_done()
+            if done is None and not self.runner.is_alive():
+                done = self._display_done() or {"done": ""}
+        self.runner.join(timeout=1)
+        while True:
+            try:
+                event = self.events.get_nowait()
+            except queue.Empty:
+                break
+            text = render_event(event, self.agent.verbose)
+            if text:
+                self.output.put(ExecutionEvent("delta", text))
+        self.output.put(ExecutionEvent(
+            "done", done.get("done", ""), done.get("error"),
+        ))
+
+    def next_event(self, timeout=0.2):
+        try:
+            return self.output.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
     def wait(self):
         while True:
-            item = self.display.get()
-            if "done" in item:
-                self.runner.join(timeout=1)
-                return ExecutionResult(item.get("done", ""), item.get("error"))
+            event = self.next_event()
+            if event and event.kind == "done":
+                return ExecutionResult(event.text, event.error)
 
     def abort(self):
         self.agent.abort()
@@ -137,6 +186,61 @@ def _completion(result):
     }
 
 
+def _sse(payload):
+    value = payload if isinstance(payload, str) else json.dumps(
+        payload, ensure_ascii=False, separators=(",", ":"),
+    )
+    return f"data: {value}\n\n"
+
+
+def _chunk(completion_id, created, delta=None, finish_reason=None):
+    return {
+        "id": completion_id,
+        "object": "chat.completion.chunk",
+        "created": created,
+        "model": MODEL_ID,
+        "choices": [{
+            "index": 0,
+            "delta": delta or {},
+            "finish_reason": finish_reason,
+        }],
+    }
+
+
+async def stream_completion(request, execution):
+    completion_id = f"chatcmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
+    finished = False
+    try:
+        yield _sse(_chunk(completion_id, created, {"role": "assistant"}))
+        while not finished:
+            if await request.is_disconnected():
+                return
+            event = await asyncio.to_thread(execution.next_event)
+            if event is None:
+                continue
+            if event.kind == "delta":
+                yield _sse(_chunk(
+                    completion_id, created, {"content": event.text},
+                ))
+                continue
+            finished = True
+            if event.error:
+                yield _sse({"error": {
+                    "message": event.error,
+                    "type": "server_error",
+                    "code": "tau_run_failed",
+                }})
+            else:
+                yield _sse(_chunk(
+                    completion_id, created, finish_reason="stop",
+                ))
+            yield _sse("[DONE]")
+    finally:
+        if not finished:
+            execution.abort()
+
+
 def create_app(api_key, tau_factory=Tau):
     if not api_key:
         raise ValueError("TAU_API_KEY must be set")
@@ -179,8 +283,14 @@ def create_app(api_key, tau_factory=Tau):
         except Exception as error:
             raise APIError(500, str(error), "server_error", "tau_init_failed")
         if chat.stream:
-            raise APIError(501, "Streaming is not available in this slice",
-                           "server_error", "streaming_unavailable")
+            return StreamingResponse(
+                stream_completion(request, execution),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                },
+            )
         result = await asyncio.to_thread(execution.wait)
         if result.error:
             raise APIError(500, result.error, "server_error", "tau_run_failed")
