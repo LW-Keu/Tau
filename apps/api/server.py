@@ -382,7 +382,7 @@ def create_app(api_key, tau_factory=Tau):
     return app
 
 
-def _read_env_key(path):
+def _read_env_key(path: Path) -> str:
     if not path.is_file():
         return ""
     for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -399,7 +399,7 @@ def _read_env_key(path):
     return ""
 
 
-def load_api_key():
+def load_api_key() -> str:
     return (os.environ.get("TAU_API_KEY", "").strip()
             or _read_env_key(TAU / ".env"))
 
