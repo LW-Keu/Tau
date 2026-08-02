@@ -133,17 +133,19 @@ tau list       # 列出全部命令
 
 ### WorkBuddy 接入
 
-安装 API 依赖并启动本机服务：
+安装 API 依赖，在 `.tau/.env` 中设置一个仅供本机使用的密钥，然后启动服务：
 
 ```bash
 uv pip install -e ".[api]"
-TAU_API_KEY=请设置一个本机密钥 tau api
+mkdir -p .tau
+printf 'TAU_API_KEY=请替换为本机密钥\n' > .tau/.env
+tau api
 ```
 
 在 WorkBuddy 的「自定义模型 / Custom Model」中填写：
 
 - API URL：`http://127.0.0.1:8642/v1`
-- API Key：与 `TAU_API_KEY` 相同
+- API Key：与 `.tau/.env` 中的 `TAU_API_KEY` 相同
 - Model：`tau-agent`
 
 首版仅支持本机、纯文本输入。WorkBuddy 的不同对话相互隔离；历史由
