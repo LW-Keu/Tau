@@ -35,10 +35,11 @@ def main():
         """),
     )
     parser.add_argument("command", nargs="?", help="命令名")
-    parser.add_argument("args", nargs=argparse.REMAINDER, help="子命令参数")
+    parser.add_argument("args", nargs="*", help="子命令参数")
     parser.add_argument("-v", "--version", action="store_true", help="显示版本")
 
-    args, unknown = parser.parse_known_args()
+    raw_argv = sys.argv[1:]
+    args, _unknown = parser.parse_known_args(raw_argv)
 
     if args.version:
         print("Tau v0.1.0")
@@ -58,7 +59,7 @@ def main():
         sys.exit(1)
 
     info = COMMANDS[cmd]
-    extra = list(args.args) + unknown
+    extra = raw_argv[raw_argv.index(cmd) + 1:]
 
     # === dispatch ===
     if cmd == "list":

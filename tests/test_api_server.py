@@ -131,6 +131,17 @@ def test_tau_cli_preserves_api_launcher_argument_order(monkeypatch):
     assert called == {"name": "api", "args": ["--port", "9001"]}
 
 
+def test_tau_cli_keeps_version_as_a_global_option_after_command(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["tau", "api", "--version"])
+    monkeypatch.setattr(
+        tau_cli._launchers_mod,
+        "run",
+        lambda *_args: pytest.fail("global --version must not launch a frontend"),
+    )
+    tau_cli.main()
+    assert capsys.readouterr().out == "Tau v0.1.0\n"
+
+
 def test_health_is_public_and_models_require_bearer_auth():
     client = TestClient(create_app("secret", tau_factory=lambda: None))
     assert client.get("/health").json() == {"status": "ok"}
