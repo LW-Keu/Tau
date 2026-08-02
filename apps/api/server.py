@@ -50,9 +50,15 @@ class TauExecution:
             prompt, source="api", events=self.events,
         )
         self.runner = threading.Thread(
-            target=self.agent.run, kwargs={"once": True}, daemon=True,
+            target=self._run, daemon=True,
         )
         self.runner.start()
+
+    def _run(self):
+        try:
+            self.agent.run(once=True)
+        except Exception as error:
+            self.display.put({"done": "", "error": str(error)})
 
     def wait(self):
         while True:

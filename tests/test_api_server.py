@@ -222,6 +222,33 @@ def test_non_streaming_runtime_failure_is_openai_error():
     assert response.json()["error"]["message"] == "backend exploded"
 
 
+class ExplodingTau(FakeTau):
+    def run(self, once=False):
+        raise RuntimeError("runner exploded")
+
+
+def test_non_streaming_runner_failure_is_openai_error():
+    client = TestClient(create_app("secret", tau_factory=ExplodingTau))
+    response = []
+    request = threading.Thread(
+        target=lambda: response.append(client.post(
+            "/v1/chat/completions", headers=_headers(), json={
+                "model": "tau-agent",
+                "messages": [{"role": "user", "content": "hello"}],
+            },
+        )),
+        daemon=True,
+    )
+    request.start()
+    request.join(timeout=1)
+    assert not request.is_alive()
+    assert response[0].status_code == 500
+    assert response[0].json()["error"] == {
+        "message": "runner exploded", "type": "server_error",
+        "code": "tau_run_failed",
+    }
+
+
 def test_tau_initialization_failure_is_openai_error():
     def fail_init():
         raise RuntimeError("invalid Tau config")
