@@ -143,10 +143,12 @@ class MigrationRegressionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             env = {**os.environ, "TAU_HOME": directory}
             env.pop("GA_LANG", None)
+            env.pop("TAU_LANG", None)
             code = (
                 "import os,pathlib,tau_coding.taumain;"
                 "root=pathlib.Path(os.environ['TAU_HOME']);"
                 "assert 'GA_LANG' not in os.environ;"
+                "assert 'TAU_LANG' not in os.environ;"
                 "assert not (root/'memory').exists();"
                 "assert not (root/'external').exists()"
             )

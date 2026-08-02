@@ -614,6 +614,22 @@ python memory/daily_report_fetch.py --date 2026-06-20 --no-playwright
 python memory/daily_report_fetch.py --emit-template temp/report_data.json --date 2026-06-20
 ```
 
+### 输出路径约束 (D-4 强化, 2026-08-02 用户反馈)
+
+渲染器 `--output-dir` / emit-template / 抓取输出必须基于 **项目根目录** `<project>/temp/output/daily_<YYYYMMDD>/`, **不能用 cwd 相对路径** `temp/output/...`。当 cwd 已经是 `<project>/temp` 时, 相对路径 `temp/output/` 会嵌套成 `<project>/temp/temp/output/...`(本任务实测踩坑)。
+
+**正确调用** (任选其一):
+```bash
+# 1. 渲染时显式指定 --output-dir 为项目根绝对路径
+python memory/daily_report_render.py report_data.json --fmt all \
+  --output-dir /Users/x404/Tau/.worktrees/tau-v5.0.0/temp/output/daily_20260802
+
+# 2. 先 cd 到项目根再调用
+cd <project_root> && python memory/daily_report_render.py temp/report_data.json --fmt all
+```
+
+**事后修复**: 若已嵌套成 `<project>/temp/temp/output/...`, 直接 `mv <project>/temp/temp/output/daily_<YYYYMMDD> <project>/temp/output/` 即可, render.py 不写绝对路径以外的副作用。
+
 ### 维护要点
 - 任何 `build_bing_url` 改动都需双通道同时跑通测试
 - Bing 改版 → 优先改 urllib 通道 regex (Playwright 可再升级 chrome)

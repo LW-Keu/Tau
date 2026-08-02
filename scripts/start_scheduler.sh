@@ -2,16 +2,15 @@
 set -e
 
 # ======================== 配置区 ========================
-PORT="${SCHEDULER_PORT:-45762}"       # scheduler 实例检测端口（默认 45762）
-LOG_FILE="scheduler.log"
-PID_FILE="scheduler.pid"
+PORT="${SCHEDULER_PORT:-45762}"
+LOG_FILE="scripts/run/scheduler.log"
+PID_FILE="scripts/run/scheduler.pid"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 MODULE="tau_coding.taumain"
 REFLECT_MODULE="tau_coding.reflect.scheduler"
 # ========================================================
 
-cd "$(dirname "$0")"
-WORK_DIR="$(pwd)"
+cd "$(dirname "$0")/.."
 
 # ---------- 颜色 ----------
 RED='\033[0;31m'
@@ -109,6 +108,8 @@ print_separator() {
 #                    主流程
 # ========================================================
 
+WORK_DIR="$(pwd)"
+
 header "Scheduler 启动脚本"
 info "工作目录 : ${WORK_DIR}"
 info "检查端口 : ${PORT}"
@@ -176,6 +177,8 @@ fi
 header "启动 Scheduler"
 
 START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+
+mkdir -p "$(dirname "$LOG_FILE")"
 
 nohup "${PYTHON_BIN}" -u -m "${MODULE}" --reflect "${REFLECT_MODULE}" > "${LOG_FILE}" 2>&1 &
 SCHEDULER_PID=$!

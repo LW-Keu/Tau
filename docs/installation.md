@@ -47,7 +47,7 @@ apps/Tau.exe
 Or run from the project directory:
 
 ```bash
-python launch.pyw
+tau launch
 ```
 
 > Tau is meant to grow its environment through the Agent itself, not by pre-installing every possible package. Start small, then let Tau install task-specific tools when it actually needs them.
@@ -75,12 +75,14 @@ FORCE=1 GLOBAL=1 bash -c "$(curl -fsSL http://fudankw.cn:9000/files/ga_install.s
 Use this when you want a normal editable checkout.
 
 ```bash
-git clone https://github.com/lsdefine/Tau.git
-cd Tau
+git clone https://github.com/lllIlIlIlll/tau.git
+cd tau
 uv venv
 uv pip install -e ".[ui]"        # Core + UI dependencies
+mkdir -p .tau
 cp assets/template/taukey_template.py .tau/taukey.py     # Fill in your LLM API key
-python launch.pyw
+# After filling in .tau/taukey.py:
+uv run tau launch
 ```
 
 Full guide: [GETTING_STARTED.md](GETTING_STARTED.md)
@@ -100,7 +102,7 @@ Tau supports:
 Optional helper:
 
 ```bash
-python setup/configure_taukey.py
+tau configure
 ```
 
 ### Frontends
@@ -118,13 +120,13 @@ apps/Tau.exe
 A lightweight keyboard-driven interface built on [Textual](https://github.com/Textualize/textual). It supports multiple concurrent sessions and real-time streaming.
 
 ```bash
-python apps/tui/app.py
+tau tui
 ```
 
 #### Streamlit UI
 
 ```bash
-python launch.pyw
+tau launch
 ```
 
 ### Verify the install
@@ -132,16 +134,16 @@ python launch.pyw
 From the Tau directory:
 
 ```bash
-python -c "import tau_agent.agent_loop; print('OK')"
+uv run python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 
 Then launch at least one frontend:
 
 ```bash
-python launch.pyw
+tau launch
 # or
-python apps/tui/app.py
+tau tui
 ```
 
 ### Common gotchas
@@ -158,13 +160,13 @@ Some systems already use `tau` for another tool. Check first:
 type tau
 ```
 
-If it resolves to something unexpected, do not rely on the shortcut. Run Tau from the install directory with `python launch.pyw` or `python apps/tui/app.py`.
+If it resolves to something unexpected, do not rely on the shortcut. Run Tau from the install directory with `uv run tau cli`, `uv run tau tui`, or `uv run tau launch`.
 
 #### Windows TUI rendering issues
 
 TUI rendering on Windows depends on terminal, font, and `textual` version.
 
-1. Upgrade Textual first: `pip install -U textual`.
+1. Upgrade Textual first: `uv pip install -U textual`.
 2. Prefer **Git Bash on Windows** over classic PowerShell / cmd when Unicode or key bindings look broken.
 3. If it still looks wrong, ask Tau itself to repair the terminal compatibility. Example prompt:
    > *"My experience using `apps/tui/app.py` in PowerShell / cmd / Git Bash on Windows is very poor — lots of incompatibility. Please refer to Claude Code's best practices for the Windows terminal and fix all font and rendering incompatibilities."*
@@ -175,7 +177,7 @@ Desktop mode depends on GTK / WebKit packages. On Debian / Ubuntu:
 
 ```bash
 sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev
-pip install pywebview
+uv pip install pywebview
 ```
 
 On headless servers, prefer the TUI or run Streamlit in browser mode instead of desktop mode.
@@ -206,7 +208,7 @@ If `git pull` reports conflicts:
 > **IMPORTANT: fetch this file with `curl`, not a summarized web reader.** Summaries often drop flags, command quoting, and safety rules.
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/lsdefine/Tau/refs/heads/main/docs/installation.md
+> curl -fsSL https://raw.githubusercontent.com/lllIlIlIlll/tau/refs/heads/main/docs/installation.md
 > ```
 
 You are installing **Tau** for a human user. Be direct, verify each step, and avoid destructive cleanup unless the user explicitly authorizes it.
@@ -216,7 +218,7 @@ You are installing **Tau** for a human user. Be direct, verify each step, and av
 Check:
 
 1. OS: `uname -a`, `$env:OS`, or `python -c "import platform; print(platform.system())"`.
-2. Existing install: `~/Tau/launch.pyw`, `%USERPROFILE%\Tau\launch.pyw`, or a `.git` directory.
+2. Existing install: `~/Tau/.git`, `%USERPROFILE%\Tau\.git`, or a working `tau` command.
 3. Python version: must be 3.11 or 3.12 if you use the developer path.
 4. Git availability: `git --version`.
 5. API key readiness: ask the user if no key is available. Never invent one.
@@ -240,10 +242,11 @@ GLOBAL=1 bash -c "$(curl -fsSL http://fudankw.cn:9000/files/ga_install.sh)"
 If the user explicitly wants a developer checkout:
 
 ```bash
-git clone https://github.com/lsdefine/Tau.git
-cd Tau
+git clone https://github.com/lllIlIlIlll/tau.git
+cd tau
 uv venv
 uv pip install -e ".[ui]"
+mkdir -p .tau
 cp assets/template/taukey_template.py .tau/taukey.py
 ```
 
@@ -252,7 +255,7 @@ cp assets/template/taukey_template.py .tau/taukey.py
 - Read `assets/template/taukey_template.py` before editing `.tau/taukey.py`.
 - Configure only keys the user actually provides.
 - Never print the full key back to the user.
-- If the user is unsure, run `python setup/configure_taukey.py` or ask which provider they want to use.
+- If the user is unsure, run `tau configure` or ask which provider they want to use.
 
 Suggested question:
 
@@ -264,16 +267,16 @@ Run:
 
 ```bash
 cd ~/Tau
-python -c "import tau_agent.agent_loop; print('OK')"
+uv run python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 
 Then verify one frontend:
 
 ```bash
-python launch.pyw
+tau launch
 # or, for terminal-only environments:
-python apps/tui/app.py
+tau tui
 ```
 
 ### Step 4: Verification and Next Steps
@@ -287,7 +290,7 @@ Read this document again and think through whether you have done everything corr
 
 #### Say 'Congratulations! 🎉' to the user
 
-Say to user: Congratulations! 🎉 You have successfully set up Tau! Double-click `apps/Tau.exe` on Windows, or run `python apps/tui/app.py` in your terminal to start using it.
+Say to user: Congratulations! 🎉 You have successfully set up Tau! Double-click `apps/Tau.exe` on Windows, or run `tau tui` / `tau launch` in your terminal to start using it.
 
 #### Report the concrete result
 

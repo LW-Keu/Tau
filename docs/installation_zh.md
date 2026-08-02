@@ -47,7 +47,7 @@ apps/Tau.exe
 也可以进入项目目录运行：
 
 ```bash
-python launch.pyw
+tau launch
 ```
 
 > Tau 更推荐由 Agent 在使用中自举环境，而不是预先手动装完整依赖。先把最小系统跑起来，需要什么工具再让 Tau 自己安装。
@@ -75,12 +75,14 @@ FORCE=1 bash -c "$(curl -fsSL http://fudankw.cn:9000/files/ga_install.sh)"
 适合想要可编辑源码目录的开发者。
 
 ```bash
-git clone https://github.com/lsdefine/Tau.git
-cd Tau
+git clone https://github.com/lllIlIlIlll/tau.git
+cd tau
 uv venv
 uv pip install -e ".[ui]"        # 核心 + UI 依赖
+mkdir -p .tau
 cp assets/template/taukey_template.py .tau/taukey.py     # 填入你的 LLM API Key
-python launch.pyw
+# 填好 .tau/taukey.py 后:
+uv run tau launch
 ```
 
 完整引导流程见 [GETTING_STARTED.md](GETTING_STARTED.md)。
@@ -100,7 +102,7 @@ Tau 支持：
 可选配置向导：
 
 ```bash
-python setup/configure_taukey.py
+tau configure
 ```
 
 ### 前端启动方式
@@ -118,13 +120,13 @@ apps/Tau.exe
 基于 [Textual](https://github.com/Textualize/textual) 的轻量键盘驱动界面。支持多会话并发、实时流式输出，有终端就能跑。
 
 ```bash
-python apps/tui/app.py
+tau tui
 ```
 
 #### Streamlit UI
 
 ```bash
-python launch.pyw
+tau launch
 ```
 
 ### 验证安装
@@ -132,16 +134,16 @@ python launch.pyw
 在 Tau 目录下运行：
 
 ```bash
-python -c "import tau_agent.agent_loop; print('OK')"
+uv run python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 
 然后至少启动一个前端：
 
 ```bash
-python launch.pyw
+tau launch
 # 或
-python apps/tui/app.py
+tau tui
 ```
 
 ### 常见坑
@@ -158,13 +160,13 @@ python apps/tui/app.py
 type tau
 ```
 
-如果解析到意料之外的位置，就不要依赖这个快捷命令。请进入安装目录运行 `python launch.pyw` 或 `python apps/tui/app.py`。
+如果解析到意料之外的位置，就不要依赖这个快捷命令。请进入安装目录运行 `uv run tau cli`、`uv run tau tui` 或 `uv run tau launch`。
 
 #### Windows 上 TUI 显示异常
 
 TUI 在 Windows 上依赖终端、字体和 `textual` 版本。
 
-1. 先升级 Textual：`pip install -U textual`。
+1. 先升级 Textual：`uv pip install -U textual`。
 2. PowerShell / cmd 对 Unicode 和键位支持较弱，**Windows 上推荐用 Git Bash**。
 3. 仍然异常时，可以让 Tau 自己修一遍。参考 Prompt：
    > *"我在 Windows 的 PowerShell / cmd / Git Bash 中使用 `apps/tui/app.py` 体验非常差，出现了一堆不兼容问题。请参考 Claude Code 在 Windows 终端的最佳配置，把所有字体和显示不兼容的问题修一遍。"*
@@ -175,7 +177,7 @@ TUI 在 Windows 上依赖终端、字体和 `textual` 版本。
 
 ```bash
 sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev
-pip install pywebview
+uv pip install pywebview
 ```
 
 无头服务器建议使用 TUI，或用浏览器方式运行 Streamlit，不要强行启桌面模式。
@@ -205,7 +207,7 @@ uv pip install -e ".[ui]"
 > **重要：用 `curl` 获取本文，不要依赖会摘要网页的读取器。** 摘要常会丢掉环境变量、命令引号和安全规则。
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/lsdefine/Tau/refs/heads/main/installation.zh.md
+> curl -fsSL https://raw.githubusercontent.com/lllIlIlIlll/tau/refs/heads/main/docs/installation_zh.md
 > ```
 
 你正在替人类用户安装 **Tau**。请直接执行、逐步验证；除非用户明确授权，不要做破坏性清理。
@@ -215,7 +217,7 @@ uv pip install -e ".[ui]"
 检查：
 
 1. 操作系统：`uname -a`、`$env:OS`，或 `python -c "import platform; print(platform.system())"`。
-2. 是否已安装：`~/Tau/launch.pyw`、`%USERPROFILE%\Tau\launch.pyw`，或 `.git` 目录。
+2. 是否已安装：`~/Tau/.git`、`%USERPROFILE%\Tau\.git`，或可用的 `tau` 命令。
 3. Python 版本：开发者路径必须使用 3.11 或 3.12。
 4. Git 是否可用：`git --version`。
 5. API Key 是否准备好：没有就问用户，绝不要伪造。
@@ -239,10 +241,11 @@ curl -fsSL http://fudankw.cn:9000/files/ga_install.sh | bash
 如果用户明确要开发者源码安装：
 
 ```bash
-git clone https://github.com/lsdefine/Tau.git
-cd Tau
+git clone https://github.com/lllIlIlIlll/tau.git
+cd tau
 uv venv
 uv pip install -e ".[ui]"
+mkdir -p .tau
 cp assets/template/taukey_template.py .tau/taukey.py
 ```
 
@@ -251,7 +254,7 @@ cp assets/template/taukey_template.py .tau/taukey.py
 - 编辑 `.tau/taukey.py` 前先读 `assets/template/taukey_template.py`。
 - 只配置用户真实提供的 Key。
 - 不要把完整 Key 打印回给用户。
-- 用户不确定时，运行 `python setup/configure_taukey.py`，或询问要使用哪家模型服务商。
+- 用户不确定时，运行 `tau configure`，或询问要使用哪家模型服务商。
 
 建议提问：
 
@@ -263,16 +266,16 @@ cp assets/template/taukey_template.py .tau/taukey.py
 
 ```bash
 cd ~/Tau
-python -c "import tau_agent.agent_loop; print('OK')"
+uv run python -c "import tau_agent.agent_loop; print('OK')"
 git rev-parse --short HEAD
 ```
 
 然后验证至少一个前端：
 
 ```bash
-python launch.pyw
+tau launch
 # 或，无桌面环境时：
-python apps/tui/app.py
+tau tui
 ```
 
 ### 第 4 步：验证与下一步
@@ -286,7 +289,7 @@ python apps/tui/app.py
 
 #### 对用户说 “Congratulations! 🎉”
 
-对用户说：Congratulations! 🎉 你已经成功安装 Tau！Windows 下可双击 `apps/Tau.exe`，或在终端运行 `python apps/tui/app.py` 开始使用。
+对用户说：Congratulations! 🎉 你已经成功安装 Tau！Windows 下可双击 `apps/Tau.exe`，或在终端运行 `tau tui` / `tau launch` 开始使用。
 
 #### 回报具体结果
 

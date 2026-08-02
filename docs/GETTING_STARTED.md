@@ -48,7 +48,7 @@ python3 --version
 
 ### 下载项目
 
-1. 打开 [GitHub 仓库页面](https://github.com/lsdefine/Tau)
+1. 打开 [GitHub 仓库页面](https://github.com/lllIlIlIlll/tau)
 2. 点绿色 **Code** 按钮 → **Download ZIP**
 3. 解压到你喜欢的位置
 
@@ -58,66 +58,59 @@ python3 --version
 
 用任意文本编辑器打开 `.tau/taukey.py`，填入你的 API 信息。**选一种填就行**，不用的配置删掉或留着不管都行。
 
-> 💡 也可以运行交互式向导 `python setup/configure_taukey.py`，按提示选择厂商、填入 Key 即可自动生成 `.tau/taukey.py`。
+> 💡 也可以运行交互式向导 `tau configure`（或 `python setup/configure_taukey.py`），按提示选择厂商、填入 Key 即可自动生成 `.tau/taukey.py`。
 
 ### 配置示例
 
-**最常见的用法：**
+**最常见的用法：OpenAI 兼容接口**
 
 ```python
-# 变量名含 'oai' → 走 OpenAI 兼容格式 (/chat/completions)
-oai_config = {
+# 多数 API 服务、GPT/Kimi/DeepSeek/GLM/Qwen/MiniMax 等
+my_model = {
+    'type': 'native_oai',
     'apikey': 'sk-你的密钥',
     'apibase': 'http://你的API地址:端口',
     'model': '模型名称',
 }
 ```
 
+**Claude 原生接口：**
+
 ```python
-# 变量名含 'claude'（不含 'native'）→ 走 Claude 兼容格式 (/messages)
-claude_config = {
+# 官方 Anthropic 或兼容 Claude Messages API 的渠道
+my_claude = {
+    'type': 'native_claude',
     'apikey': 'sk-你的密钥',
-    'apibase': 'http://你的API地址:端口',
-    'model': 'claude-sonnet-4-20250514',
-}
-```
-
-```python
-# MiniMax 使用 OpenAI 兼容格式，变量名含 'oai' 即可
-# 温度自动修正为 (0, 1]，支持 M2.7 / M2.5 全系列，204K 上下文
-oai_minimax_config = {
-    'apikey': 'eyJh...',
-    'apibase': 'https://api.minimax.io/v1',
-    'model': 'MiniMax-M2.7',
-}
-```
-
-**使用标准工具调用格式（适合较弱模型）：**
-
-```python
-# 变量名同时含 'native' 和 'claude' → Claude 标准工具调用格式
-native_claude_config = {
-    'apikey': 'sk-ant-你的密钥',
     'apibase': 'https://api.anthropic.com',
     'model': 'claude-sonnet-4-20250514',
 }
 ```
 
-> 💡 还支持 `native_oai_config`（OpenAI 标准工具调用）、`sider_cookie`（Sider）等，详见 `assets/template/taukey_template.py` 中的注释。
+**Mixin 故障转移（进阶）：**
+
+```python
+mixin_config = {
+    'type': 'mixin',
+    'llm_nos': ['gpt-native', 'claude-native'],
+    'max_retries': 10,
+}
+```
+
+> 💡 详见 `assets/template/taukey_template.py`。新配置推荐显式写 `type`；变量名推断只用于兼容旧配置。
 
 ### 关键规则
 
-**变量命名决定接口格式**（不是模型名决定的）：
+**`type` 决定接口格式**（不是模型名决定的）：
 
-| 变量名包含 | 触发的 Session | 适用场景 |
+| `type` | 触发的 Session | 适用场景 |
 |-----------|---------------|---------|
-| `oai` | OpenAI 兼容 | 大多数 API 服务、OpenAI 官方 |
-| `claude`（不含 `native`） | Claude 兼容 | Claude API 服务 |
-| `native` + `claude` | Claude 标准工具调用 | 较弱模型推荐，工具调用更规范 |
-| `native` + `oai` | OpenAI 标准工具调用 | 较弱模型推荐，工具调用更规范 |
+| `native_oai` | OpenAI 原生工具调用 | 多数 OpenAI 兼容 API 服务 |
+| `native_claude` | Claude 原生工具调用 | Anthropic Claude 或兼容渠道 |
+| `mixin` | 多 Session 故障转移 | 主力模型 + 备用渠道 |
+| `oai` / `claude` | 文本协议工具调用 | 旧配置兼容 |
 
-> 例：用 Claude 模型，但 API 服务提供的是 OpenAI 兼容接口 → 变量名用 `oai_xxx`。
-> 例：用 MiniMax 模型 → 变量名用 `oai_minimax_config`，MiniMax 走 OpenAI 兼容接口。
+> 例：用 Claude 模型，但 API 服务提供的是 OpenAI 兼容接口 → `type` 用 `native_oai`。
+> 例：用 MiniMax 模型 → 通常走 OpenAI 兼容接口，`type` 用 `native_oai`。
 
 **`apibase` 填写规则**（会自动拼接端点路径）：
 
@@ -135,7 +128,7 @@ native_claude_config = {
 
 ```bash
 cd 你的解压路径
-python3 taumain.py
+tau cli
 ```
 
 这就是**命令行模式**，已经可以用了。你会看到一个输入提示符，直接打字发送任务即可。
@@ -146,7 +139,7 @@ python3 taumain.py
 帮我在桌面创建一个 hello.txt，内容是 Hello World
 ```
 
-> 💡 Windows 上如果 `python3` 不识别，换成 `python taumain.py`。
+> 💡 如果系统还没有识别 `tau` 命令，在源码目录里用 `uv run tau cli`。
 
 ---
 
@@ -162,7 +155,7 @@ Agent 会自己读代码、找出需要的包、全部装好。
 
 > ⚠️ 如果遇到网络问题导致 Agent 无法调用 API，可能需要先手动装一个包：
 > ```bash
-> pip install requests
+> uv pip install requests
 > ```
 
 ### 升级到图形界面
@@ -170,10 +163,10 @@ Agent 会自己读代码、找出需要的包、全部装好。
 依赖装完后，就可以用 GUI 模式了：
 
 ```bash
-python3 launch.pyw
+tau launch
 ```
 
-启动后会出现一个桌面悬浮窗，直接在里面输入任务指令。
+启动后会出现一个桌面窗口，直接在里面输入任务指令。
 
 ### 可选：让 Agent 帮你做的事
 
@@ -184,7 +177,7 @@ python3 launch.pyw
 Agent 会自动配好。如果你电脑上没有 Git，它也会帮你下载 portable 版。
 
 ```
-请帮我在桌面创建一个 launch.pyw 的快捷方式
+请帮我在桌面创建一个 tau launch 的快捷方式
 ```
 
 这样以后双击桌面图标就能启动，不用再开终端了。

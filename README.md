@@ -17,7 +17,7 @@
 
 ---
 
-Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
+Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`,运行时资产位于 `assets/` 和 `memory/`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
 
 它不预设一长串功能,而是给你一个能**自我进化**的最小系统:跑起来之后,你只需用一句话告诉它要什么,它会自己读代码、找依赖、解锁能力,并把执行路径沉淀成可复用的 Skill——使用越久,它越懂你。
 
@@ -52,13 +52,16 @@ powershell -ExecutionPolicy Bypass -c "irm http://fudankw.cn:9000/files/ga_insta
 
 ```bash
 git clone https://github.com/lllIlIlIlll/tau.git
-cd Tau
+cd tau
 uv venv
 uv pip install -e ".[ui]"            # 核心 + UI 依赖
+mkdir -p .tau
 cp assets/template/taukey_template.py .tau/taukey.py  # 填入你的 LLM API Key
+# 填好 .tau/taukey.py 后:
+uv run tau launch
 ```
 
-> `.[ui]` 会一次性安装以下 UI 后端(可单独 pip 装其一):
+> `.[ui]` 会一次性安装以下 UI 后端；只需要 API 服务时可安装 `.[api]`,想一次装全应用依赖可安装 `.[all-apps]`:
 > - streamlit   (Web,  apps/web/streamlit/)
 > - pywebview   (Hub/Launch 桌面壳, apps/hub/)
 > - textual     (TUI,  apps/tui/app.py)
@@ -88,7 +91,7 @@ my_model = {
 
 ### 3. 启动
 
-通过 `tau` 命令(等价于 `python -m tau_coding`)选择前端:
+通过 `tau` 命令选择前端；开发环境未激活时可写成 `uv run tau ...`:
 
 ```bash
 tau cli        # CLI 对话,最轻量(tau_coding.taumain)
@@ -97,6 +100,10 @@ tau gui        # 桌面聊天界面(PySide6)
 tau launch     # 原生窗口壳(pywebview)
 tau hub        # Hub 管理面板(系统托盘 + 浏览器)
 tau api        # WorkBuddy 兼容 API(仅监听本机)
+tau configure  # 初始配置向导,生成/更新 .tau/taukey.py
+tau run "帮我总结当前项目"  # 同步运行单次任务,适合脚本化调用
+tau status     # 检查 Tau 进程状态
+tau update     # git pull + uv sync 更新项目
 tau list       # 列出全部命令
 ```
 
@@ -156,9 +163,12 @@ WorkBuddy 随请求提供，Tau 的内部工具调用记录不跨请求保存。
 ```
 Tau/
 ├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai
-├── apps/         # 多前端:common · cli · tui · gui · web · pet · desktop · im · hub
+├── apps/         # 多前端/通道:common · api · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
 ├── external/     # 外部组件:TMWebDriver(浏览器自动化,保留登录态) · agent_bbs
+├── setup/        # 设置向导,如 tau configure 调用的 taukey 配置器
+├── examples/     # 示例配置、任务定义与接入样品
+├── tests/        # 自动化测试与开发期烟测
 ├── sche_tasks/   # 计划任务
 ├── docs/         # 文档
 └── assets/       # 系统提示词 · 工具 schema · 模板 · 脚本
@@ -168,16 +178,17 @@ Tau/
 
 ## 🤖 模型支持
 
-原生支持两类协议,在 `.tau/taukey.py` 中按需配置,可多模型并存:
+原生支持两类协议,在 `.tau/taukey.py` 中用 `type` 字段显式配置,可多模型并存:
 
 - **OpenAI 兼容接口** — GPT 系列、Kimi、DeepSeek、GLM、Qwen、MiniMax,以及经 OAI 兼容网关接入的 Gemini 等
 - **Anthropic Claude 原生接口** — Claude Messages API
+- **Mixin 故障转移** — 多个 native session 可按优先级轮换,适合把主力模型和备用渠道组合起来
 
-启动时按系统语言自动切换中 / 英(`GA_LANG`)。
+启动时按系统语言自动切换中 / 英(`TAU_LANG`,兼容旧变量 `GA_LANG`)。
 
 ## 📅 项目现状与演进
 
-> Tau 仍处于**早期高速迭代**阶段:2026-06-15 首次提交,至今约 12 天、140+ 次提交。当前开发主线 `tau-v2.0.0`,`tau --version` 报告内核版本 `v0.1.0`。功能与目录仍在快速重排,接口可能变动。
+> Tau 仍处于**早期高速迭代**阶段。当前开发主线为 `tau-v5.0.0`,`tau --version` 报告内核版本 `v0.1.0`。功能、前端和内部事件协议仍在演进,接口可能变动。
 
 | 时间 | 里程碑 |
 |---|---|

@@ -56,7 +56,7 @@ def expand_file_refs(text, base_dir=None):
 def get_global_memory():
     prompt = "\n"
     try:
-        suffix = '_en' if os.environ.get('GA_LANG', '') == 'en' else ''
+        suffix = '_en' if os.environ.get('TAU_LANG', os.environ.get('GA_LANG', '')) == 'en' else ''
         with open(str(MEMORY / 'global_mem_insight.txt'), 'r', encoding='utf-8', errors='replace') as f: insight = f.read()
         with open(str(ASSETS / f'template/insight_fixed_structure{suffix}.txt'), 'r', encoding='utf-8') as f: structure = f.read()
         prompt += f'cwd = {str(TEMP)} (./)\n'

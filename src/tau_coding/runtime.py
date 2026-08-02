@@ -6,14 +6,18 @@ import sys
 from tau_paths import ASSETS, MEMORY, TAU_HOME
 
 
+def _lang():
+    return os.environ.get("TAU_LANG") or os.environ.get("GA_LANG", "")
+
+
 def language_suffix():
-    return "_en" if os.environ.get("GA_LANG") == "en" else ""
+    return "_en" if _lang() == "en" else ""
 
 
 def initialize_runtime():
     lang = locale.getlocale()[0] or ""
     os.environ.setdefault(
-        "GA_LANG",
+        "TAU_LANG",
         "zh" if any(key in lang.lower() for key in ("zh", "chinese")) else "en",
     )
     _configure_stdio()
