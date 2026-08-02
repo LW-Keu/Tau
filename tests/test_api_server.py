@@ -15,7 +15,7 @@ import tau_coding.taumain as taumain
 import tau_coding.cli as tau_cli
 from tau_agent.events import (
     RawText, ToolCallStart, ToolOutputChunk, ToolOutputEnd, ToolOutputStart,
-    TurnEnded, TurnStarted,
+    TurnEnded, TurnStarted, render_event,
 )
 from tau_coding.commands._launchers import LAUNCHERS
 
@@ -405,6 +405,42 @@ def test_streaming_completion_renders_typed_tool_progress():
     )
     assert "Tool: `shell`" in content
     assert "workspace" in content
+
+
+class MultiTurnProgressTau(FakeTau):
+    def run(self, once=False):
+        self.once = once
+        events = (
+            TurnStarted(1), RawText("A1"),
+            ToolCallStart("shell", {"cmd": "pwd"}),
+            ToolOutputStart(), ToolOutputChunk("workspace"), ToolOutputEnd(),
+            TurnStarted(2), RawText("A2"), TurnEnded({"result": "done"}),
+        )
+        for event in events:
+            self.events.put(event)
+        final = "".join(
+            render_event(event, self.verbose)
+            for event in events if not isinstance(event, TurnStarted)
+        )
+        self.display.put({"done": final})
+
+
+def test_streaming_reconciles_only_events_in_tau_display_final():
+    agent = MultiTurnProgressTau()
+    client = TestClient(create_app("secret", tau_factory=lambda: agent))
+    response = client.post("/v1/chat/completions", headers=_headers(), json={
+        "model": "tau-agent", "stream": True,
+        "messages": [{"role": "user", "content": "hello"}],
+    })
+    chunks = [json.loads(value) for value in _sse_payloads(response.text)[:-1]]
+    content = "".join(
+        item["choices"][0]["delta"].get("content", "")
+        for item in chunks if "choices" in item
+    )
+    assert content.count("LLM Running") == 2
+    assert content.count("A1") == 1
+    assert content.count("workspace") == 1
+    assert content.count("A2") == 1
 
 
 def test_streaming_runtime_failure_uses_error_frame_then_done():

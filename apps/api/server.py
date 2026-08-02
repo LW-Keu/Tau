@@ -11,7 +11,7 @@ if str(_ROOT) not in sys.path:
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from tau_agent.events import render_event
+from tau_agent.events import TurnStarted, render_event
 from tau_coding.taumain import Tau
 
 MODEL_ID = "tau-agent"
@@ -48,6 +48,7 @@ class ExecutionEvent:
     kind: str
     text: str = ""
     error: str | None = None
+    included_in_final: bool = True
 
 
 class TauExecution:
@@ -85,14 +86,20 @@ class TauExecution:
             if "done" in item:
                 return item
 
+    def _emit(self, event):
+        text = render_event(event, self.agent.verbose)
+        if text:
+            self.output.put(ExecutionEvent(
+                "delta", text,
+                included_in_final=not isinstance(event, TurnStarted),
+            ))
+
     def _pump(self):
         done = None
         while done is None:
             try:
                 event = self.events.get(timeout=0.05)
-                text = render_event(event, self.agent.verbose)
-                if text:
-                    self.output.put(ExecutionEvent("delta", text))
+                self._emit(event)
             except queue.Empty:
                 pass
             done = self._display_done()
@@ -107,9 +114,7 @@ class TauExecution:
                 event = self.events.get_nowait()
             except queue.Empty:
                 break
-            text = render_event(event, self.agent.verbose)
-            if text:
-                self.output.put(ExecutionEvent("delta", text))
+            self._emit(event)
         self.output.put(ExecutionEvent(
             "done", done.get("done", ""), done.get("error"),
         ))
@@ -225,9 +230,6 @@ def _chunk(completion_id, created, delta=None, finish_reason=None):
 def _missing_final_text(delivered, final):
     if final.startswith(delivered):
         return final[len(delivered):]
-    for size in range(min(len(delivered), len(final)), 0, -1):
-        if delivered.endswith(final[:size]):
-            return final[size:]
     return final
 
 
@@ -244,7 +246,8 @@ async def stream_completion(request, execution, delivered=None):
             if event is None:
                 continue
             if event.kind == "delta":
-                delivered_text += event.text
+                if event.included_in_final:
+                    delivered_text += event.text
                 yield _sse(_chunk(
                     completion_id, created, {"content": event.text},
                 ))
