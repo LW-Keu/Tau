@@ -23,6 +23,10 @@ NEGATIVE_TEST_SOURCES = {
     "tests/test_tau_coding_package.py",
 }
 LEGACY_LANGUAGE_VARIABLE = "GA" + "_LANG"
+MIGRATION_RESIDUE_PATHS = ("README.md", "docs", "setup", "src", "apps", "tests")
+LEGACY_LANGUAGE_PATTERN = re.compile(
+    rf"(?<![\w]){LEGACY_LANGUAGE_VARIABLE}(?![\w])"
+)
 LEGACY_PATTERNS = (
     re.compile(r"(?<![\w])(?:\.\.?/)*(?:core|tau_cli)/"),
     re.compile(r"(?<![\w])(?<!tau_coding/)(?<!tau_agent/)(?:\.\.?/)*(?:reflect|plugins)/"),
@@ -31,7 +35,7 @@ LEGACY_PATTERNS = (
     re.compile(r"/\s*(?P<q>['\"])(?:core|tau_cli|reflect|plugins)(?P=q)"),
     re.compile(r"(?:find_spec|import_module|__import__)\(\s*['\"](?:core|tau_cli|reflect|plugins)['\"]"),
     re.compile(r"sys\.modules\[\s*['\"](?:core|tau_cli|reflect|plugins)['\"]\s*\]"),
-    re.compile(rf"(?<![\w]){LEGACY_LANGUAGE_VARIABLE}(?![\w])"),
+    LEGACY_LANGUAGE_PATTERN,
 )
 
 
@@ -48,6 +52,22 @@ def _tracked_text_files():
             continue
         path = ROOT / relative
         data = path.read_bytes()
+        if b"\0" not in data[:8192]:
+            yield relative, data.decode("utf-8", errors="replace")
+
+
+def _migration_residue_text_files():
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--", *MIGRATION_RESIDUE_PATHS],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout
+    for raw_path in listed.split(b"\0"):
+        if not raw_path:
+            continue
+        relative = raw_path.decode()
+        data = (ROOT / relative).read_bytes()
         if b"\0" not in data[:8192]:
             yield relative, data.decode("utf-8", errors="replace")
 
@@ -76,6 +96,25 @@ class MigrationRegressionTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_tau_lang_selects_english_suffix(self):
+        env = {**os.environ, "TAU_LANG": "en"}
+        env.pop(LEGACY_LANGUAGE_VARIABLE, None)
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "from tau_coding.runtime import language_suffix;"
+             "assert language_suffix() == '_en'"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_migration_paths_have_no_removed_language_variable(self):
+        offenders = [relative for relative, text in _migration_residue_text_files()
+                     if LEGACY_LANGUAGE_PATTERN.search(text)]
+        self.assertEqual(offenders, [])
 
     def test_legacy_scan_covers_path_module_and_string_forms(self):
         legacy = (

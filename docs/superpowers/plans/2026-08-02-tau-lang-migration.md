@@ -96,7 +96,7 @@ code = (
 Run:
 
 ```bash
-uv run pytest \
+uv run --with pytest pytest \
   tests/test_migration_regressions.py::MigrationRegressionTests::test_active_tracked_text_has_no_legacy_boundaries \
   tests/test_migration_regressions.py::MigrationRegressionTests::test_removed_language_variable_does_not_select_english \
   -q
@@ -145,7 +145,7 @@ finds an actual use.
 Run:
 
 ```bash
-uv run pytest \
+uv run --with pytest pytest \
   tests/test_migration_regressions.py::MigrationRegressionTests::test_active_tracked_text_has_no_legacy_boundaries \
   tests/test_migration_regressions.py::MigrationRegressionTests::test_removed_language_variable_does_not_select_english \
   -q
@@ -158,7 +158,7 @@ Expected: `2 passed`.
 Run:
 
 ```bash
-uv run pytest tests/test_migration_regressions.py -q
+uv run --with pytest pytest tests/test_migration_regressions.py -q
 ```
 
 Expected: all tests pass with zero failures.
