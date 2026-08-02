@@ -1,6 +1,8 @@
-import asyncio, json, os, queue, sys, threading, time, uuid
+import argparse, asyncio, json, os, queue, sys, threading, time, uuid
 from dataclasses import dataclass
 from pathlib import Path
+
+import uvicorn
 
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
@@ -340,3 +342,17 @@ def create_app(api_key, tau_factory=Tau):
         return _completion(result)
 
     return app
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Tau WorkBuddy-compatible API")
+    parser.add_argument("--port", type=int, default=8642)
+    args = parser.parse_args(argv)
+    api_key = os.environ.get("TAU_API_KEY", "").strip()
+    if not api_key:
+        parser.error("TAU_API_KEY is required; set it before running `tau api`")
+    uvicorn.run(create_app(api_key), host="127.0.0.1", port=args.port)
+
+
+if __name__ == "__main__":
+    main()

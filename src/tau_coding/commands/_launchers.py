@@ -7,15 +7,21 @@
 - cmd:    list[str], 启动模板，保留 {PROJECT_DIR}/{APPS}/{REFLECT} 占位符
          运行时由 _common.expand() 在 launch_frontend() 内部展开
 - flags:  dict[str, dict] (可选), 命令特有 flag 覆写 (e.g. {"--native": {"cmd": [...]}})
-         当前 6 个 entry 均未使用; 字段保留以备未来扩展。
+         当前 7 个 entry 均未使用; 字段保留以备未来扩展。
 
 注意: help/desc 文案逐字保留自原 cli_cmd.py / configure.py / gui.py / tui.py /
-hub.py / launch.py。删除旧文件后,本文件是 6 个启动类命令的唯一定义点。
+hub.py / launch.py。删除旧文件后,本文件是 7 个启动类命令的唯一定义点。
 """
 
 from . import _common as _c
 
 LAUNCHERS: dict[str, dict] = {
+    "api": {
+        "name": "api",
+        "help": "启动 WorkBuddy 兼容 API (api/server.py)",
+        "desc": "在本机启动 OpenAI 兼容的 Tau Agent API 服务",
+        "cmd": ["python", "{APPS}/api/server.py"],
+    },
     "gui": {
         "name": "gui",
         "help": "启动桌面GUI (gui/app.py)",

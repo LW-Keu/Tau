@@ -8,9 +8,11 @@ import httpx2 as httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from apps.api import server
 from apps.api.server import APIError, build_prompt, create_app, parse_chat
 import tau_coding.taumain as taumain
 from tau_agent.events import RawText, TurnEnded, TurnStarted
+from tau_coding.commands._launchers import LAUNCHERS
 
 
 class _Backend:
@@ -92,6 +94,27 @@ def test_tau_done_item_exposes_backend_error(monkeypatch):
 
 def _headers(key="secret"):
     return {"Authorization": f"Bearer {key}"}
+
+
+def test_api_launcher_is_registered():
+    assert LAUNCHERS["api"]["cmd"] == ["python", "{APPS}/api/server.py"]
+
+
+def test_main_refuses_to_start_without_api_key(monkeypatch):
+    monkeypatch.delenv("TAU_API_KEY", raising=False)
+    with pytest.raises(SystemExit) as raised:
+        server.main([])
+    assert raised.value.code == 2
+
+
+def test_main_binds_loopback_and_accepts_port_override(monkeypatch):
+    called = {}
+    monkeypatch.setenv("TAU_API_KEY", "secret")
+    monkeypatch.setattr(
+        server.uvicorn, "run", lambda app, **kwargs: called.update(kwargs),
+    )
+    server.main(["--port", "9001"])
+    assert called == {"host": "127.0.0.1", "port": 9001}
 
 
 def test_health_is_public_and_models_require_bearer_auth():

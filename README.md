@@ -96,6 +96,7 @@ tau tui        # 终端图形界面(Textual),适合 SSH / 纯终端
 tau gui        # 桌面聊天界面(PySide6)
 tau launch     # 原生窗口壳(pywebview)
 tau hub        # Hub 管理面板(系统托盘 + 浏览器)
+tau api        # WorkBuddy 兼容 API(仅监听本机)
 tau list       # 列出全部命令
 ```
 
@@ -125,9 +126,28 @@ tau list       # 列出全部命令
 | GUI | `tau gui` | PySide6 桌面聊天(气泡高亮、拖拽、历史搜索) |
 | Web | `tau launch` / `apps/web/` | Streamlit + pywebview 桌面壳 |
 | Hub | `tau hub` | 托盘 + 浏览器管理面板 |
+| API | `tau api` | WorkBuddy 兼容的本机 OpenAI API |
 | Pet | `apps/pet/` | 桌面宠物悬浮窗 |
 | Desktop | `apps/desktop/` | Tauri 原生客户端 |
 | IM | `apps/im/` | 即时通讯 Bot 接入 |
+
+### WorkBuddy 接入
+
+安装 API 依赖并启动本机服务：
+
+```bash
+uv pip install -e ".[api]"
+TAU_API_KEY=请设置一个本机密钥 tau api
+```
+
+在 WorkBuddy 的「自定义模型 / Custom Model」中填写：
+
+- API URL：`http://127.0.0.1:8642/v1`
+- API Key：与 `TAU_API_KEY` 相同
+- Model：`tau-agent`
+
+首版仅支持本机、纯文本输入。WorkBuddy 的不同对话相互隔离；历史由
+WorkBuddy 随请求提供，Tau 的内部工具调用记录不跨请求保存。
 
 ## 🧱 架构
 
