@@ -203,6 +203,10 @@ Tau/
 
 - 🚀 [新手上手指南 GETTING_STARTED.md](docs/GETTING_STARTED.md)
 - 🛠️ [安装指南(中文)installation_zh.md](docs/installation_zh.md) · [English](docs/installation.md)
+- 🧠 [Agent 技能库 memory/](docs/memory-SKILLS.md)
+- 🏗️ [系统架构 superpowers/SPEC.md](docs/superpowers/SPEC.md)
+- 🔧 [超能力文档索引 docs/superpowers/](docs/superpowers/README.md)
+- 📝 [变更日志 CHANGELOG.md](docs/CHANGELOG.md)
 - 🤝 [贡献指南 CONTRIBUTING.md](CONTRIBUTING.md)
 - 📘 Datawhale 教程:<https://datawhalechina.github.io/hello-tau/>
 - 📄 技术报告:<https://arxiv.org/abs/2604.17091>
