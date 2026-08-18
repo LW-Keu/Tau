@@ -1,5 +1,16 @@
 """Pure upload helpers for the Streamlit UI."""
-import os
+import os, sys
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_r = os.path.abspath(os.path.dirname(__file__))
+while _r != os.path.dirname(_r) and not os.path.exists(os.path.join(_r, 'pyproject.toml')):
+    _r = os.path.dirname(_r)
+if _r not in sys.path:
+    sys.path.insert(0, _r)
+# src-layout: tau_coding/tau_agent/tau_ai/tau_paths live under src/
+_src = os.path.join(_r, 'src')
+if os.path.isdir(_src) and _src not in sys.path:
+    sys.path.insert(0, _src)
+
 import time
 import uuid
 
