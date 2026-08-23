@@ -64,7 +64,7 @@ def gen_md():
     lines += ['', '## 十一、重点关注信号的情报价值', '']
     for i, s in enumerate(SIGNALS, 1):
         lines.append(f"{i}. {s}")
-    lines += ['', '---', '', '*本报告由 GenericAgent 自动整编，内容仅供决策参考。*']
+    lines += ['', '---', '', '*本报告由 Tau 自动整编，内容仅供决策参考。*']
     return '\n'.join(lines)
 
 # === DOCX部分 (省略，详见 ./build_today.py 完整版) ===

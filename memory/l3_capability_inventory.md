@@ -2,47 +2,47 @@
 ## v4.8 patch 完成, 不再被覆盖
 
 > 探测时间: 2026-06-05 00:10
-> 补丁时间: 2026-07-14 06:00 (R44 SPSoftwareDataType macOS 26.6 (25G5057c) + Darwin 25.6.0 + Boot Mode Normal + SIP Enabled + Secure VM Enabled + Uptime 1天10小时 + csrutil status enabled + nvram -p 蓝牙/语言/InstallerData 可枚举 + SPPowerDataType AC Sleep 1min Wake-on-LAN Enabled + SPNVMeDataType APPLE SSD AP0256Z 251GB TRIM serial 0ba028e3e090ac29 GPT + ioreg -l 26.8M IOKit 产品枚举 + kextstat → kmutil showloaded + launchctl list 系统服务可枚举 + security find-identity 0 valid identities, 9 探针 9 PASS, 0 物理边界: 又 6 新通道 macOS 26.6 Beta build 精确 + SIP/SVM 完整启用 + APPLE SSD 序列号 + IOKit/kmutil 系统枚举 + 0 代码签名身份)
+> 补丁时间: 2026-07-14 06:00 (R44 SPSoftwareDataType macOS 26.6 (25G5057c) + Darwin 25.6.0 + Boot Mode Normal + SIP Enabled + Secure VM Enabled + Uptime 1天10小时 + csrutil status enabled + nvram -p 蓝牙/语言/InstallerData 可枚举 + SPPowerDataType AC Sleep 1min Wake-on-LAN Enabled + SPNVMeDataType APPLE SSD AP0256Z 251GB TRIM serial <SSD序列号已脱敏> GPT + ioreg -l 26.8M IOKit 产品枚举 + kextstat → kmutil showloaded + launchctl list 系统服务可枚举 + security find-identity 0 valid identities, 9 探针 9 PASS, 0 物理边界: 又 6 新通道 macOS 26.6 Beta build 精确 + SIP/SVM 完整启用 + APPLE SSD 序列号 + IOKit/kmutil 系统枚举 + 0 代码签名身份)
 > 探测者: Tau R03 → R44 补丁
 > v4.6→v4.7 变更: 新增 §8.10.40 系统安全/启动/电源/NVMe 序列/IOKit/kext/launchd/代码签名 (R44 综合, 写入权限图升级到 38 类, 系统安全/IOKit 拓扑定档, capabilities 4.7 小版本升级)
-> 补丁时间: 2026-07-14 06:30 (R45 SPFirewallDataType Allow all incoming + lsof rapportd :49156 LISTEN + netstat default 10.180.66.1 + arp -a 45630ms 大表 + scutil --dns 114.114.114.114/223.5.5.5 + scutil --proxy 127.0.0.1:15236 HTTP/HTTPS + defaults dock/finder 可读 + Safari 容器隔离 domain-not-found 物理事实 + SPThunderboltDataType Bus 3 Apple Mac mini + SPPrintersDataType 空 + SPDisplaysDataType Apple M4 10 cores, 12 探针 11 PASS / 1 物理边界 socketfilterfw macOS 14+ 已弃)
+> 补丁时间: 2026-07-14 06:30 (R45 SPFirewallDataType Allow all incoming + lsof rapportd :49156 LISTEN + netstat default <网关IP已脱敏> + arp -a 45630ms 大表 + scutil --dns 114.114.114.114/223.5.5.5 + scutil --proxy 127.0.0.1:15236 HTTP/HTTPS + defaults dock/finder 可读 + Safari 容器隔离 domain-not-found 物理事实 + SPThunderboltDataType Bus 3 Apple Mac mini + SPPrintersDataType 空 + SPDisplaysDataType Apple M4 10 cores, 12 探针 11 PASS / 1 物理边界 socketfilterfw macOS 14+ 已弃)
 > 探测者: Tau R03 → R45 补丁
-> v4.7→v4.8 变更: 新增 §8.10.41 防火墙/端口/路由/ARP/DNS/代理/Dock/Finder/Safari/Thunderbolt/打印机/显示器 (R45 综合, 用户配置意图端口 15236 本地代理 + DNS 114/阿里 + 路由 10.180.66.1 + M4 GPU + Thunderbolt/USB4 Bus 3 + Safari 沙盒 container 路径, capabilities 4.8 小版本升级)
-> 补丁时间: 2026-07-14 07:00 (R46 lsof -nP -iTCP:15236 Comet\x20 PID 1329 x403 连接 127.0.0.1:15236 (ESTABLISHED x3) + lsof UDP:15236 空 + ps 代理相关 3 无关 (WirelessRadioManagerd/networkserviceproxy/ToDesk) + networksetup en0+en5+en6+en7+en8 AX88179B + networksetup -getinfo en0 报错 (BSD vs 服务名) + networksetup -getinfo Wi-Fi DHCP Wi-Fi ID d0:11:e5:cd:7a:6d + networksetup -getwebproxy Wi-Fi/Ethernet 都 127.0.0.1:15236 + /etc/resolv.conf 不参与解析 + CoreWLAN 16.0 en1 0x14E4/0x4388 + scutil --nwi en0 10.180.66.157 reachable + defaults Finder 2135行 + defaults NSGlobalDomain zh-Hans-CN + ai.perplexity.comet 命中 + trackpad 多参 + NetworkLocation Automatic, 17 探针 17 PASS, 0 物理边界: 又 4 新通道 Comet (Perplexity AI 浏览器) 代理端口定位 + networksetup 服务名差异 + AX88179B USB 网卡 + per-app 语言配置 ai.perplexity.comet)
+> v4.7→v4.8 变更: 新增 §8.10.41 防火墙/端口/路由/ARP/DNS/代理/Dock/Finder/Safari/Thunderbolt/打印机/显示器 (R45 综合, 用户配置意图端口 15236 本地代理 + DNS 114/阿里 + 路由 <网关IP已脱敏> + M4 GPU + Thunderbolt/USB4 Bus 3 + Safari 沙盒 container 路径, capabilities 4.8 小版本升级)
+> 补丁时间: 2026-07-14 07:00 (R46 lsof -nP -iTCP:15236 Comet\x20 PID 1329 x403 连接 127.0.0.1:15236 (ESTABLISHED x3) + lsof UDP:15236 空 + ps 代理相关 3 无关 (WirelessRadioManagerd/networkserviceproxy/ToDesk) + networksetup en0+en5+en6+en7+en8 AX88179B + networksetup -getinfo en0 报错 (BSD vs 服务名) + networksetup -getinfo Wi-Fi DHCP Wi-Fi ID <本机Wi-Fi-MAC已脱敏> + networksetup -getwebproxy Wi-Fi/Ethernet 都 127.0.0.1:15236 + /etc/resolv.conf 不参与解析 + CoreWLAN 16.0 en1 0x14E4/0x4388 + scutil --nwi en0 <本机内网IP已脱敏> reachable + defaults Finder 2135行 + defaults NSGlobalDomain zh-Hans-CN + ai.perplexity.comet 命中 + trackpad 多参 + NetworkLocation Automatic, 17 探针 17 PASS, 0 物理边界: 又 4 新通道 Comet (Perplexity AI 浏览器) 代理端口定位 + networksetup 服务名差异 + AX88179B USB 网卡 + per-app 语言配置 ai.perplexity.comet)
 > 探测者: Tau R03 → R46 补丁
 > v4.8→v4.9 变更: 新增 §8.10.42 代理进程追踪/networksetup 详情/Wi-Fi/DNS/用户偏好 (R46 综合, Comet (ai.perplexity.comet) 占用 15236 实锤 = Perplexity AI 浏览器内置代理, capabilities 4.9 小版本升级)
-> 补丁时间: 2026-07-14 07:14 (R47 17 探针 17 PASS: Comet 149.0.7827.1 universal x86_64+arm64 + Apple 签名确认 + Comet 全网络 127.0.0.1:15236 + networksetup 服务名 6 个含 Loon for Mac + Shadowrocket + AX88179B USB 网卡服务名 + scutil --proxy HTTP/HTTPS 双 15236+127.0.0.1 + VPN 6FF992F1-... (com.liguangming.Sha...) 已注册 Disconnected + NEProvider 域不存在 + Dock 257 行 + Terminal 多键 + FileConductor 域不存在 + USB 10/100/1000 LAN 服务名误判纠正为 AX88179B, 0 物理边界: 3 误判 + 1 域空纠正)
+> 补丁时间: 2026-07-14 07:14 (R47 17 探针 17 PASS: Comet 149.0.7827.1 universal x86_64+arm64 + Apple 签名确认 + Comet 全网络 127.0.0.1:15236 + networksetup 服务名 6 个含 Loon for Mac + Shadowrocket + AX88179B USB 网卡服务名 + scutil --proxy HTTP/HTTPS 双 15236+127.0.0.1 + VPN 6FF992F1-... (com.<用户名已脱敏>.Sha...) 已注册 Disconnected + NEProvider 域不存在 + Dock 257 行 + Terminal 多键 + FileConductor 域不存在 + USB 10/100/1000 LAN 服务名误判纠正为 AX88179B, 0 物理边界: 3 误判 + 1 域空纠正)
 > 探测者: Tau R03 → R47 补丁
 > v4.9→v4.10 变更: 新增 §8.10.43 Comet 内省/服务名清单/代理深化/VPN-网络扩展/应用偏好 (R47 综合, Comet 149.0.7827.1 + Loon/Shadowrocket 已配 + VPN 6FF992F1 注册断开 + AX88179B 服务名纠正, capabilities 4.10 小版本升级)
-> 补丁时间: 2026-07-14 07:47 (R48 16 探针 14 PASS + 2 FAIL-env: macOS 26.6 Build 25G5057c + Mac mini hw.cpufamily 0x6f5129ac + uptime 1d12h + load 3.03 + AX88179B DHCP/Ethernet 6c:1f:f7:5e:59:74 + Shadowrocket.app 在 /Applications + Loon 不在 /Applications 但 com.loon.Loon.LoonHelper PID 829 守护 + defaults com.liguangming.Shadowrock
+> 补丁时间: 2026-07-14 07:47 (R48 16 探针 14 PASS + 2 FAIL-env: macOS 26.6 Build 25G5057c + Mac mini hw.cpufamily 0x6f5129ac + uptime 1d12h + load 3.03 + AX88179B DHCP/Ethernet <MAC-接口2已脱敏> + Shadowrocket.app 在 /Applications + Loon 不在 /Applications 但 com.loon.Loon.LoonHelper PID 829 守护 + defaults com.<用户名已脱敏>.Shadowrock
 ...[Truncated]...
-d 完整确认 com.liguangming.Shadowrocket "Shadowrocket" + Safari 域不存在/SandboxBroker 域空 + Comet 15236 出口 23.165.184.237 (curl 验证 HTTP) + 直连 ipify rc=7 防火墙拦 + osascript -e 双层转义语法失败, 0 物理边界: 2 osascript/curl 环境性失败非边界)
+d 完整确认 com.<用户名已脱敏>.Shadowrocket "Shadowrocket" + Safari 域不存在/SandboxBroker 域空 + Comet 15236 出口 <代理出口IP-LA已脱敏> (curl 验证 HTTP) + 直连 ipify rc=7 防火墙拦 + osascript -e 双层转义语法失败, 0 物理边界: 2 osascript/curl 环境性失败非边界)
 > 探测者: Tau R03 → R48 补丁
-> v4.10→v4.11 变更: 新增 §8.10.44 系统基础/代理 App/代理链 VPN-Safari 登录项 (R48 综合, macOS 26.6 + Shadowrocket 接管出口 + LoonHelper 守护 + Comet 15236 HTTP 出口 23.165.184.237 实测 + 直连被防火墙拦, capabilities 4.11 小版本升级)
+> v4.10→v4.11 变更: 新增 §8.10.44 系统基础/代理 App/代理链 VPN-Safari 登录项 (R48 综合, macOS 26.6 + Shadowrocket 接管出口 + LoonHelper 守护 + Comet 15236 HTTP 出口 <代理出口IP-LA已脱敏> 实测 + 直连被防火墙拦, capabilities 4.11 小版本升级)
 > 补丁时间: 2026-07-14 08:01 (R49 19 探针 17 PASS + 2 FAIL-env: Apple M4 Darwin 25.6.0 ARM64_T8132 + Comet 149.0.7827.1093 + Shadowrocket 全键 DLWModuleManagerUsingCloud+NSOSPLastRootDirect 等 14 键 + LoonHelper
 ...[Truncated]...
-C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.194.43.x) + en0 默认路由 10.180.66.1 + ARP 2 邻居活跃 + Loon 文件未装仅 LoonHelper 守护 + 防火墙阻直连 api.ipify 无论 v4/v6, 0 物理边界: 2 直连 rc=7 防火墙拦截)
+C Switch/Warp/飞书/Veee + 出口全 IP <出口IP-BJ已脱敏> (DNS 8.8.8.8 解析 173.194.43.x) + en0 默认路由 <网关IP已脱敏> + ARP 2 邻居活跃 + Loon 文件未装仅 LoonHelper 守护 + 防火墙阻直连 api.ipify 无论 v4/v6, 0 物理边界: 2 直连 rc=7 防火墙拦截)
 > 探测者: Tau R03 → R49 补丁
-> v4.11→v4.12 变更: 新增 §8.10.45 登录项/Loon 配置位置/DNS-TCP 出口/应用信息 (R49 综合, Apple M4 + Comet 149.0.7827.1093 + 登录项 4 代理 App + 全出口 IP 43.254.25.230 + DNS 8.8.8.8, capabilities 4.12 小版本升级)
+> v4.11→v4.12 变更: 新增 §8.10.45 登录项/Loon 配置位置/DNS-TCP 出口/应用信息 (R49 综合, Apple M4 + Comet 149.0.7827.1093 + 登录项 4 代理 App + 全出口 IP <出口IP-BJ已脱敏> + DNS 8.8.8.8, capabilities 4.12 小版本升级)
 > 补丁时间: 2026-07-14 09:00 (R50 16 探针 14 PASS + 2 data-empty: **Veee PID 1986 监听 127.0.0.1:15236** + Comet PID 1329 作为客户端连入 15236 + system HTTP/HTTPS proxy 127.0.0.1:15236 + SOCKS 127.0.0.1:15235 + autoproxy (null) + scutil --nc 仅 Shadowrocket Disconnected + systemextensionsctl Tailscale io.tailscale.ipn 激活 + log store 不可用 + Shadowrocket plist 不存在 + Comet defaults 仅 9 键无 proxy/pac, 0 物理边界: 2 data-empty 是状态性无数据非失败)
 > 探测者: Tau R03 → R50 补丁
 > v4.12→v4.13 变更: 新增 §8.10.46 Comet proxy/PAC 键 / 15236 监听方 / 系统代理 / VPN 扩展 / plutil (R50 综合, Veee 才是真代理监听 + Tailscale 网络扩展激活 + Shadowrocket VPN 断开, capabilities 4.13 小版本升级)
 > 补丁时间: 2026-07-14 15:35 (R51 30 探针 26 PASS + 1 empty + 3 timeout-TCC: **Veee club.veee.app x86_64 thin 监听 127.0.0.1:15235 (TCP+UDP) 与 15236 (TCP)** + Comet 是 Veee 客户端 + 系统 HTTP/HTTPS 代理 15236 + SOCKS 15235 + Shadowrocket 容器存在但 plist 被 TCC 阻塞 + Tailscale 命令残留 App 已卸载 + 应用防火墙关闭 + 钥匙串无代理条目, capabilities 4.14 小版本升级)
 > 探测者: Tau R03 → R51 补丁
 > v4.13→v4.14 变更: 新增 §8.10.47 Veee 内省 / Tailscale 状态 / launchctl / 钥匙串 / 防火墙 / Shadowrocket 容器 (R51 综合, Veee 是本地代理实际提供者 + Comet 为客户端, capabilities 4.14 小版本升级)
-> 补丁时间: 2026-07-14 15:50 (R52 26 探针 21 PASS + 5 timeout: **Veee /Library/Application Support/Veee/ProxyHelper setuid root/admin** + 15236 HTTP/15235 SOCKS5 代理协议工作正常 + 代理出口 23.165.184.237(M247-EU Los Angeles) 与直连出口 43.254.25.230(Beijing) 不同 + Wi-Fi 系统代理绑定 + 网络服务列表含 Loon/Shadowrocket + mDNS/GroupContainer TCC 超时, capabilities 4.15 小版本升级)
+> 补丁时间: 2026-07-14 15:50 (R52 26 探针 21 PASS + 5 timeout: **Veee /Library/Application Support/Veee/ProxyHelper setuid root/admin** + 15236 HTTP/15235 SOCKS5 代理协议工作正常 + 代理出口 <代理出口IP-LA已脱敏>(M247-EU Los Angeles) 与直连出口 <出口IP-BJ已脱敏>(Beijing) 不同 + Wi-Fi 系统代理绑定 + 网络服务列表含 Loon/Shadowrocket + mDNS/GroupContainer TCC 超时, capabilities 4.15 小版本升级)
 > 探测者: Tau R03 → R52 补丁
 > v4.14→v4.15 变更: 新增 §8.10.48 Veee 配置 / 代理协议探测 / 出口 whois / 网络服务映射 / mDNS (R52 综合, Veee ProxyHelper setuid + 代理出口洛杉矶, capabilities 4.15 小版本升级)
-> 补丁时间: 2026-07-14 17:55 (R55 12 探针 12 PASS: **Veee app.asar (v3.0.2/electron30/vue2) 主进程 main.js 含 sunbg-agent 模块、SOCKS5 localSocksPort=15235/HTTP localHttpPort=15236、66 pac 字面量** + 远端 125.94.54.87 whois 归属 CHINANET-GD/AS58466/广东电信/广州 + traceroute 5 跳 219.143.238.193 + ping 46ms + Application Support/veee-desktop Local Storage 含 token/concurrent=256/vMode global|smart|breath/suffix [121231234.xyz,1lib.ch]/hostName/equal + Network Persistent State 记录 https://cdn.kisslucky.com:9527 + SS Unix domain socket + tcpdump/log show 权限/TCC 物理边界 + APFS 4 containers/disk3 91.0% used/FileVault 启用, capabilities 4.18 小版本升级)
+> 补丁时间: 2026-07-14 17:55 (R55 12 探针 12 PASS: **Veee app.asar (v3.0.2/electron30/vue2) 主进程 main.js 含 sunbg-agent 模块、SOCKS5 localSocksPort=15235/HTTP localHttpPort=15236、66 pac 字面量** + 远端 <Veee远端IP已脱敏> whois 归属 CHINANET-GD/AS58466/广东电信/广州 + traceroute 5 跳 <TR跳3已脱敏> + ping 46ms + Application Support/veee-desktop Local Storage 含 token/concurrent=256/vMode global|smart|breath/suffix [121231234.xyz,1lib.ch]/hostName/equal + Network Persistent State 记录 https://cdn.kisslucky.com:9527 + SS Unix domain socket + tcpdump/log show 权限/TCC 物理边界 + APFS 4 containers/disk3 91.0% used/FileVault 启用, capabilities 4.18 小版本升级)
 > 探测者: Tau R03 → R55 补丁
 > v4.16→v4.18 变更: 新增 §8.10.50 Veee asar 反编译 / 代理协议字面量 / 远端 whois&路由 / 应用数据沙盒 / 日志与 APFS (R55 综合, Veee 内部 SOCKS5/HTTP PAC 实现 + 广东电信远端 + cdn.kisslucky.com 9527, capabilities 4.18 小版本升级)
 > v4.5→v4.6 变更: 新增 §8.10.39 CLT 27.0 + 网络硬件端口 (en8 AX88179B) + APFS 容器 245.1GB 89.6% + vm_stat 16KB 页 + 应用清单 (R43 综合, 写入权限图升级到 37 类, 开发工具/网络/磁盘/应用状态定档, capabilities 4.6 小版本升级)
-> v4.4→v4.5 变更: 新增 §8.10.38 32 GB LPDDR5 Micron + APPLE SSD AP0256Z + 10.180.66.157 + 蓝牙 BCM_4388C2 + Beta 5 25G5065a 待安装 + Dock 中文 bottom + Trackpad 三指拖拽关闭 (R42 综合, 写入权限图升级到 36 类, 硬件/网络/输入/更新状态定档, capabilities 4.5 小版本升级)
+> v4.4→v4.5 变更: 新增 §8.10.38 32 GB LPDDR5 Micron + APPLE SSD AP0256Z + <本机内网IP已脱敏> + 蓝牙 BCM_4388C2 + Beta 5 25G5065a 待安装 + Dock 中文 bottom + Trackpad 三指拖拽关闭 (R42 综合, 写入权限图升级到 36 类, 硬件/网络/输入/更新状态定档, capabilities 4.5 小版本升级)
 > v4.3→v4.4 变更: 新增 §8.10.37 M4 GPU 10 核核显 + 开放防火墙 + Mac mini 4×USB4 雷电 + 802.11ax Wi-Fi + cpufamily 0x6f5129ac 编码 + zh-Hans-CN 默认语言 + softwareupdate --available 改 --list (R41 综合, 写入权限图升级到 35 类, 系统身份+网络架构定档, capabilities 4.4 小版本升级)
 > v4.2→v4.3 变更: 新增 §8.10.36 M4 10C10T 满血版 + macOS 26.6/25G5057c Beta 精确编号 + Mac mini 2024 确认 + SIP enabled (R40 综合, 写入权限图升级到 34 类, 系统身份定档, capabilities 4.3 小版本升级)
 > v4.1→v4.2 变更: 新增 §8.10.35 M4 FEAT_* OID 命名规律 (CRC32/FlagM/FlagM2/FHM/DotProd) + Spotlight Indexing enabled + Safari 26.6 确认 + boot Jul 13 01:25 + kmutil 260 Kext (R39 综合, 写入权限图升级到 33 类, M4 完整 CPU 特性档案, capabilities 4.2 小版本升级)
 > v4.0→v4.1 变更: 新增 §8.10.34 CLT 已装 + Tencent/Youqu 卸载残留暴露 + mdfind 应用 0 索引损坏 + kmutil showloaded 替代 kextstat (R38 综合, 写入权限图升级到 32 类, 用户历史暴露 Tencent/Youqu, capabilities 4.1 小版本升级)
-> v3.9→v4.0 变更: 新增 §8.10.33 en0 网口明确 10.180.66.157 + 存储卷容量定档 + FileVault On + 蓝牙 BCM 型号 + afplay 零授权真实可播 0.6s + TCC 物理边界明确 (Music/Movies/Pictures, R37 综合, 写入权限图升级到 31 类, 音频输出通道新纳入能力范围, capabilities 4.0 大版本升级)
+> v3.9→v4.0 变更: 新增 §8.10.33 en0 网口明确 <本机内网IP已脱敏> + 存储卷容量定档 + FileVault On + 蓝牙 BCM 型号 + afplay 零授权真实可播 0.6s + TCC 物理边界明确 (Music/Movies/Pictures, R37 综合, 写入权限图升级到 31 类, 音频输出通道新纳入能力范围, capabilities 4.0 大版本升级)
 > v3.8→v3.9 变更: 新增 §8.10.32 Gatekeeper 实测零授权可评估 (突破默认行为) + 软件更新可用检测 + sudo 零授权必密码物理边界 (R36 综合, 写入权限图升级到 28 类, 物理边界明确: sudo/系统级写入 物理边界=必须密码)
 > v3.7→v3.8 变更: 新增 §8.10.31 Mac mini M4 硬件身份 + dump-keychain 零授权部分可读 + show-keychain-info no-timeout (R35 综合, 写入权限图升级到 25 类, 硬件身份定档)
 > v3.6→v3.7 变更: 新增 §8.10.30 钥匙串 add/delete 零授权突破 + system_profiler 应用清单 (R34 综合, 写入权限图升级到 22 类)
@@ -51,7 +51,7 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 > v3.3→v3.4 变更: 新增 §8.10.27 AS 应用 -1743 整类未授 + defaults write NSGlobalDomain 零授权 (R31 综合, 写入权限完整图升级到 13 类, lsappinfo 单条 loginwindow 为铁证)
 > v3.2→v3.3 变更: 新增 §8.10.26 defaults 应用 domain 写 + say + caffeinate (R30 综合, 写入权限完整图含 11 类命令 TCC 状态, pmset assertions 全零证实机器空闲)
 > v3.1→v3.2 变更: 新增 §8.10.25 screencapture + pbcopy + afplay + ioreg + defaults 写 (R29 综合, **首次实测无 GUI 登录**, 写入能力完整图含 9 类命令 TCC 状态)
-> v3.0→v3.1 变更: 新增 §8.10.24 log show + pmset 真失败 + 系统总览 (R28 综合, 伪成功陷阱三类, Mac mini, screencapture 全参数, Wi-Fi MAC d0:11:e5:cd:7a:6d, IPv6 未分配)
+> v3.0→v3.1 变更: 新增 §8.10.24 log show + pmset 真失败 + 系统总览 (R28 综合, 伪成功陷阱三类, Mac mini, screencapture 全参数, Wi-Fi MAC <本机Wi-Fi-MAC已脱敏>, IPv6 未分配)
 > v2.9→v3.0 变更: 新增 §8.10.23 defaults write + 网络 + log + powermetrics (R27 综合, defaults 写 /tmp plist 零授权, powermetrics 新增伪成功陷阱, log show 引号嵌套需 `'\''` 转义)
 > v2.8→v2.9 变更: 新增 §8.10.22 open + osascript 边界 + launchctl + top + lsregister + defaults read 应用 (R26 综合, asrun 必须包 do shell script, Finder/launchctl/top/lsregister 全零授权, System Events -1743 未授权)
 > v2.7→v2.8 变更: 新增 §8.10.21 plutil + mdfind + mdls + xattr + find + 时间 + crontab (R25 综合 14 探针，plutil/mdfind/xattr 零授权, crontab 暴露 send_stock_to_feishu.sh)
@@ -207,7 +207,7 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 | crontab | 🟢实测可用 | /usr/bin/crontab,适合每日8点定时跑日报 |
 | launchctl | 🟢实测可用 | /bin/launchctl,适合长期后台(launchd plist) |
 | at | 🟢实测可用 | /usr/bin/at,适合一次性定时任务 |
-| git | 🟢实测可用 | 2.50.1,GenericAgent核心代码管理 |
+| git | 🟢实测可用 | 2.50.1,Tau核心代码管理 |
 
 ### 🟠 已落地复用案例
 1. **R02 Pipeline Monitor集成**: `0 8 * * * cd /path && python pipeline_monitor.py` (待接入)
@@ -237,7 +237,7 @@ C Switch/Warp/飞书/Veee + 出口全 IP 43.254.25.230 (DNS 8.8.8.8 解析 173.1
 
 ## 8. v1.1 增量更新 (2026-06-21 R2 探测)
 
-> 探测者: GenericAgent R2
+> 探测者: Tau R2
 > 触发: autonomous_reports/R1 规划输出 TODO#1 「本机能力盘点」
 > 探测方法: subprocess + urllib HEAD/GET + socket port check
 
@@ -395,8 +395,8 @@ L2 错记"Mail/Cal/Reminders 4件套"实际为 **5件套**:
 
 | 版本 | 日期 | 探测者 | 主要变更 |
 |---|---|---|---|
-| v1.0 | 2026-06-05 | GenericAgent R03 | 首版, 覆盖 OCR/数据源/浏览器/调度 |
-| v1.1 | 2026-06-21 | GenericAgent R2 | 修正 Chrome/Mail, 新增 7 类 macOS 原生能力 |
+| v1.0 | 2026-06-05 | Tau R03 | 首版, 覆盖 OCR/数据源/浏览器/调度 |
+| v1.1 | 2026-06-21 | Tau R2 | 修正 Chrome/Mail, 新增 7 类 macOS 原生能力 |
 | v1.2 | (本轮 2026-06-24) | 自主智能体 R4 | R7 Mail 实测 + R3 handler.py 根因 + utils/bin/scripts 复核 |
 | 下次复核 | 2026-09-05 (季度) | TBD |  |
 
@@ -775,11 +775,11 @@ AliMail, CC Switch, ChatGPT, ClashX, Claude, Comet, ForkLift, Ghostty, Lark, Obs
 
 | 命令 | 用途 | 实测 |
 |---|---|---|
-| `networksetup -listallhardwareports` | 网络硬件端口 | ✅ Ethernet en0 d0:11:e5:9d:ec:05 + en5 + Wi-Fi d0:11:e5:cd:7a:6d |
+| `networksetup -listallhardwareports` | 网络硬件端口 | ✅ Ethernet en0 <MAC-邻居2已脱敏> + en5 + Wi-Fi <本机Wi-Fi-MAC已脱敏> |
 | `networksetup -getinfo 'Wi-Fi'` | Wi-Fi 状态 | ✅ DHCP/IPv6 自动 |
 | `scutil --dns` | DNS | ✅ 114.114.114.114 + 223.5.5.5 (阿里), en0 |
 | `scutil --proxy` | 代理 | ✅ HTTP 127.0.0.1:15236 + HTTPS 127.0.0.1:15236 (本机代理服务) |
-| `scutil --nwi` | 网络接口 | ✅ en0 IPv4 10.180.66.157 |
+| `scutil --nwi` | 网络接口 | ✅ en0 IPv4 <本机内网IP已脱敏> |
 | `sw_vers` | OS 版本 | ✅ macOS 26.6 (25G5057c) |
 | `sw_vers -buildVersion` | 构建版本 | ✅ 25G5057c |
 | `csrutil status` | SIP 状态 | ✅ enabled (意外: 通常需 root, do shell script 通道可读) |
@@ -898,7 +898,7 @@ AliMail, CC Switch, ChatGPT, ClashX, Claude, Comet, ForkLift, Ghostty, Lark, Obs
 | `rm -f /tmp/test_dm.plist` | 清理 | ✅ |
 | `defaults read NSGlobalDomain AppleAquaColorVariant` | 单值读 | ⚠️ rc=1 键不存在 |
 | `defaults read NSGlobalDomain | head -5` | 全列表 | ✅ zh_CN locale / AppleAntiAliasingThreshold=4 |
-| `networksetup -listallhardwareports | head -10` | 网络端口 | ✅ en0 d0:11:e5:9d:ec:05 / en5 4a:8c:bb |
+| `networksetup -listallhardwareports | head -10` | 网络端口 | ✅ en0 <MAC-邻居2已脱敏> / en5 4a:8c:bb |
 | `ifconfig | head -20` | 网络接口 | ✅ lo0 127.0.0.1 |
 | `ioreg -rd1 -c IOEthernetController` | IO 注册表 | ✅ IOSkywalkLegacyEthernet |
 | `open -g -b com.apple.systempreferences Network.prefPane` | 系统偏好 | ✅ done 后台打开 |
@@ -1186,10 +1186,10 @@ Accessibility -1743 |
 
 | 命令 | 用途 | 实测 |
 |---|---|---|
-| `system_profiler SPNetworkDataType` | 网络接口 | ✅ **en0 Ethernet 10.180.66.157** |
+| `system_profiler SPNetworkDataType` | 网络接口 | ✅ **en0 Ethernet <本机内网IP已脱敏>** |
 | `system_profiler SPSerialATADataType` | SATA 设备 | ✅ 空 (Mac mini M4 无 SATA) |
 | `system_profiler SPStorageDataType` | 存储卷 | ✅ **Macintosh HD - Data 245.11 GB / 43.04 GB 自由** |
-| `system_profiler SPBluetoothDataType` | 蓝牙 | ✅ **BCM_4388C2 D0:11:E5:AC:AE:55 ON** |
+| `system_profiler SPBluetoothDataType` | 蓝牙 | ✅ **BCM_4388C2 <MAC-历史探测已脱敏> ON** |
 | `fdesetup status` | FileVault | ✅ **On** |
 | `du -sh ~` | 用户目录 | ⚠️ **83G (TCC 拒绝子目录)** - 物理边界 |
 | `security add-trusted-cert --help` | 证书语法 | ✅ 输出 Usage |
@@ -1306,8 +1306,8 @@ splayInfoDataType (显示器)
 |---|---|---|
 | `system_profiler SPMemoryDataType` | 内存条 | ✅ **32 GB LPDDR5 (Micron)** |
 | `system_profiler SPStorageDataType` | 存储 | ✅ **APPLE SSD AP0256Z, 245.11 GB, 25.38 GB free, APFS** |
-| `system_profiler SPNetworkDataType` | 网络接口 | ✅ **Ethernet en0, IPv4 10.180.66.157** |
-| `system_profiler SPBluetoothDataType` | 蓝牙 | ✅ **BCM_4388C2, firmware 23.5.224.1475, D0:11:E5:AC:AE:55** |
+| `system_profiler SPNetworkDataType` | 网络接口 | ✅ **Ethernet en0, IPv4 <本机内网IP已脱敏>** |
+| `system_profiler SPBluetoothDataType` | 蓝牙 | ✅ **BCM_4388C2, firmware 23.5.224.1475, <MAC-历史探测已脱敏>** |
 | `system_profiler SPDeveloperToolsDataType` | 开发工具 | ⚠️ **空输出** (无独立记录) |
 | `defaults read com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag` | 触控板 | ✅ **0** |
 | `defaults read com.apple.dock` | Dock 偏好 | ✅ **autohide=0, loc=zh_CN:CN, magnification=1, bottom** |
@@ -1341,7 +1341,7 @@ splayInfoDataType (显示器)
 | `system_profiler SPCameraDataType` | 摄像头 | ⚪ 输出为空（无外接摄像头） |
 | `system_profiler SPAudioDataType` | 音频 | ✅ **DELL S3425DW 2ch 48000Hz DisplayPort** |
 | `system_profiler SPUSBDataType` | USB 外设 | ⚪ 输出为空（未识别 USB 外设） |
-| `networksetup -listallhardwareports` | 硬件端口 | ✅ **en0 Ethernet d0:11:e5:9d:ec:05 + en8 AX88179B USB 以太网** |
+| `networksetup -listallhardwareports` | 硬件端口 | ✅ **en0 Ethernet <MAC-邻居2已脱敏> + en8 AX88179B USB 以太网** |
 | `diskutil list` | 磁盘布局 | ✅ **251 GB /dev/disk0, APFS 分区** |
 | `diskutil apfs list` | APFS 容器 | ✅ **4 容器, disk3 245.1 GB, 89.6% 已用** |
 | `vm_stat` | 虚拟内存 | ✅ **页大小 16384, 活动页 ~777K** |
@@ -1378,7 +1378,7 @@ splayInfoDataType (显示器)
 | `csrutil status` | SIP 状态 | ✅ enabled |
 | `nvram -p` | 固件变量 | ✅ BluetoothInfo + supervised=false + prev-lang:kbd=zh-Hans:252 + IDInstallerDataV2 可枚举 |
 | `system_profiler SPPowerDataType` | 电源 | ✅ AC Power, System Sleep Timer 1 min, Disk Sleep 10 min, Display Sleep 10 min, Wake on LAN: Yes, Current Power Source: Yes |
-| `system_profiler SPNVMeDataType` | NVMe SSD | ✅ **APPLE SSD AP0256Z 251 GB** + TRIM Yes + Revision 2973.120 + **Serial 0ba028e3e090ac29** + GPT + Non-removable |
+| `system_profiler SPNVMeDataType` | NVMe SSD | ✅ **APPLE SSD AP0256Z 251 GB** + TRIM Yes + Revision 2973.120 + **Serial <SSD序列号已脱敏>** + GPT + Non-removable |
 | `ioreg -l \| grep -i product` | IOKit 产品名 | ✅ 26.8M IOKit 注册表，含 AppleJPEGWrapperControlV8 等 |
 | `kextstat` | 已加载 kext | ✅ 实际调用 `/usr/bin/kmutil showloaded`，达尔文 25.6.0，kpi.bsd/dsep 等 |
 | `launchctl list` | launchd 服务 | ✅ PID+Status+Label 表 (SafariHistoryServiceAgent, progressd, Finder 等) |
@@ -1412,14 +1412,14 @@ splayInfoDataType (显示器)
 | `socketfilterfw --getglobalstate` | 防火墙全局状态 | ⚠️ command not found (macOS 14+ 已从 `/usr/libexec/` 移除) |
 | `system_profiler SPFirewallDataType` | 防火墙详情 | ✅ **Mode: Allow all incoming connections** + Apple Remote Desktop: Allow all connections |
 | `lsof -nP -iTCP -sTCP:LISTEN` | TCP 监听端口 | ✅ rapportd PID 1015 x403 IPv4 TCP `*:49156` (LISTEN) |
-| `netstat -rn` | 路由表 | ✅ `default 10.180.66.1 UGScg en0` (10.180.0.0/16 网段) |
-| `arp -a` | ARP 表 | ✅ en0 上网关 `78:a1:3e:8a:42:98`，本机 `d0:11:e5:ca:2b:e8`，耗时 45.6s 表大 |
+| `netstat -rn` | 路由表 | ✅ `default <网关IP已脱敏> UGScg en0` (<内网网段已脱敏>/16 网段) |
+| `arp -a` | ARP 表 | ✅ en0 上网关 `<MAC-网关ARP已脱敏>`，本机 `<MAC-邻居1已脱敏>`，耗时 45.6s 表大 |
 | `scutil --dns` | DNS 配置 | ✅ 解析器 #1: **114.114.114.114 + 223.5.5.5** (阿里 DNS), if_index 7 en0 |
 | `scutil --proxy` | 系统代理 | ✅ **HTTPEnable 1, HTTPProxy 127.0.0.1:15236 + HTTPSEnable 1 同**, SOCKS 未启 |
 | `defaults read com.apple.dock` | Dock 设置 | ✅ autohide=0, largesize=50, lastShowIndicatorTime 805351470.26 |
 | `defaults read com.apple.finder` | Finder 设置 | ✅ BulkRenameFindText=".xls" 等可枚举 |
 | `defaults read com.apple.Safari` | Safari 设置 | ⚠️ 容器隔离: `~/Library/Containers/com.apple.Safari/Data/Library/Preferences/com.apple.Safari` 不存在 (物理事实) |
-| `system_profiler SPThunderboltDataType` | Thunderbolt | ✅ **Thunderbolt/USB4 Bus 3** Apple Inc. Mac mini UID 0x05ACEA981EC57C43 |
+| `system_profiler SPThunderboltDataType` | Thunderbolt | ✅ **Thunderbolt/USB4 Bus 3** Apple Inc. Mac mini UID 0x<TB-Bus-UID已脱敏> |
 | `system_profiler SPPrintersDataType` | 打印机 | ✅ 空 (无打印机) |
 | `system_profiler SPDisplaysDataType` | 显示器 | ✅ **Apple M4 GPU** Built-In, 10 cores |
 
@@ -1457,13 +1457,13 @@ splayInfoDataType (显示器)
 | `ps 代理相关进程` | 三方代理 | ✅ 3 无关: WirelessRadioManagerd + networkserviceproxy + ToDesk_Session_Proxy |
 | `networksetup -listallhardwareports` | 硬件端口清单 | ✅ Ethernet en0+en5+en6+en7 + **AX88179B en8** (USB 网卡) |
 | `networksetup -getinfo en0` | en0 网络服务 | ⚠️ "en0 is not a recognized network service" (BSD 设备名≠服务名, 需用"USB 10/100/1000 LAN"或"Wi-Fi") |
-| `networksetup -getinfo Wi-Fi` | Wi-Fi 服务 | ✅ DHCP + IPv6 自动 + Wi-Fi ID d0:11:e5:cd:7a:6d |
+| `networksetup -getinfo Wi-Fi` | Wi-Fi 服务 | ✅ DHCP + IPv6 自动 + Wi-Fi ID <本机Wi-Fi-MAC已脱敏> |
 | `networksetup -getwebproxy Wi-Fi` | Wi-Fi HTTP 代理 | ✅ **Enabled Yes / Server 127.0.0.1 / Port 15236** |
 | `networksetup -getsecurewebproxy Wi-Fi` | Wi-Fi HTTPS 代理 | ✅ **Enabled Yes / Server 127.0.0.1 / Port 15236** |
 | `networksetup -getwebproxy Ethernet` | 有线 HTTP 代理 | ✅ **Enabled Yes / Server 127.0.0.1 / Port 15236** |
 | `cat /etc/resolv.conf` | DNS 文件 | ✅ macOS Notice: 该文件不参与 DNS (改用 scutil --dns) |
 | `system_profiler SPAirPortDataType` | Wi-Fi 详情 | ✅ CoreWLAN 16.0 (1657) + en1 Card 0x14E4 0x4388 |
-| `scutil --nwi` | 网络接口状态 | ✅ en0 IPv4 10.180.66.157 Reachable + No IPv6 states |
+| `scutil --nwi` | 网络接口状态 | ✅ en0 IPv4 <本机内网IP已脱敏> Reachable + No IPv6 states |
 | `defaults read Finder` | Finder 设置 | ✅ 2135 行 |
 | `defaults read NSGlobalDomain` | 全局域 | ✅ zh-Hans-CN + **ApplePerAppLanguageSelectionBundleIdentifiers = (ai.perplexity.comet)** ⭐ |
 | `defaults read AppleMultitouchTrackpad` | 触控板 | ✅ Clicking=0 / Tracking 1 / 5指Pinch=2 |
@@ -1517,7 +1517,7 @@ splayInfoDataType (显示器)
 - `scutil --proxy` → HTTPEnable=1 HTTPPort=15236 HTTPProxy=127.0.0.1; HTTPSEnable=1 HTTPSPort=15236 HTTPSProxy=127.0.0.1; SOCKSEnable...
 
 **D. VPN / Network Configurations**
-- `scutil --nc list` → `* (Disconnected) 6FF992F1-61DE-4D6C-BD60-691A65A9AF54 VPN (com.liguangming.Sha...)`
+- `scutil --nc list` → `* (Disconnected) 6FF992F1-61DE-4D6C-BD60-691A65A9AF54 VPN (com.<用户名已脱敏>.Sha...)`
 - `system_profiler SPVPNDataType` → (empty)
 - `defaults read com.apple.networkextension` → 域不存在
 
@@ -1530,7 +1530,7 @@ splayInfoDataType (显示器)
 1. **Comet 149.0.7827.1** = Perplexity AI 浏览器，Apple 签名，universal x86_64+arm64
 2. **网络服务 6 个**：物理层 (Ethernet/AX88179B/Wi-Fi) + 代理层 (Loon for Mac/Shadowrocket)
 3. **scutil --proxy 实锤**：HTTP/HTTPS 双 15236+127.0.0.1 激活
-4. **VPN 6FF992F1-... (com.liguangming.Sha...)** 已注册但 Disconnected
+4. **VPN 6FF992F1-... (com.<用户名已脱敏>.Sha...)** 已注册但 Disconnected
 5. **PAC 未启用** = 手动 HTTP/HTTPS 代理而非 PAC
 6. **服务名纠正**：USB 网卡 = `AX88179B` 而非 "USB 10/100/1000 LAN"
 
@@ -1571,7 +1571,7 @@ system_profiler SPApplicationsDataType` (应用安装信息)
 - `curl -4/-6 https://api.ipify.org?format=json` → 仍 rc=7 防火墙拦截
 
 **B. Shadowrocket/Loon 配置 dump**
-- `defaults read com.liguangming.Shadowrocket` → 14 键含 DLWModuleManagerUsingCloud=0、DLWSubscribeAutoUpdateKey=1、NSOSPLastRootDirect...、NSNavPanelExpandedSizeForOpenMode={880,448}
+- `defaults read com.<用户名已脱敏>.Shadowrocket` → 14 键含 DLWModuleManagerUsingCloud=0、DLWSubscribeAutoUpdateKey=1、NSOSPLastRootDirect...、NSNavPanelExpandedSizeForOpenMode={880,448}
 - `find /Library/PrivilegedHelperTools -iname "*loon*"` → `/Library/PrivilegedHelperTools/com.loon.Loon.LoonHelper` (守护仍在)
 - `find ~/Library -iname "*loon*"` → 仅腾讯 marvis icon_cache 有 Loon 图标 (find 扫 CallHistoryDB 报权限无关)
 - `find /private/var ~ -iname "*loon*" -type f` → usernoted/apps/com.loon.Loon.txt + go mod 无关
@@ -1581,11 +1581,11 @@ system_profiler SPApplicationsDataType` (应用安装信息)
 - `lsof -nP -iUDP | head -30` → rapportd *:3722 / identid *:* 等
 
 **D. 网络出口 / DNS / 路由 / ARP**
-- `curl -4 https://icanhazip.com` → **43.254.25.230**
-- `curl -6 https://icanhazip.com` → **43.254.25.230** (v6 经代理 tunnel 到 v4)
+- `curl -4 https://icanhazip.com` → **<出口IP-BJ已脱敏>**
+- `curl -6 https://icanhazip.com` → **<出口IP-BJ已脱敏>** (v6 经代理 tunnel 到 v4)
 - `dig @8.8.8.8 google.com +short` → 173.194.43.113/138/139/102/100 (5 IP)
-- `netstat -rn` → 默认路由 **10.180.66.1 经 en0**
-- `arp -a` → 2 活跃邻居 (10.180.66.1 78:a1:3e:8a:42:98、10.180.66.56 d0:11:e5:ca:2b:e8)
+- `netstat -rn` → 默认路由 **<网关IP已脱敏> 经 en0**
+- `arp -a` → 2 活跃邻居 (<网关IP已脱敏> <MAC-网关ARP已脱敏>、<邻居IP1已脱敏> <MAC-邻居1已脱敏>)
 
 **E. 系统硬件/内核**
 - `uname -a` → Darwin bogon 25.6.0 ARM64_T8132 **arm64** (xnu-12377.160.87.0.2~12)
@@ -1646,7 +1646,7 @@ system_profiler SPApplicationsDataType` (应用安装信息)
    ↓
 Veee (PID 1986) 监听 127.0.0.1:15236
    ↓
-外部网络 43.254.25.230
+外部网络 <出口IP-BJ已脱敏>
 
 独立:
   Comet (PID 1329) 主动连接 Veee 15236 (可能 Comet 也是 Veee 的用户之一)
@@ -1697,7 +1697,7 @@ Veee (PID 1986) 监听 127.0.0.1:15236
    ↓
 Veee (PID 1986) 监听 127.0.0.1:15236
    ↓
-外部网络 43.254.25.230
+外部网络 <出口IP-BJ已脱敏>
 
 独立:
   Comet (PID 1329) 主动连接 Veee 15236 (可能 Comet 也是 Veee 的用户之一)
@@ -1728,8 +1728,8 @@ Veee (PID 1986) 监听 127.0.0.1:15236
 - Veee PID 1986 监听 127.0.0.1:15235
 
 **C. Shadowrocket 容器/配置**
-- Group Container: `/Users/x403/Library/Group Containers/group.com.liguangming.Shadowrocket` 存在
-- Containers: `com.liguangming.Shadowrocket` 与 `.Intents` 存在
+- Group Container: `/Users/x403/Library/Group Containers/group.com.<用户名已脱敏>.Shadowrocket` 存在
+- Containers: `com.<用户名已脱敏>.Shadowrocket` 与 `.Intents` 存在
 - `plutil -p` 容器 plist → **30s 超时**, TCC 阻塞读取
 
 **D. Tailscale**
@@ -1742,7 +1742,7 @@ Veee (PID 1986) 监听 127.0.0.1:15236
 - system: Tailscale network-extension, LoonTunnelExtension, com.loon.Loon.LoonHelper
 
 **F. 钥匙串**
-- `security find-generic-password -s com.liguangming.Shadowrocket` → 未找到
+- `security find-generic-password -s com.<用户名已脱敏>.Shadowrocket` → 未找到
 - 服务名 grep 无 Shadowrocket/Veee/Comet/Loon/Tailscale
 
 **G. 防火墙**
@@ -1781,7 +1781,7 @@ Veee (PID 1986) 监听 127.0.0.1:15236
 
 **C. 网络服务代理映射**
 - `networksetup -listallnetworkservices` → Ethernet / AX88179B / Wi-Fi / **Loon for Mac** / **Shadowrocket**
-- Wi-Fi: DHCP, IPv6 Automatic, MAC d0:11:e5:cd:7a:6d
+- Wi-Fi: DHCP, IPv6 Automatic, MAC <本机Wi-Fi-MAC已脱敏>
 - Wi-Fi 代理:
   - Web Proxy: **Enabled, 127.0.0.1:15236**
   - Secure Web Proxy: **Enabled, 127.0.0.1:15236**
@@ -1789,10 +1789,10 @@ Veee (PID 1986) 监听 127.0.0.1:15236
   - Auto Proxy URL: **(null)**
 
 **D. 代理协议探测**
-- `curl -x http://127.0.0.1:15236 http://httpbin.org/get` → origin **23.165.184.237** (PASS)
-- `curl --socks5 127.0.0.1:15235 http://httpbin.org/get` → origin **23.165.184.237** (PASS)
-- `curl -x http://127.0.0.1:15236 https://api.ipify.org` → `{"ip":"23.165.184.237"}` (PASS)
-- `curl --socks5 127.0.0.1:15235 https://api.ipify.org` → `{"ip":"23.165.184.237"}` (PASS)
+- `curl -x http://127.0.0.1:15236 http://httpbin.org/get` → origin **<代理出口IP-LA已脱敏>** (PASS)
+- `curl --socks5 127.0.0.1:15235 http://httpbin.org/get` → origin **<代理出口IP-LA已脱敏>** (PASS)
+- `curl -x http://127.0.0.1:15236 https://api.ipify.org` → `{"ip":"<代理出口IP-LA已脱敏>"}` (PASS)
+- `curl --socks5 127.0.0.1:15235 https://api.ipify.org` → `{"ip":"<代理出口IP-LA已脱敏>"}` (PASS)
 
 **E. Shadowrocket Group Container**
 - `ls`/`find` 该 Group Container 均 **30s 超时** (TCC 阻塞)
@@ -1806,10 +1806,10 @@ Veee (PID 1986) 监听 127.0.0.1:15236
 - 无独立 VeeeHelper 进程
 
 **H. 出口 whois / 路由 MTU**
-- 直连出口 (R48): `43.254.25.230` → whois: CHTCN / Beijing horizon telecommunication / CN
-- 经 Veee 代理出口: `23.165.184.237` → whois: M247-EU / Los Angeles / US
-- en0: mtu 1500, inet 10.180.66.157, 1000baseT full-duplex, active
-- default route: 10.180.66.1 via en0
+- 直连出口 (R48): `<出口IP-BJ已脱敏>` → whois: CHTCN / Beijing horizon telecommunication / CN
+- 经 Veee 代理出口: `<代理出口IP-LA已脱敏>` → whois: M247-EU / Los Angeles / US
+- en0: mtu 1500, inet <本机内网IP已脱敏>, 1000baseT full-duplex, active
+- default route: <网关IP已脱敏> via en0
 
 **洞察**
 - **Veee 使用 setuid-root ProxyHelper 修改系统代理 / 网络层**。
@@ -1855,8 +1855,8 @@ SOCKSEnable : 1, SOCKSProxy : 127.0.0.1, SOCKSPort : 15235
 
 **E. Veee 远端隧道**
 - lsof: Veee PID 1986 两条 `ESTABLISHED` 连接
-  - `10.180.66.157:56802 -> 125.94.54.87:40246`
-  - `10.180.54.87:40246` 为 Veee 控制/数据服务器端点
+  - `<本机内网IP已脱敏>:56802 -> <Veee远端IP已脱敏>:40246`
+  - `<Veee内网端点IP已脱敏>:40246` 为 Veee 控制/数据服务器端点
 - netstat: 本地 15235/15236 与回环端口 56816/56820 已建立 (客户端连接)
 
 **F. nettop 快照**
@@ -1889,13 +1889,13 @@ SOCKSEnable : 1, SOCKSProxy : 127.0.0.1, SOCKSPort : 15235
 - 模块名: `sunbg-agent` (shadowsocks-libev 风格代理实现)
 - PAC 出现 66 次, url/server/host/connect/register 等大量代理相关标识
 - 加密方法字符串: `aes-256-cfb`、`aes-256-gcm` (shadowsocks 风格)
-- 说明 Veee 内部使用类 Shadowsocks 协议, 本地监听 SOCKS5 15235 与 HTTP 15236, 远端 125.94.54.87:40246
+- 说明 Veee 内部使用类 Shadowsocks 协议, 本地监听 SOCKS5 15235 与 HTTP 15236, 远端 <Veee远端IP已脱敏>:40246
 
-**C. 远端 125.94.54.87 网络画像**
-- whois (APNIC): `125.94.54.87` 属于 `CHINANET-GD` / `AS58466` / 广东电信 / 广州
-- inetnum: `125.88.0.0 - 125.95.255.255`
+**C. 远端 <Veee远端IP已脱敏> 网络画像**
+- whois (APNIC): `<Veee远端IP已脱敏>` 属于 `CHINANET-GD` / `AS58466` / 广东电信 / 广州
+- inetnum: `<网段起已脱敏> - <网段止已脱敏>`
 - 角色: 网络接入服务商, 很可能为 Veee 代理隧道服务器或中转节点
-- traceroute 5 跳: `43.254.25.225` → `125.33.78.241` → `219.143.238.193` → ... → `125.94.54.87`
+- traceroute 5 跳: `<TR跳1已脱敏>` → `<TR跳2已脱敏>` → `<TR跳3已脱敏>` → ... → `<Veee远端IP已脱敏>`
 - ping: min/avg/max = 45.4/46.4/47.1 ms, TTL 52
 
 **D. Veee 应用数据沙盒**
@@ -1912,7 +1912,7 @@ SOCKSEnable : 1, SOCKSProxy : 127.0.0.1, SOCKSPort : 15235
 - `SS` 是 symlink 指向 `/var/folders/.../T/.club.veee.app.*/SS`, 目标为 Unix domain socket (Veee 与 ProxyHelper 间 IPC)
 
 **E. 权限/日志物理边界**
-- `tcpdump -i any host 125.94.54.87` 因缺少 BPF 权限被拒绝 (需要 root 或 entitlements)
+- `tcpdump -i any host <Veee远端IP已脱敏>` 因缺少 BPF 权限被拒绝 (需要 root 或 entitlements)
 - `log show --predicate 'process == "Veee"'` 无法打开本地日志存储 (TCC/权限)
 
 **F. APFS / 磁盘状态**
@@ -1923,7 +1923,7 @@ SOCKSEnable : 1, SOCKSProxy : 127.0.0.1, SOCKSPort : 15235
 **G. 运行视图**
 - 主程序: `/Applications/Veee.app/Contents/MacOS/Veee` (x86_64 thin)
 - 实际代理进程: `/Applications/Veee.app/Contents/Resources/libs/ios/Veee` (x86_64 thin, Rosetta 运行, Identifier=`Veee`)
-- PID 1986, lsof 远端: `10.180.66.157:56802 -> 125.94.54.87:40246`
+- PID 1986, lsof 远端: `<本机内网IP已脱敏>:56802 -> <Veee远端IP已脱敏>:40246`
 
 ### 8.10.51 AppleScript 执行边界 (R57 asrun 异常根因)
 

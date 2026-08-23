@@ -3,7 +3,7 @@
 Run from project root:
     python apps/tui/app.py
 
-Visual design carried from temp/GA_tui 设计/tui_demo.py;
+Visual design carried from temp/Tau_tui 设计/tui_demo.py;
 functionality migrated from the original tui module (now apps/tui/app.py) plus new commands:
 - /btw       — side question (subagent, doesn't interrupt main)
 - /continue  — list / restore historical sessions
