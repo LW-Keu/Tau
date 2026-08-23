@@ -48,6 +48,7 @@ tasks/
 memory/*
 !memory/__init__.py
 !memory/memory_management_sop.md
+!memory/memory_skill.md
 !memory/email_config.py
 !memory/email_send.py
 !memory/email_setup_sop.md
@@ -69,7 +70,6 @@ memory/*
 !memory/daily_report_render_fallback.py
 memory/global_mem.txt
 memory/global_mem_insight.txt
-!memory/email_setup_sop.md
 
 # L4 session archiver (only the script, not archives)
 !memory/L4_raw_sessions/
@@ -98,12 +98,6 @@ memory/L4_raw_sessions/*
 # Vue3 Component SOP
 !memory/vue3_component_sop.md
 
-# Subagent SOP
-!memory/subagent_sop.md
-
-# Supervisor SOP
-!memory/supervisor_sop.md
-
 # Plan SOP
 !memory/plan_sop.md
 
@@ -116,10 +110,6 @@ memory/L4_raw_sessions/*
 # Skill Search SOP
 !memory/skill_search/
 !memory/skill_search/**
-
-# dp related tools
-!memory/dp/
-!memory/dp/**
 
 # ADB UI tool
 !memory/adb_ui.py
@@ -146,17 +136,15 @@ memory/L4_raw_sessions/*
 restore_commit.txt
 
 # 任务定义 JSON + fallback shell 入版本控制 (白名单)
-# 不放 done/ (产物) / scheduler.log (运行时日志) / 其他子目录
-sche_tasks/
-sche_tasks/done/
-sche_tasks/scheduler.log
-sche_tasks/*.log
+# 注意: 必须用 sche_tasks/* (排除子条目) 而非 sche_tasks/ (排除目录),
+# 否则 gitignore 的父目录排除规则会让 ! 反白名单永远失效。
+# done/ (产物) / *.log (运行时日志) / 其他子目录均不入库。
+sche_tasks/*
 !sche_tasks/*.json
 !sche_tasks/*.sh
 # CDP Bridge 密钥配置（首次运行自动生成）
 external/TMWebDriver/tmwd_cdp_bridge/config.js
 assets/copilot_proxy.pyw
-**log.*
 
 # Daily report runtime artifacts (PID lock + per-day raw input data)
 scheduler.pid

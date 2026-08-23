@@ -17,7 +17,7 @@
 
 ---
 
-Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`,运行时资产位于 `assets/` 和 `memory/`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
+Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`(路径锚点在 `src/tau_paths`),运行时资产位于 `assets/` 和 `memory/`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
 
 它不预设一长串功能,而是给你一个能**自我进化**的最小系统:跑起来之后,你只需用一句话告诉它要什么,它会自己读代码、找依赖、解锁能力,并把执行路径沉淀成可复用的 Skill——使用越久,它越懂你。
 
@@ -162,7 +162,7 @@ WorkBuddy 随请求提供，Tau 的内部工具调用记录不跨请求保存。
 
 ```
 Tau/
-├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai
+├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai · tau_paths(仓库根锚点)
 ├── apps/         # 多前端/通道:common · api · tui · gui · web · pet · desktop · im · hub
 ├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
 ├── external/     # 外部组件:TMWebDriver(浏览器自动化,保留登录态) · agent_bbs
@@ -195,7 +195,7 @@ Tau/
 | 2026-06-15 | 🎉 项目诞生(initial commit),极简内核成型 |
 | 2026-06-20 | 每日报告(daily report)分层多源采集系统上线 |
 | 2026-06-21 | 邮件子系统 **v2.1** —— 配置 / 发送规格化 |
-| 2026-06-22 | 建立唯一仓库根锚点(现为 `src/tau_coding/paths.py`) |
+| 2026-06-22 | 建立唯一仓库根锚点(现为 `src/tau_paths/`) |
 | 2026-06-26 | TMWebDriver **Site Skills** 系统;`apps/` 前端包脚手架 |
 | 2026-06-27 | 前端统一收敛到 `apps/`(数据驱动 launcher);邮件 **v2.2** 多发件人 |
 

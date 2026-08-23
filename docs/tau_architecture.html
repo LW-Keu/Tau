@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tau 代码协作架构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #f0e6ff;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    min-height: 100vh;
+    padding: 30px;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2.4em;
+    color: #6a1b9a;
+    margin-bottom: 10px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 1.1em;
+    color: #888;
+    margin-bottom: 40px;
+  }
+  .big-arrow {
+    text-align: center;
+    font-size: 3em;
+    margin: 10px 0;
+    animation: bounce 1.5s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .box {
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 160px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+  }
+  .kernel { background: #e1bee7; color: #4a148c; border: 4px solid #9c27b0; }
+  .brain   { background: #c8e6c9; color: #1b5e20; border: 4px solid #43a047; }
+  .mouth   { background: #b3e5fc; color: #01579b; border: 4px solid #0288d1; }
+  .face    { background: #fff9c4; color: #f57f17; border: 4px solid #fbc02d; }
+  .apps    { background: #ffccbc; color: #bf360c; border: 4px solid #e64a19; }
+  .tools   { background: #d1c4e9; color: #4527a0; border: 4px solid #7e57c2; }
+
+  .big-emoji {
+    font-size: 4em;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .section-title {
+    text-align: center;
+    font-size: 1.3em;
+    color: #7b1fa2;
+    margin: 30px 0 15px;
+    font-weight: bold;
+  }
+  .caption {
+    text-align: center;
+    font-size: 0.95em;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    line-height: 1.5;
+  }
+  .apps-grid {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+  .app-box {
+    background: white;
+    border-radius: 15px;
+    padding: 15px 20px;
+    text-align: center;
+    border: 3px solid #ff8a65;
+    min-width: 100px;
+  }
+  .app-emoji { font-size: 2.5em; display: block; margin-bottom: 5px; }
+  .app-name { font-size: 0.85em; font-weight: bold; color: #bf360c; }
+  .memory-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+  .mem-box {
+    background: #ede7f6;
+    border-radius: 12px;
+    padding: 12px 18px;
+    border: 3px solid #7e57c2;
+    text-align: center;
+  }
+  .mem-emoji { font-size: 2em; display: block; margin-bottom: 4px; }
+  .mem-name { font-size: 0.8em; color: #4527a0; font-weight: bold; }
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: #999;
+    font-size: 0.9em;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧠 Tau 代码怎么一起工作？</h1>
+<p class="subtitle">就像一个机器人大脑 + 很多张脸</p>
+
+<div class="section-title">🏗️ 核心工作流</div>
+
+<div class="row">
+  <div class="box kernel">
+    <span class="big-emoji">🧠</span>
+    tau_coding<br>（大脑内核）
+  </div>
+  <div class="big-arrow">→</div>
+  <div class="box brain">
+    <span class="big-emoji">🤖</span>
+    tau_agent<br>（思考机器人）
+  </div>
+  <div class="big-arrow">→</div>
+  <div class="box mouth">
+    <span class="big-emoji">🗣️</span>
+    tau_ai<br>（嘴巴-和AI说话）
+  </div>
+</div>
+
+<p class="caption">
+  你对 Tau 说的话 → <b>tau_coding</b> 接收 → <b>tau_agent</b> 想办法 → <b>tau_ai</b> 去找 AI 大模型要答案
+</p>
+
+<div class="section-title">😀 然后……它可以用很多张脸！</div>
+
+<div class="apps-grid">
+  <div class="app-box">
+    <span class="app-emoji">💻</span>
+    <span class="app-name">命令行</span>
+  </div>
+  <div class="app-box">
+    <span class="app-emoji">📱</span>
+    <span class="app-name">TUI窗口</span>
+  </div>
+  <div class="app-box">
+    <span class="app-emoji">🌐</span>
+    <span class="app-name">网页</span>
+  </div>
+  <div class="app-box">
+    <span class="app-emoji">🐧</span>
+    <span class="app-name">桌面宠物</span>
+  </div>
+  <div class="app-box">
+    <span class="app-emoji">💬</span>
+    <span class="app-name">微信/QQ</span>
+  </div>
+  <div class="app-box">
+    <span class="app-emoji">🖥️</span>
+    <span class="app-name">桌面应用</span>
+  </div>
+</div>
+
+<p class="caption">
+  无论用哪种方式聊天，背后的"大脑"都是同一套代码！
+</p>
+
+<div class="section-title">📚 记忆库 = Tau 学到的技能</div>
+
+<div class="memory-row">
+  <div class="mem-box">
+    <span class="mem-emoji">📝</span>
+    <span class="mem-name">memory/*.md<br>SOP 说明书</span>
+  </div>
+  <div class="mem-box">
+    <span class="mem-emoji">🔧</span>
+    <span class="mem-name">memory/*.py<br>工具函数</span>
+  </div>
+  <div class="mem-box">
+    <span class="mem-emoji">🗂️</span>
+    <span class="mem-name">assets/<br>提示词&amp;配置</span>
+  </div>
+</div>
+
+<p class="caption">
+  Agent 运行时读取这些文件来知道怎么做事——就像你记住步骤再做作业！
+</p>
+
+<div class="section-title">🔗 一句话总结</div>
+
+<div class="row" style="margin-bottom:30px">
+  <div class="box face" style="max-width:700px; font-size:1.2em">
+    <span class="big-emoji">👇</span>
+    tau（你）= 很多张脸（apps/）<br>
+    同一颗大脑（src/tau_coding + tau_agent + tau_ai）<br>
+    + 学到的技能（memory/）
+  </div>
+</div>
+
+<div class="footer">
+  所有前端都在 apps/，大脑在 src/，技能在 memory/，配置在 assets/
+</div>
+
+</body>
+</html>

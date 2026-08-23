@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tau Agent Loop — ELI5</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #e8f5e9;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    min-height: 100vh;
+    padding: 30px;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2.4em;
+    color: #2e7d32;
+    margin-bottom: 10px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 1.1em;
+    color: #888;
+    margin-bottom: 40px;
+  }
+  .big-emoji { font-size: 4em; display: block; margin-bottom: 8px; }
+  .section-title {
+    text-align: center;
+    font-size: 1.3em;
+    color: #1b5e20;
+    margin: 30px 0 15px;
+    font-weight: bold;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .box {
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 150px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+  }
+  .loop-box   { background: #c8e6c9; color: #1b5e20; border: 4px solid #43a047; }
+  .think-box  { background: #bbdefb; color: #0d47a1; border: 4px solid #1976d2; }
+  .tool-box   { background: #fff9c4; color: #f57f17; border: 4px solid #fbc02d; }
+  .done-box   { background: #e1bee7; color: #4a148c; border: 4px solid #9c27b0; }
+  .step-box   { background: #ffccbc; color: #bf360c; border: 4px solid #e64a19; }
+
+  .arrow {
+    font-size: 2.5em;
+    animation: slide 1s infinite;
+  }
+  @keyframes slide {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+  .loop-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: #c8e6c9;
+    border: 6px solid #43a047;
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #1b5e20;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .step-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .step {
+    background: white;
+    border-radius: 15px;
+    padding: 12px 18px;
+    border: 3px solid #e64a19;
+    text-align: center;
+    min-width: 120px;
+  }
+  .step-num {
+    background: #e64a19;
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 6px;
+    font-size: 0.85em;
+  }
+  .step-emoji { font-size: 1.8em; display: block; margin-bottom: 4px; }
+  .step-name { font-size: 0.8em; color: #bf360c; font-weight: bold; }
+  .tools-grid {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+  .tool-chip {
+    background: #fff9c4;
+    border: 3px solid #fbc02d;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+    color: #f57f17;
+    font-weight: bold;
+  }
+  .caption {
+    text-align: center;
+    font-size: 0.95em;
+    color: #666;
+    max-width: 580px;
+    margin: 0 auto 20px;
+    line-height: 1.5;
+  }
+  .events-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+  }
+  .event-tag {
+    background: #e1bee7;
+    border: 2px solid #9c27b0;
+    border-radius: 10px;
+    padding: 5px 12px;
+    font-size: 0.75em;
+    color: #4a148c;
+    font-family: monospace;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: #999;
+    font-size: 0.9em;
+  }
+</style>
+</head>
+<body>
+
+<h1>🤖 Tau Agent Loop 是什么？</h1>
+<p class="subtitle">就像机器人"想一想 → 做 → 再想 → 再做"的循环</p>
+
+<!-- THE BIG LOOP -->
+<div class="section-title">🔄 核心大循环</div>
+
+<div class="row">
+  <div class="loop-circle">
+    <span>转<br>圈<br>圈</span>
+  </div>
+</div>
+
+<p class="caption">
+  Tau Agent 不断转圈圈，每转一圈就叫一个 <b>Turn</b>。<br>
+  最多转 N 圈（max_turns），或者它觉得"搞定！"了就停。
+</p>
+
+<!-- STEP BY STEP -->
+<div class="section-title">👣 每圈怎么走？</div>
+
+<div class="step-flow">
+  <div class="step">
+    <div class="step-num">1</div>
+    <span class="step-emoji">🎬</span>
+    <span class="step-name">Turn 开始</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="step">
+    <div class="step-num">2</div>
+    <span class="step-emoji">🤖</span>
+    <span class="step-name">问 AI 大脑</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="step">
+    <div class="step-num">3</div>
+    <span class="step-emoji">🔧</span>
+    <span class="step-name">做工具</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="step">
+    <div class="step-num">4</div>
+    <span class="step-emoji">📦</span>
+    <span class="step-name">拿结果</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="step">
+    <div class="step-num">5</div>
+    <span class="step-emoji">🔁</span>
+    <span class="step-name">下一圈</span>
+  </div>
+</div>
+
+<p class="caption">
+  问 AI → AI 说"用工具XXX" → 做工具 → 拿结果 → 再问 AI → ……
+</p>
+
+<!-- TOOLS -->
+<div class="section-title">🧰 它会做哪些工具？</div>
+
+<div class="tools-grid">
+  <div class="tool-chip">💻 code_run<br>跑代码</div>
+  <div class="tool-chip">📖 file_read<br>读文件</div>
+  <div class="tool-chip">✏️ file_write<br>写文件</div>
+  <div class="tool-chip">🔍 web_scan<br>搜网页</div>
+  <div class="tool-chip">❓ ask_user<br>问你</div>
+  <div class="tool-chip">💾 checkpoint<br>存档</div>
+</div>
+
+<p class="caption">
+  工具列表在 <b>assets/tools_schema.json</b> 定义。<br>
+  每个工具对应一个 <b>do_xxx</b> 方法，用 <b>handler.dispatch()</b> 统一调度。
+</p>
+
+<!-- EVENTS -->
+<div class="section-title">📢 圈里发生的事（Events）</div>
+
+<div class="events-row">
+  <span class="event-tag">TurnStarted</span>
+  <span class="event-tag">AssistantTextChunk</span>
+  <span class="event-tag">ToolCallStart</span>
+  <span class="event-tag">ToolOutputChunk</span>
+  <span class="event-tag">TurnEnded</span>
+</div>
+
+<p class="caption">
+  每一步都会发出事件，就像"播报员"告诉大家现在发生什么了。<br>
+  可以加插件（Hook）来监听这些事件，比如记录到 Langfuse！
+</p>
+
+<!-- HANDLER -->
+<div class="section-title">🎮 Handler = 工具遥控器</div>
+
+<div class="row">
+  <div class="box think-box" style="max-width:500px">
+    <span class="big-emoji">🎮</span>
+    TauHandler.dispatch("tool_name", args)<br>
+    ↓<br>
+    找到 do_tool_name 方法<br>
+    ↓<br>
+    做事 + 返回结果
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="section-title">🔗 一句话总结</div>
+
+<div class="row" style="margin-bottom:30px">
+  <div class="box step-box" style="max-width:600px; font-size:1.1em; line-height:1.8">
+    <span class="big-emoji">🔄</span>
+    Agent Loop = "问 AI → 做工具 → 再问 → 再做"<br>
+    循环 N 圈，直到任务完成或达到上限。<br>
+    Handler 调度工具，Events 记录每一步。
+  </div>
+</div>
+
+<div class="footer">
+  核心文件：tau_agent/agent_loop.py · events.py · handler.py · tools/
+</div>
+
+</body>
+</html>
