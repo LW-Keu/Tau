@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Loop 图解 — 像教一个聪明实习生干活</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    background:#fdf6ec; color:#3a3226; line-height:1.6;
+  }
+  .wrap { max-width:1080px; margin:0 auto; padding:48px 24px 96px; }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align:center; padding:40px 0 24px; }
+  .hero h1 { font-size:44px; letter-spacing:2px; }
+  .hero .sub { font-size:20px; color:#8a7a63; margin-top:10px; }
+  .hero .badge { display:inline-block; margin-top:18px; background:#ffd97a; border-radius:999px;
+    padding:6px 18px; font-size:15px; font-weight:700; }
+
+  section { margin-top:72px; }
+  h2 { font-size:30px; text-align:center; margin-bottom:8px; }
+  .lead { text-align:center; font-size:18px; color:#8a7a63; margin-bottom:32px; }
+
+  /* ---------- 大循环图 ---------- */
+  .loop-stage { position:relative; height:420px; margin:0 auto; max-width:640px; }
+  .loop-ring {
+    position:absolute; inset:40px; border:6px dashed #e8b84b; border-radius:50%;
+    animation: spin 24s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loop-center {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    text-align:center; font-size:22px; font-weight:800; background:#fff;
+    border-radius:24px; padding:18px 26px; box-shadow:0 6px 24px rgba(0,0,0,.08);
+    z-index:2;
+  }
+  .loop-center small { display:block; font-size:14px; color:#8a7a63; font-weight:400; }
+  .node {
+    position:absolute; width:130px; text-align:center; font-weight:700; font-size:17px;
+    background:#fff; border-radius:18px; padding:12px 6px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08); z-index:2;
+  }
+  .node .ic { font-size:44px; display:block; }
+  .n1 { top:0;   left:50%; transform:translateX(-50%); }
+  .n2 { right:0; top:50%;  transform:translateY(-50%); }
+  .n3 { bottom:0;left:50%; transform:translateX(-50%); }
+  .n4 { left:0;  top:50%;  transform:translateY(-50%); }
+  .node { animation: pulse 4s ease-in-out infinite; }
+  .n2 { animation-delay:1s; } .n3 { animation-delay:2s; } .n4 { animation-delay:3s; }
+  @keyframes pulse { 0%,100%{ box-shadow:0 4px 14px rgba(0,0,0,.08);} 50%{ box-shadow:0 4px 22px #f2a93b; transform:translateX(-50%) scale(1.06);} }
+  .n2 { animation-name: pulseR; } .n3 { animation-name: pulseB; } .n4 { animation-name: pulseL; }
+  @keyframes pulseR { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.08);} 50%{box-shadow:0 4px 22px #f2a93b; transform:translateY(-50%) scale(1.06);} }
+  @keyframes pulseB { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.08);} 50%{box-shadow:0 4px 22px #f2a93b; transform:translateX(-50%) scale(1.06);} }
+  @keyframes pulseL { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.08);} 50%{box-shadow:0 4px 22px #f2a93b; transform:translateY(-50%) scale(1.06);} }
+
+  /* ---------- 横向步骤 ---------- */
+  .steps { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .step {
+    flex:1 1 170px; max-width:190px; background:#fff; border-radius:20px; padding:22px 14px;
+    text-align:center; box-shadow:0 4px 14px rgba(0,0,0,.07); position:relative;
+  }
+  .step .num {
+    position:absolute; top:-14px; left:-10px; background:#f2913b; color:#fff;
+    width:32px; height:32px; border-radius:50%; font-weight:800; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step .ic { font-size:48px; display:block; margin-bottom:8px; }
+  .step h3 { font-size:18px; margin-bottom:6px; }
+  .step p { font-size:14px; color:#8a7a63; }
+  .arrow { align-self:center; font-size:26px; color:#e8b84b; font-weight:800; }
+
+  /* ---------- 九宫格 ---------- */
+  .grid9 { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .tool {
+    background:#fff; border-radius:16px; padding:16px 10px; text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.06);
+  }
+  .tool .ic { font-size:34px; display:block; }
+  .tool b { font-size:14px; display:block; margin-top:4px; }
+  .tool span { font-size:12px; color:#8a7a63; display:block; }
+  .callout {
+    margin-top:20px; background:#fff3d6; border-radius:16px; padding:18px 22px;
+    font-size:17px; text-align:center; font-weight:600;
+  }
+
+  /* ---------- 两栏比喻 ---------- */
+  .duo { display:flex; gap:18px; flex-wrap:wrap; }
+  .col { flex:1 1 300px; background:#fff; border-radius:22px; padding:26px;
+    box-shadow:0 4px 16px rgba(0,0,0,.07); text-align:center; }
+  .col .ic { font-size:56px; }
+  .col h3 { font-size:20px; margin:10px 0 8px; }
+  .col p { font-size:15px; color:#6f6350; }
+  .col .tag { display:inline-block; margin-top:12px; font-size:13px; background:#eee3cf;
+    padding:4px 12px; border-radius:999px; color:#6f6350; }
+
+  /* ---------- 便签 ---------- */
+  .note-card {
+    background:#fff8d9; border-radius:4px; padding:20px 24px; max-width:560px; margin:0 auto;
+    box-shadow:2px 4px 12px rgba(0,0,0,.10); transform:rotate(-1.5deg);
+    font-family:"Kaiti SC","KaiTi",serif; font-size:17px;
+  }
+  .note-card b { display:block; margin-bottom:6px; font-size:18px; }
+  .note-card ul { list-style:none; }
+  .note-card li { margin:4px 0; }
+  .under { text-align:center; margin-top:16px; color:#8a7a63; font-size:15px; }
+
+  /* ---------- 三停卡 ---------- */
+  .stops { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .stop { flex:1 1 240px; border-radius:20px; padding:24px 18px; text-align:center; color:#fff; }
+  .stop .ic { font-size:46px; display:block; }
+  .stop h3 { font-size:19px; margin:8px 0 4px; }
+  .stop p { font-size:14px; opacity:.92; }
+  .s1 { background:#5ba843; } .s2 { background:#e08a3c; } .s3 { background:#b05b4b; }
+
+  /* ---------- 闹钟时间轴 ---------- */
+  .clocks { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .clock { background:#fff; border-radius:20px; padding:20px 16px; text-align:center;
+    flex:1 1 200px; box-shadow:0 4px 14px rgba(0,0,0,.07); }
+  .clock .round { font-size:15px; font-weight:800; color:#fff; background:#f2913b;
+    display:inline-block; padding:4px 14px; border-radius:999px; }
+  .clock .ic { font-size:44px; display:block; margin:10px 0 4px; }
+  .clock p { font-size:15px; }
+  .clock small { color:#8a7a63; font-size:13px; }
+
+  /* ---------- no_tool ---------- */
+  .bubble { max-width:640px; margin:0 auto; }
+  .row { display:flex; gap:12px; margin:14px 0; align-items:flex-start; }
+  .row .face { font-size:40px; flex:0 0 52px; text-align:center; }
+  .row .say { background:#fff; border-radius:4px 18px 18px 18px; padding:12px 18px;
+    box-shadow:0 3px 10px rgba(0,0,0,.07); font-size:16px; }
+  .row.right { flex-direction:row-reverse; }
+  .row.right .say { border-radius:18px 4px 18px 18px; background:#ffe9b3; }
+
+  /* ---------- GA vs Tau ---------- */
+  .vs { display:flex; gap:18px; flex-wrap:wrap; }
+  .tv { flex:1 1 320px; background:#fff; border-radius:24px; padding:26px; text-align:center;
+    box-shadow:0 4px 16px rgba(0,0,0,.08); }
+  .tv .screen { background:#2e2a24; border-radius:14px; padding:26px 16px; margin:14px 0;
+    color:#ffd97a; font-size:15px; min-height:120px; display:flex; align-items:center; justify-content:center; }
+  .tv h3 { font-size:20px; }
+  .tv p { font-size:14px; color:#6f6350; }
+  .tv .who { font-size:13px; color:#b0a288; margin-top:10px; }
+  .screens { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .screens span { background:#f4ead6; border-radius:8px; padding:4px 10px; font-size:13px; }
+
+  footer { margin-top:90px; text-align:center; color:#b0a288; font-size:14px; }
+  footer b { color:#8a7a63; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <h1>🔄 Agent Loop</h1>
+    <div class="sub">会自己干活的 AI,是怎么「转」起来的?</div>
+    <div class="badge">像教一个聪明实习生干活 🧑‍🎓</div>
+  </div>
+
+  <!-- ================= 大循环 ================= -->
+  <section>
+    <h2>就一个圈:想 → 干 → 看 → 再想</h2>
+    <p class="lead">你只说一次需求,它自己一圈一圈转到做完为止</p>
+    <div class="loop-stage">
+      <div class="loop-ring"></div>
+      <div class="loop-center">🔁 循环<br><small>转到做完为止</small></div>
+      <div class="node n1"><span class="ic">🧠</span>大脑想一步</div>
+      <div class="node n2"><span class="ic">🛠️</span>挑工具干活</div>
+      <div class="node n3"><span class="ic">📥</span>结果塞回来</div>
+      <div class="node n4"><span class="ic">🤔</span>看结果,再想</div>
+    </div>
+  </section>
+
+  <!-- ================= 一圈五步 ================= -->
+  <section>
+    <h2>一圈到底发生什么</h2>
+    <p class="lead">五步,每一步都简单,连起来就了不起</p>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><span class="ic">🗣️</span><h3>你说需求</h3><p>「帮我整理日报」</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">2</div><span class="ic">🧠</span><h3>大脑想一步</h3><p>输出想法 + 挑一个工具</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">3</div><span class="ic">🛠️</span><h3>工具干活</h3><p>读文件 / 跑代码 / 开网页</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">4</div><span class="ic">📥</span><h3>结果回传</h3><p>附一张便签一起塞回大脑</p></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">5</div><span class="ic">🔁</span><h3>继续或停</h3><p>没做完?回到第 2 步</p></div>
+    </div>
+  </section>
+
+  <!-- ================= 9 工具 ================= -->
+  <section>
+    <h2>🧰 双手只有 9 样,够了</h2>
+    <p class="lead">不给它一百个按钮,给它一根万能钥匙</p>
+    <div class="grid9">
+      <div class="tool"><span class="ic">🐍</span><b>跑代码</b><span>code_run</span></div>
+      <div class="tool"><span class="ic">📖</span><b>读文件</b><span>file_read</span></div>
+      <div class="tool"><span class="ic">🩹</span><b>改文件</b><span>file_patch</span></div>
+      <div class="tool"><span class="ic">✍️</span><b>写文件</b><span>file_write</span></div>
+      <div class="tool"><span class="ic">🌐</span><b>看网页</b><span>web_scan</span></div>
+      <div class="tool"><span class="ic">⚡</span><b>网页操作</b><span>web_execute_js</span></div>
+      <div class="tool"><span class="ic">📝</span><b>记要点</b><span>checkpoint</span></div>
+      <div class="tool"><span class="ic">🙋</span><b>问老板</b><span>ask_user</span></div>
+      <div class="tool"><span class="ic">💾</span><b>存经验</b><span>long_term</span></div>
+    </div>
+    <div class="callout">🔑 「跑代码」是万能钥匙:9 样之外的本事,现场写代码解决,再存成技能</div>
+  </section>
+
+  <!-- ================= 账本分离 ================= -->
+  <section>
+    <h2>🗂️ 聪明的偷懒:循环只递新纸条</h2>
+    <p class="lead">完整聊天记录不跟着循环跑,存进档案馆</p>
+    <div class="duo">
+      <div class="col">
+        <span class="ic">🏃</span>
+        <h3>跑腿的(循环)</h3>
+        <p>每圈只递<b>一张新纸条</b>:这轮的工具结果 + 便签。轻装上阵,永远不背着全史跑。</p>
+        <span class="tag">agent_loop.py</span>
+      </div>
+      <div class="col">
+        <span class="ic">🏛️</span>
+        <h3>档案馆(账本)</h3>
+        <p>完整对话历史存在另一本「Session 账本」里,太厚了自动撕掉最旧几页。</p>
+        <span class="tag">backend.history</span>
+      </div>
+    </div>
+    <div class="callout">✂️ 好处:换大脑(换模型)不丢历史;两套 API 协议随便切换;裁剪历史不惊动循环</div>
+  </section>
+
+  <!-- ================= 便签 ================= -->
+  <section>
+    <h2>📝 每圈附一张便签(工作记忆)</h2>
+    <p class="lead">怕大脑忘事,每轮都把要点重新塞给它</p>
+    <div class="note-card">
+      <b>📌 便签</b>
+      <ul>
+        <li>🧾 最近干过的 20~30 件事(每件一行)</li>
+        <li>🎯 这件事的要点 key_info(老板要什么、坑在哪)</li>
+        <li>⏱️ 现在转到第几圈了</li>
+      </ul>
+    </div>
+    <p class="under">更早的旧事不扔,折成「xx(N 圈前)」压在便签底下</p>
+  </section>
+
+  <!-- ================= 三种停法 ================= -->
+  <section>
+    <h2>🛑 什么时候停</h2>
+    <p class="lead">停不停,由工具带回的「三件套」说了算:结果 / 下一步 / 要不要停</p>
+    <div class="stops">
+      <div class="stop s1"><span class="ic">✅</span><h3>做完了</h3><p>没再要工具,光说了句答词 → 收工</p></div>
+      <div class="stop s2"><span class="ic">🙋</span><h3>得问老板</h3><p>遇到要拿主意的事 → 暂停,等人回话</p></div>
+      <div class="stop s3"><span class="ic">⏰</span><h3>转够圈了</h3><p>到 70 / 80 圈上限 → 强制下班</p></div>
+    </div>
+  </section>
+
+  <!-- ================= 闹钟 ================= -->
+  <section>
+    <h2>⏰ 防绕圈的三个闹钟</h2>
+    <p class="lead">同一堵墙撞了 N 次?闹钟会响</p>
+    <div class="clocks">
+      <div class="clock">
+        <span class="round">第 7 圈</span>
+        <span class="ic">💡</span>
+        <p>「换个法子,别硬磕!」</p>
+        <small>探测边界 / 求助 / 重读手册</small>
+      </div>
+      <div class="clock">
+        <span class="round">第 10 圈</span>
+        <span class="ic">🔄</span>
+        <p>重贴一遍便利贴</p>
+        <small>重发工具说明 + 全局记忆</small>
+      </div>
+      <div class="clock">
+        <span class="round">第 35 / 75 圈</span>
+        <span class="ic">🛑</span>
+        <p>「必须去问人,不许再试」</p>
+        <small>GA 35 圈 · Tau 75 圈</small>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= no_tool ================= -->
+  <section>
+    <h2>🗣️ 光说不练怎么办?</h2>
+    <p class="lead">设计了一个「假工具」:不调工具也算一次调用</p>
+    <div class="bubble">
+      <div class="row"><div class="face">🤖</div><div class="say">我分析了一下,应该这样做……(只输出文字,没调工具)</div></div>
+      <div class="row right"><div class="face">⚙️</div><div class="say">引擎把这次空手回复,当成一个叫 <b>no_tool</b> 的假工具,照样走流程检查——</div></div>
+      <div class="row"><div class="face">🔍</div><div class="say">真做完了?→ 收工 ✅&nbsp;&nbsp;回复是空的 / 被截断?→ 让它重来 🔁&nbsp;&nbsp;贴了段大代码却没执行?→ 追问 🧐</div></div>
+    </div>
+    <div class="callout">把「不做」也变成一种「做」,所有情况都走同一套检查 — 这就是引擎的自愈能力</div>
+  </section>
+
+  <!-- ================= GA vs Tau ================= -->
+  <section>
+    <h2>📺 同一台发动机,两种播出方式</h2>
+    <p class="lead">GA 与 Tau 的循环齿轮一模一样,差别只在「信号怎么发出来」</p>
+    <div class="vs">
+      <div class="tv">
+        <h3>GA:直连小屏幕</h3>
+        <div class="screen">🛠️ Tool: ...<br>`````<br>工具输出…<br>`````</div>
+        <p>循环直接吐<b>排好版的文字</b>,只有终端这一块屏幕能看,看完就没了。</p>
+        <div class="who">GenericAgent · 132 行</div>
+      </div>
+      <div class="tv">
+        <h3>Tau:标准电视信号</h3>
+        <div class="screen">{ "轮次开始": 3 }<br>{ "文字块": "…" }<br>{ "工具输出": "…" }</div>
+        <p>循环吐<b>结构化事件</b>,谁都能接,还能<b>录像存档</b>随时回放。</p>
+        <div class="screens"><span>💻 终端</span><span>🌐 网页</span><span>📱 手机</span><span>🐾 桌宠</span><span>📼 回放</span></div>
+        <div class="who">Tau v5.0.0 · 195 行</div>
+      </div>
+    </div>
+    <div class="callout">🧩 换播出方式时,齿轮一个没动 — 重构前后用「录像对比」验证过一模一样</div>
+  </section>
+
+  <!-- ================= 结尾 ================= -->
+  <section>
+    <h2>🎓 总结</h2>
+    <div class="callout" style="font-size:19px; padding:26px;">
+      一个圈 + 9 样工具 + 一张便签 + 三个闹钟 + 一个假工具<br>
+      = 不预设技能、越用越强的干活 AI
+    </div>
+  </section>
+
+  <footer>
+    图解对应真实代码:<b>agent_loop.py</b>(GA 132 行 / Tau 195 行)· 数字均实测自两仓库源码
+  </footer>
+</div>
+</body>
+</html>
