@@ -332,7 +332,8 @@ async function handleWsExec(data) {
         func: async (s) => await eval(s),
         args: [buildPageScript(data.code)]
       });
-      res = result[0]?.result;
+      // Chrome 148+ can return null instead of empty array
+      res = (result && result.length > 0) ? result[0].result : undefined;
       if (res === null || res === undefined) {
         console.log('[TMWD-WS] executeScript returned null/undefined, treating as CSP issue');
         res = { ok: false, error: { name: 'Error', message: 'executeScript returned null (possible CSP or context issue)', stack: '' }, csp: true };

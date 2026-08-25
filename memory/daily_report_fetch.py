@@ -126,7 +126,7 @@ def category_queries(conf: dict) -> list:
 # ─── Bing 通道 (Playwright, 惰性导入) ─────────────────────────
 
 CARD_JS = r"""
-() => {
+(() => {
   const seen = new Set(), out = [];
   for (const c of document.querySelectorAll('div.news-card')) {
     const url = c.getAttribute('data-url') || c.getAttribute('url') || '';
@@ -142,7 +142,7 @@ CARD_JS = r"""
     out.push({title: title.trim().slice(0, 300), url, snippet: snippet.slice(0, 800), source, rel_time: rel});
   }
   return out;
-}
+})()
 """
 
 
@@ -182,7 +182,7 @@ def fetch_bing(categories: dict, scraped_at: datetime) -> list:
 # API 摘要 (见 memory/tmwebdriver_sop.md):
 #   d = TMWebDriver()                    # 启动/接入 18766 WS master
 #   d.set_session('www.bing.com')        # 锁定域名 (会切到该域名 tab 或新建)
-#   d.goto(url)                          # 同步跳 URL
+#   d.jump(url)                          # 同步跳 URL
 #   d.execute_js(js) -> {'data': value}  # 取 .data 字段才是真实返回
 #   d.close()                            # 释放会话
 def fetch_bing_tmwebdriver(categories: dict, scraped_at: datetime) -> list:
@@ -200,7 +200,7 @@ def fetch_bing_tmwebdriver(categories: dict, scraped_at: datetime) -> list:
             got = 0
             for url in category_queries(conf):
                 try:
-                    d.goto(url)
+                    d.jump(url)
                     d.execute_js('new Promise(r => setTimeout(r, 3000))')  # 等 JS 渲染
                     cards = d.execute_js(CARD_JS).get('data', []) or []
                 except Exception as e:

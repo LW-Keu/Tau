@@ -73,6 +73,13 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 | WHO/ECDC/PAHO | ✅ Playwright+Chrome可爬 | 直接爬取 |
 | Bing News | ✅ 无反爬，15查询批量 | **首选** |
 
+### 1.1b 引擎: TMWebDriver (2026-08-25 端到端已验证)
+- `daily_report_fetch.py --engine tmwebdriver`: 双通道 = RSS(urllib) + bing新闻卡(桥exec), 实测 263 条(218 RSS + 45 bing-tmwd), 后续 render/validate --strict 全过
+- fetch.py 已就地适配两坑: `d.jump(url)`(无goto) + CARD_JS 包 IIFE `(()=>{...})()`(桥不自动调用函数体, 否则静默0卡, 详见 tmwebdriver_sop 通用特性)
+- 前置: master daemon 常驻(18765 WS + 18766 HTTP, /link 需 POST); 采集前 `d.set_session('bing')` 钉死工作tab, 用完 CDP Page.close 关tab
+- ⚠bing卡噪音: rare_earth 等类目离题卡多(股评/无关公司), 选稿须人工剔除, 勿按 digest 顺序直接取前N
+- 渲染/校验 CLI: `python3 memory/daily_report_render.py <json> --fmt all` → `output/daily_<D>/`; `python3 memory/daily_report_validate.py <json> --docx <产物> --strict`
+
 ### 1.2 分层多源采集 (v3.3: config 驱动, 取代手工 fetch_bing_news.py)
 - **入口零编辑**: 从 worktree 根执行 `python memory/daily_report_fetch.py [--date YYYY-MM-DD] [--min N]`
 - **源配置** `daily_report_sources.json` (增删源改 config, 不改代码):
@@ -112,6 +119,11 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 **{D日/D-1日}，{来源媒体}报道：** {一句话核心事实}。{2-3句展开细节}。{分析性总结句，如有}。
 ▸ 来源: {原文URL}
 ```
+
+> **v3.3 新增 (2026-08-25 实战踩坑, R19)**: LLM 整编时必须把 lead prefix `X月X日，X（Y）报道：` 写入 `report_data.json` 的 `body` **字段首部**（不能仅写在 MD/DOCX 渲染输出里）。
+> - `daily_report_render._strip_body_lead()` (render L445) 会自动剥掉 body 已有前缀再由 `_format_md_item` (L475) 重建 → 渲染输出无重复前缀
+> - `daily_report_validate` E.4-08 (validate L226) 强制检查 body 必须以 `X月X日` + `(报道|表示|声明|发布)` 开头，动词距日期 ≤40 字 — 否则 FAIL
+> - 双源规则一致：JSON body 含 lead = validator 通过 + render strip 后视觉正确
 
 ### 2.3 五板块定义
 | 编号 | 板块名 | 条目数 | 内容范围 |
@@ -169,6 +181,7 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 - 禁止把 `trends` 写成 string / list — render 不会走 dict 分支，内容丢失
 - 禁止三段任一为空字符串 — validator E.4-12 视为缺失
 - 禁止标签自加冒号 — render 会自动追加 `：**`
+- **每段严格 ≥200 字** — validator E.4-16 (191 字实测 FAIL，整 200-300 字是硬区间)
 
 ### 2.5 重点关注信号的情报价值（signals）写法 (v3.2 升级: 对齐 render.is_signals 与 Appendix C 字段速查)
 
@@ -187,11 +200,12 @@ LLM 整编完成后输出 `report_data.json`，结构如下：
 - 每条首行缩进 2 字符，1.5 倍行距
 - 段落优先级：涉华 > 战略级 > 预警级
 
-**红线**（与 validator E.4-08 严格对齐）：
+**红线**（与 validator E.4-17 / E.4-08 严格对齐）：
 - 3-5 条 — validator 直接 FAIL
 - `label` 末尾禁止含 `：` / `：` / `:` — validator E.4-08 段首加粗格式 FAIL（6-20 真实事故）
 - 每条 `text` 必须含 `(情报缺口：xxx)` 标注 — 缺失视为"无情报价值研判"
-- `text` 长度 60-120 字
+- `text` 长度 **严格 60-120 字** — validator E.4-17 (130-152 字实测 FAIL, 130-152 → 60-120 字重写)
+- `source` 字段最多 **1 对**全角括注（如 `BBC（英国广播公司）`）— validator E.4-18 多括注 FAIL（2026-08-25 R19 实战）
 
 ---
 

@@ -6,6 +6,7 @@
 
 ## 通用特性
 - ⚠web_execute_js里使用`await`时需**显式`return`**才能拿到返回值（底层async包裹，不写return则返回null）
+- ⚠**桥exec JS字符串不自动调用函数体**(2026-08-25实测: 传`()=>42`返回None)，取值必须包IIFE `(()=>{...})()` 才有返回值——fetch.py的CARD_JS曾因此静默0卡3轮
 - ✅web_scan自动穿透同源iframe；跨域iframe需CDP或postMessage（见下方章节）
 
 ## 限制(isTrusted)
@@ -154,7 +155,30 @@ skill = d.get_skill('get_title')    # {'js': ..., 'description': ..., 'use_count
 
 - 技能文件存于 `external/TMWebDriver/skills_schema/<domain>.json`，可手动编辑
 - `{{var}}` 占位符由 `execute_skill(**kwargs)` 替换
-- 内置种子文件：`bilibili.com.json`（get_page_text / get_video_list / search）、`google.com.json`（search / get_search_results）
+- 内置种子文件：`bilibili.com.json`（get_page_text / get_video_list / search / search_v2）、`google.com.json`（search / get_search_results）
+
+## DOM Outline 零选择器 API（上游v2同步 2026-08-25, commit bb8fc91）✅已实测
+陌生网站零适配：把页面可交互元素打编号→LLM看文本大纲→按编号操作，网站改版不失效。借鉴 alibaba/page-agent 方案。
+
+```python
+d = TMWebDriver()
+out = d.get_page_outline()   # {'text':'[1]<a href..> 首页\n[2]...', 'pageInfo':{url,title,viewport,scroll}, 'totalIndexed':N, 'selectorMap':{1:{tag,xpath,selectors,...}}}
+# 默认 max_elements=80, viewport_only=True(大页面防爆)
+
+d.click_index(2)             # 常规事件点击(被拦时用cdp_)
+d.cdp_click_by_index(2)      # CDP真实点击(绕isTrusted)
+d.input_text_index(5, '关键词')   # / cdp_input_text_by_index(5,'关键词',submit=True)
+d.hover_index(3)
+info = d.get_element_selector(2)  # 技能蜕变: 8层选择器降级生成(id>text>href>class>xpath), 返回bestSelector+selectors列表
+d.save_outline_skill('search_v2', 2, param='keyword')  # outline→持久化skill, 下次execute_skill('search_v2', keyword=..)直接复用
+```
+
+- 注入文件 `tmwd_cdp_bridge/dom_outline.js` 经 execute_js 走既有桥，**无需重载扩展**
+- 前置：set_session() 或用当前默认tab；master 常驻即可
+- ⚠️**关tab用CDP**: `d._cdp_command('Page.close', session_id=N)`（实测✅, id须显式传否则作用默认会话）；`{'cmd':'tabs','method':'close'}` 桥命令 master 层不透传(返回非JSON且无效果)勿用
+  - ⚠Page.close**异步生效**(2026-08-25实测)：返回成功≠已关，**同一batch内的tabs快照是关前状态勿据此误判失败**；隔一条请求再查tabs，"No tab with given id"=已关✅
+- ⚠️**newtab不可用**（GM_openInTab不在页面MAIN world, window.open被弹窗拦截）；同tab导航用 `d.jump(url)`（实测✅）
+- 实测(2026-08-25): bing 50元素索引/get_element_selector ✅；**outline索引每次调用重排会漂移→必须同流程内outline后立即按编号操作, 禁跨调用硬编码idx; 跳页后页内索引注册表失效需重新outline**; 操作前 `set_session('域名')` 钉死会话；textarea/input setter已按tagName修复(commit 7ec491c, 旧版textarea报Illegal invocation)；点击优先click_index(JS事件链导航实测✅), cdp_click机制通但跳转未证；baidu首页已AI化, 搜索框=textarea#chat-textarea非input#kw
 
 ## multipost（多平台一键发布）
 ```python

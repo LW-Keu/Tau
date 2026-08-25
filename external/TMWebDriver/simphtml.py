@@ -101,6 +101,7 @@ function createEnhancedDOMCopy() {
         }
       }
     }
+    nodeInfo.set(clone, info);
 
     if (sourceNode.nodeType === 1 && sourceNode.tagName === 'DIV') {    
       if (!hasValidChildren && !sourceNode.textContent.trim()) return null; 
