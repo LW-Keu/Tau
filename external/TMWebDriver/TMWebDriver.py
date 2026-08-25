@@ -242,6 +242,546 @@ class TMWebDriver:
         if newtabs: rr['newTabs'] = newtabs
         return rr
     
+    # ===== DOM Outline API =====
+    # 借鉴 alibaba/page-agent 的 DOM 文本化思路
+    # 详见 tmwd_cdp_bridge/dom_outline.js
+
+    _DOM_OUTLINE_JS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmwd_cdp_bridge', 'dom_outline.js')
+    _DOM_OUTLINE_JS_CACHE = None
+
+    def _load_dom_outline_js(self):
+        """加载并缓存 dom_outline.js 内容"""
+        if self._DOM_OUTLINE_JS_CACHE is None:
+            with open(self._DOM_OUTLINE_JS_PATH) as f:
+                self._DOM_OUTLINE_JS_CACHE = f.read()
+        return self._DOM_OUTLINE_JS_CACHE
+
+    def get_page_outline(self, max_elements=80, viewport_only=True, session_id=None, include_text=True):
+        """
+        获取页面 DOM 大纲（带编号的元素清单）
+
+        借鉴 alibaba/page-agent 的 DOM 文本化方案：
+        把页面所有"可交互元素"（a/button/input/select 等）打上数字编号，
+        输出像这样的文本：
+            [1]<a href="//www.bilibili.com"> 首页
+            [2]<input placeholder="搜索" type="text">
+            [3]<button> 搜索
+        后续可通过 click_index(index) 操作对应元素。
+
+        比手动写 CSS 选择器的优势：
+        - 陌生网站零适配，直接用
+        - 网站改版不失效（基于 DOM 结构而非固定选择器）
+        - LLM 看文本大纲就能决策，不用截图
+
+        :param max_elements: 最大编号元素数（默认 80，避免输出过长）
+        :param viewport_only: 只扫视口内可见元素（默认 True，大页面防爆）
+        :param session_id: 指定 tab，None 用默认
+        :param include_text: 返回值是否包含 text 字段（LLM 决策用）
+        :return: dict {
+            'text': '带编号的文本清单',
+            'pageInfo': {url, title, viewport, scroll...},
+            'totalIndexed': int,
+            'selectorMap': {1: {tag, text, attrs, xpath}, ...}
+        }
+        """
+        import base64
+        js_code = self._load_dom_outline_js()
+        b64 = base64.b64encode(js_code.encode()).decode()
+
+        call_js = f"""(function() {{
+    var b64 = "{b64}";
+    eval(atob(b64));
+    var r = window.getDOMOutline({{maxElements: {max_elements}, viewportOnly: {str(viewport_only).lower()}}});
+    return JSON.stringify(r);
+}})()"""
+
+        result = self.execute_js(call_js, session_id=session_id)
+        data_str = result.get('data', '{}')
+        try:
+            data = json.loads(data_str)
+        except:
+            return {'error': 'Failed to parse outline', 'raw': data_str[:500]}
+
+        if not include_text:
+            data.pop('text', None)
+        # selectorMap 太大时只返回 text
+        if 'selectorMap' in data and len(str(data['selectorMap'])) > 20000:
+            data.pop('selectorMap', None)
+        return data
+
+    def click_index(self, index, session_id=None):
+        """
+        通过 get_page_outline() 返回的编号点击元素
+
+        :param index: get_page_outline() 返回的编号（如 3）
+        :return: dict {success: bool, message: str}
+        """
+        js = f"""(function() {{
+    var el = window._tmw_get_element_by_index ? window._tmw_get_element_by_index({index}) : null;
+    if (!el) return JSON.stringify({{success: false, message: 'Element index {index} not found. Run get_page_outline() first.'}});
+    try {{
+        el.scrollIntoView({{block: 'center', behavior: 'instant'}});
+        el.click();
+        return JSON.stringify({{success: true, message: 'Clicked [{index}]: <' + el.tagName.toLowerCase() + '>', tag: el.tagName.toLowerCase()}});
+    }} catch(e) {{
+        return JSON.stringify({{success: false, message: e.message}});
+    }}
+}})()"""
+        result = self.execute_js(js, session_id=session_id)
+        try:
+            return json.loads(result.get('data', '{}'))
+        except:
+            return {'success': False, 'raw': result.get('data', '')[:200]}
+
+    def hover_index(self, index, session_id=None):
+        """
+        通过编号悬停元素（触发 hover/mouseenter 下拉菜单）
+
+        微信后台上「添加回复内容」这类 hover 触发式菜单需要这个。
+
+        :param index: get_page_outline() 返回的编号
+        :return: dict {success: bool, message: str}
+        """
+        js = f"""(function() {{
+    var el = window._tmw_get_element_by_index ? window._tmw_get_element_by_index({index}) : null;
+    if (!el) return JSON.stringify({{success: false, message: 'Element index {index} not found. Run get_page_outline() first.'}});
+    try {{
+        el.scrollIntoView({{block: 'center', behavior: 'instant'}});
+        // 触发 mouseenter + mouseover 模拟鼠标悬停
+        el.dispatchEvent(new MouseEvent('mouseenter', {{bubbles: true, cancelable: true, view: window}}));
+        el.dispatchEvent(new MouseEvent('mouseover', {{bubbles: true, cancelable: true, view: window}}));
+        return JSON.stringify({{success: true, message: 'Hovered [{index}]: <' + el.tagName.toLowerCase() + '>', tag: el.tagName.toLowerCase()}});
+    }} catch(e) {{
+        return JSON.stringify({{success: false, message: e.message}});
+    }}
+}})()"""
+        result = self.execute_js(js, session_id=session_id)
+        try:
+            return json.loads(result.get('data', '{}'))
+        except:
+            return {'success': False, 'raw': result.get('data', '')[:200]}
+
+    def input_text_index(self, index, text, session_id=None, submit=False):
+        """
+        通过编号往输入框填文字（可选回车提交）
+
+        :param index: get_page_outline() 返回的编号
+        :param text: 要输入的文字
+        :param submit: 是否按回车提交
+        """
+        import base64 as _b64
+        import json as _json
+        # base64 编码文字避免引号转义地狱
+        # 注意：atob() 返回的是字节字符串（每个字符 charCode 0-255），
+        # 不是 Unicode 字符。中文 UTF-8 字节会被当 Latin-1 解读 → 乱码。
+        # 修复：用 TextDecoder 从字节字符串解 UTF-8。
+        b64_text = _b64.b64encode(text.encode()).decode()
+        js = f"""(function() {{
+    var el = window._tmw_get_element_by_index ? window._tmw_get_element_by_index({index}) : null;
+    if (!el) return JSON.stringify({{success: false, message: 'Element not found'}});
+    try {{
+        // atob → 字节字符串 → TextDecoder 解 UTF-8 → 正确的 Unicode 字符串
+        var byteStr = atob('{b64_text}');
+        var bytes = new Uint8Array(byteStr.length);
+        for (var i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+        var text = new TextDecoder('utf-8').decode(bytes);
+        el.scrollIntoView({{block: 'center'}});
+        el.focus();
+
+        if (el.isContentEditable) {{
+            // Contenteditable 策略（参考 Page Agent）：
+            // beforeinput -> innerText -> input 事件序列
+            // React contenteditable 靠 InputEvent('beforeinput') 同步状态
+
+            // 清除已有内容
+            el.dispatchEvent(new InputEvent('beforeinput', {{
+                bubbles: true, cancelable: true, inputType: 'deleteContent'
+            }}));
+            el.innerText = '';
+            el.dispatchEvent(new InputEvent('input', {{
+                bubbles: true, inputType: 'deleteContent'
+            }}));
+
+            // 插入新内容
+            el.dispatchEvent(new InputEvent('beforeinput', {{
+                bubbles: true, cancelable: true, inputType: 'insertText', data: text
+            }}));
+            el.innerText = text;
+            el.dispatchEvent(new InputEvent('input', {{
+                bubbles: true, inputType: 'insertText', data: text
+            }}));
+
+            // 验证，失败则 execCommand fallback
+            if (el.innerText.trim() !== text.trim()) {{
+                el.focus();
+                var sel = window.getSelection();
+                var rng = document.createRange();
+                rng.selectNodeContents(el);
+                sel.removeAllRanges();
+                sel.addRange(rng);
+                document.execCommand('delete', false);
+                document.execCommand('insertText', false, text);
+            }}
+
+            el.dispatchEvent(new Event('change', {{bubbles: true}}));
+            el.blur();
+        }} else {{
+            // 普通 input/textarea：用 native setter 触发 React onChange
+            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+                      || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+            if (setter) setter.call(el, text);
+            else el.value = text;
+            el.dispatchEvent(new Event('input', {{bubbles: true}}));
+            el.dispatchEvent(new Event('change', {{bubbles: true}}));
+        }}
+
+        if ({str(submit).lower()}) {{
+            el.dispatchEvent(new KeyboardEvent('keydown', {{key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}}));
+            if (el.form) el.form.submit();
+        }}
+        return JSON.stringify({{success: true, message: 'Filled [{index}] with: ' + text.substring(0, 30)}});
+    }} catch(e) {{
+        return JSON.stringify({{success: false, message: e.message}});
+    }}
+}})()"""
+        result = self.execute_js(js, session_id=session_id)
+        try:
+            return json.loads(result.get('data', '{}'))
+        except:
+            return {'success': False, 'raw': result.get('data', '')[:200]}
+
+    # ===== CDP 增强操作 =====
+    # 利用 background.js 已有的 chrome.debugger 桥接
+    # 发真实 CDP 命令（isTrusted: true），解决 React contenteditable 等框架不认合成事件的问题
+
+    def _cdp_command(self, method, params=None, session_id=None):
+        """
+        发送 CDP 命令到浏览器 tab（内部方法）
+        利用 background.js 已有的 handleCDP -> chrome.debugger.sendCommand 桥接
+
+        :param method: CDP 方法名，如 'Input.dispatchMouseEvent'
+        :param params: CDP 参数 dict
+        :return: CDP 返回结果 dict
+        """
+        code = {'cmd': 'cdp', 'method': method, 'params': params or {}}
+        result = self.execute_js(code, session_id=session_id)
+        return result.get('data')
+
+    def _cdp_batch(self, commands, session_id=None):
+        """
+        批量发送 CDP 命令（一次 attach，多个命令，最后 detach）
+        避免连续多次 attach/detach 导致的竞争条件和 tab 僵死
+
+        :param commands: [(method, params), ...] CDP 命令列表
+        :return: [result1, result2, ...]
+        """
+        cmd_list = [{'cmd': 'cdp', 'method': m, 'params': p or {}} for m, p in commands]
+        code = {'cmd': 'batch', 'commands': cmd_list}
+        result = self.execute_js(code, session_id=session_id)
+        return result.get('data', [])
+
+    def cdp_click_by_index(self, index, session_id=None):
+        """
+        通过 CDP Input.dispatchMouseEvent 实现真实鼠标点击
+        产生 isTrusted: true 的事件，React / Web Component 等框架认
+
+        比 click_index() 更强：不用 el.click() 发合成事件，
+        而是让 Chrome 用 DevTools Protocol 真的"移动鼠标并点击"。
+
+        :param index: get_page_outline() 返回的编号
+        :return: dict {success, message, x, y, tag}
+        """
+        # 获取元素坐标
+        js = f"""(function() {{
+    var el = window._tmw_get_element_by_index ? window._tmw_get_element_by_index({index}) : null;
+    if (!el) return JSON.stringify({{success: false, message: 'Element not found. Run get_page_outline() first.'}});
+    el.scrollIntoView({{block: 'center', behavior: 'instant'}});
+    var r = el.getBoundingClientRect();
+    return JSON.stringify({{success: true, x: r.left + r.width/2, y: r.top + r.height/2, tag: el.tagName.toLowerCase()}});
+}})()"""
+        result = self.execute_js(js, session_id=session_id)
+        try:
+            rect = json.loads(result.get('data', '{}'))
+        except:
+            return {'success': False, 'message': 'Failed to parse element position'}
+        if not rect.get('success'):
+            return {'success': False, 'message': rect.get('message', 'Unknown error')}
+
+        x, y = rect['x'], rect['y']
+
+        # CDP 鼠标事件序列：用 batch 一次 attach 避免竞争
+        self._cdp_batch([
+            ('Input.dispatchMouseEvent', {'type': 'mouseMoved', 'x': x, 'y': y, 'button': 'left', 'pointerType': 'mouse'}),
+            ('Input.dispatchMouseEvent', {'type': 'mousePressed', 'x': x, 'y': y, 'button': 'left', 'clickCount': 1, 'pointerType': 'mouse'}),
+            ('Input.dispatchMouseEvent', {'type': 'mouseReleased', 'x': x, 'y': y, 'button': 'left', 'clickCount': 1, 'pointerType': 'mouse'})
+        ], session_id=session_id)
+
+        return {
+            'success': True,
+            'message': f'CDP real click [{index}]: <{rect["tag"]}> at ({x:.0f},{y:.0f})',
+            'x': x, 'y': y, 'tag': rect['tag']
+        }
+
+    def cdp_input_text_by_index(self, index, text, session_id=None, submit=False):
+        """
+        CDP 真实点击 + beforeinput 填充 contenteditable
+        最强方案：先用 CDP 真实点击激活 React 焦点（isTrusted: true），
+        再用 beforeinput 事件序列填内容。
+
+        适用于 input_text_index 搞不定的顽固 contenteditable。
+
+        :param index: get_page_outline() 返回的编号
+        :param text: 要输入的文字
+        :param submit: 是否按回车提交
+        :return: dict {success, message}
+        """
+        # Step 1: CDP 真实点击激活元素
+        click_result = self.cdp_click_by_index(index, session_id=session_id)
+        if not click_result.get('success'):
+            return click_result
+
+        # Step 2: 等待 React 处理焦点
+        import time
+        time.sleep(0.15)
+
+        # Step 3: 填充内容（beforeinput + innerText + input）
+        import base64 as _b64
+        b64_text = _b64.b64encode(text.encode()).decode()
+        js = f"""(function() {{
+    var el = window._tmw_get_element_by_index ? window._tmw_get_element_by_index({index}) : null;
+    if (!el) return JSON.stringify({{success: false, message: 'Element not found'}});
+    try {{
+        if(!window._tmw_b64d)window._tmw_b64d=function(s){{var b=atob(s);var a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new TextDecoder('utf-8').decode(a);}};
+        var t = window._tmw_b64d('{b64_text}');
+        el.scrollIntoView({{block: 'center'}});
+        el.focus();
+
+        if (el.isContentEditable) {{
+            // 清除
+            el.dispatchEvent(new InputEvent('beforeinput', {{
+                bubbles: true, cancelable: true, inputType: 'deleteContent'
+            }}));
+            el.innerText = '';
+            el.dispatchEvent(new InputEvent('input', {{
+                bubbles: true, inputType: 'deleteContent'
+            }}));
+            // 插入
+            el.dispatchEvent(new InputEvent('beforeinput', {{
+                bubbles: true, cancelable: true, inputType: 'insertText', data: t
+            }}));
+            el.innerText = t;
+            el.dispatchEvent(new InputEvent('input', {{
+                bubbles: true, inputType: 'insertText', data: t
+            }}));
+            // fallback
+            if (el.innerText.trim() !== t.trim()) {{
+                el.focus();
+                var sel = window.getSelection();
+                var rng = document.createRange();
+                rng.selectNodeContents(el);
+                sel.removeAllRanges();
+                sel.addRange(rng);
+                document.execCommand('delete', false);
+                document.execCommand('insertText', false, t);
+            }}
+            el.dispatchEvent(new Event('change', {{bubbles: true}}));
+            el.blur();
+        }} else {{
+            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+                      || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+            if (setter) setter.call(el, t);
+            else el.value = t;
+            el.dispatchEvent(new Event('input', {{bubbles: true}}));
+            el.dispatchEvent(new Event('change', {{bubbles: true}}));
+        }}
+
+        if ({str(submit).lower()}) {{
+            el.dispatchEvent(new KeyboardEvent('keydown', {{key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true}}));
+            if (el.form) el.form.submit();
+        }}
+        return JSON.stringify({{success: true, message: 'CDP filled [{index}]: ' + t.substring(0, 30)}});
+    }} catch(e) {{
+        return JSON.stringify({{success: false, message: e.message}});
+    }}
+}})()"""
+        result = self.execute_js(js, session_id=session_id)
+        try:
+            return json.loads(result.get('data', '{}'))
+        except:
+            return {'success': False, 'raw': result.get('data', '')[:200]}
+
+
+    # ===== Phase 2: Skill 沉淀 API =====
+
+    def get_element_selector(self, index, session_id=None):
+        """
+        提取编号元素的稳定选择器信息（需先调过 get_page_outline）
+
+        :return: dict {tag, id, text, selectors:[...], bestSelector}
+        """
+        js = f"""(function() {{
+    var s = window._tmw_get_element_selector ? window._tmw_get_element_selector({index}) : null;
+    return s ? JSON.stringify(s) : 'null';
+}})()"""
+        r = self.execute_js(js, session_id=session_id)
+        try:
+            return json.loads(r.get('data', 'null'))
+        except:
+            return None
+
+    @staticmethod
+    def _gen_skill_js(steps, description=""):
+        """
+        根据步骤生成可复用的 site_skill JS 代码
+
+        :param steps: [{type:'input', selectors:[...], param:'keyword'},
+                       {type:'click', selectors:[...]}]
+        :return: str JS 代码，含 {{param}} 占位符
+        """
+        # 选择器查找函数（多 fallback）
+        lines = ['(function(){',
+                 '  function findBy(selectors) {',
+                 '    for (var i = 0; i < selectors.length; i++) {',
+                 '      var s = selectors[i];',
+                 '      try {',
+                 '        if (s.indexOf("xpath:") === 0) {',
+                 '          // xpath 方式',
+                 '          var r = document.evaluate(s.substring(6), document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);',
+                 '          if (r.singleNodeValue) return r.singleNodeValue;',
+                 '        } else if (s.indexOf(":has(") > 0) {',
+                 '          // jQuery-style :has() 不被原生支持，退化到文字匹配',
+                 '          var m = s.match(/^[a-z]+:has\\(> \\*:contains\\("([^"]+)"\\)\\)/);',
+                 '          if (m) {',
+                 '            var els = document.querySelectorAll(s.split(":has")[0]);',
+                 '            for (var j=0; j<els.length; j++) { if (els[j].textContent.indexOf(m[1]) >= 0) return els[j]; }',
+                 '          }',
+                 '        } else if (s.indexOf("=") > 0) {',
+                 '          // tag="text" 形式',
+                 '          var p = s.split("="); var tag = p[0]; var txt = p[1].replace(/"/g, "");',
+                 '          var all = document.querySelectorAll(tag);',
+                 '          for (var j=0; j<all.length; j++) { if (all[j].textContent.trim() === txt) return all[j]; }',
+                 '        } else {',
+                 '          var el = document.querySelector(s);',
+                 '          if (el) return el;',
+                 '        }',
+                 '      } catch(e) {}',
+                 '    }',
+                 '    return null;',
+                 '  }',
+                 '  function doClick(el) {',
+                 '    el.scrollIntoView({block:"center", behavior:"instant"});',
+                 '    el.click();',
+                 '    return "ok";',
+                 '  }',
+                 '  function doInput(el, text) {',
+                 '    el.scrollIntoView({block:"center"});',
+                 '    el.focus();',
+                 '    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set',
+                 '              || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;',
+                 '    if (setter) setter.call(el, text); else el.value = text;',
+                 '    el.dispatchEvent(new Event("input", {bubbles:true}));',
+                 '    el.dispatchEvent(new Event("change", {bubbles:true}));',
+                 '  }',
+                 '']
+
+        for i, step in enumerate(steps):
+            selectors_js = json.dumps(step.get('selectors', []))
+            stype = step.get('type', 'click')
+            if stype == 'input':
+                param = step.get('param', 'text')
+                lines.append(f'  // Step {i+1}: input into <{step.get("tag","?")}>')
+                lines.append(f'  var el{i} = findBy({selectors_js});')
+                lines.append(f'  if (!el{i}) return JSON.stringify({{success:false, step:{i+1}, message:"element not found"}});')
+                lines.append(f'  doInput(el{i}, "{{{{{param}}}}}");')
+            else:  # click
+                lines.append(f'  // Step {i+1}: click <{step.get("tag","?")}>')
+                lines.append(f'  var el{i} = findBy({selectors_js});')
+                lines.append(f'  if (!el{i}) return JSON.stringify({{success:false, step:{i+1}, message:"element not found"}});')
+                lines.append(f'  doClick(el{i});')
+
+        lines.append('  return JSON.stringify({success:true, message:"all steps done"});')
+        lines.append('})()')
+        return '\n'.join(lines)
+
+    def save_outline_skill(self, action_name, steps, description="", session_id=None,
+                           domain=None, wait_steps=None):
+        """
+        把 outline 操作序列沉淀成 site_skill（下次免扫描）
+
+        :param action_name: 技能名（如 "search"）
+        :param steps: [{"type":"input","index":5,"param":"keyword"},
+                       {"type":"click","index":8}]
+                       （index 会被换成真实 selectors）
+        :param description: 技能描述
+        :param session_id: 当前 tab（提取 selectors 用）
+        :param domain: 指定域名（None=自动从当前 URL 提取）
+        :param wait_steps: [(after_step_idx, ms)] 每步后等待毫秒
+        :return: dict {skill_name, domain, file, js_preview}
+        """
+        from urllib.parse import urlparse
+        import os, json as _json
+
+        # 1. 提取每步的 selectors
+        resolved_steps = []
+        for step in steps:
+            idx = step.get('index')
+            if idx is None:
+                resolved_steps.append(step)
+                continue
+            sel = self.get_element_selector(idx, session_id=session_id)
+            if not sel:
+                return {'error': f'Cannot extract selector for index {idx}. Run get_page_outline first.'}
+            resolved_steps.append({
+                'type': step.get('type', 'click'),
+                'tag': sel.get('tag'),
+                'text': sel.get('text', ''),
+                'selectors': sel.get('selectors', []),
+                **({'param': step['param']} if 'param' in step else {})
+            })
+
+        # 2. 生成 JS
+        js_code = self._gen_skill_js(resolved_steps, description)
+
+        # 3. 定位域名
+        if domain is None:
+            url = self.execute_js('window.location.href', session_id=session_id).get('data', '')
+            parsed = urlparse(url)
+            domain = parsed.netloc or 'unknown.com'
+
+        # 4. 存进 skills_schema/<domain>.json
+        skill_dir = self._skills_dir()
+        os.makedirs(skill_dir, exist_ok=True)
+        skill_file = os.path.join(skill_dir, f'{domain}.json')
+
+        existing = {}
+        if os.path.exists(skill_file):
+            try:
+                with open(skill_file) as f:
+                    existing = _json.load(f)
+            except:
+                existing = {}
+
+        existing[action_name] = {
+            'js': js_code,
+            'description': description or f'{action_name} on {domain}',
+            'tags': ['outline-derived'],
+            'source': 'dom_outline',
+            'resolved_steps': resolved_steps,
+            'updated_at': __import__('datetime').datetime.now().strftime('%Y-%m-%d'),
+            'use_count': 0
+        }
+
+        with open(skill_file, 'w') as f:
+            _json.dump(existing, f, ensure_ascii=False, indent=2)
+
+        return {
+            'skill_name': action_name,
+            'domain': domain,
+            'file': skill_file,
+            'steps_count': len(resolved_steps),
+            'js_preview': js_code[:300] + '...' if len(js_code) > 300 else js_code
+        }
+
     def _remote_cmd(self, cmd):
         try: return requests.post(self.remote, headers={"Content-Type": "application/json"}, json=cmd, timeout=30).json()
         except (ConnectionError, requests.exceptions.ConnectionError):
