@@ -427,8 +427,10 @@ class TMWebDriver:
             el.blur();
         }} else {{
             // 普通 input/textarea：用 native setter 触发 React onChange
-            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
-                      || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+            // 修复(2026-08-25测试发现): 原版 `HTMLInput...?.set || HTMLArea...?.set` 短路取 input 的
+            // setter 套在 textarea 上 → 'Illegal invocation'。必须按 tagName 对号入座。
+            var proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+            var setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
             if (setter) setter.call(el, text);
             else el.value = text;
             el.dispatchEvent(new Event('input', {{bubbles: true}}));
@@ -587,8 +589,9 @@ class TMWebDriver:
             el.dispatchEvent(new Event('change', {{bubbles: true}}));
             el.blur();
         }} else {{
-            var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
-                      || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+            // 修复(2026-08-25测试): 按tagName选原型, textarea误用input setter会 Illegal invocation
+            var proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+            var setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
             if (setter) setter.call(el, t);
             else el.value = t;
             el.dispatchEvent(new Event('input', {{bubbles: true}}));
@@ -676,8 +679,9 @@ class TMWebDriver:
                  '  function doInput(el, text) {',
                  '    el.scrollIntoView({block:"center"});',
                  '    el.focus();',
-                 '    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set',
-                 '              || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;',
+                 '    // 修复(2026-08-25测试): 按tagName选原型, textarea误用input setter会 Illegal invocation',
+                 '    var proto = el.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;',
+                 '    var setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;',
                  '    if (setter) setter.call(el, text); else el.value = text;',
                  '    el.dispatchEvent(new Event("input", {bubbles:true}));',
                  '    el.dispatchEvent(new Event("change", {bubbles:true}));',
