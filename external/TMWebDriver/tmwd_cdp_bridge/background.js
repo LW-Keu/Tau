@@ -296,7 +296,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       scheduleKeepalive();
     } else {
       // Connection lost, switch to probe mode
-      ws = null;
+      // (don't null `ws` here: it may be a fresh CONNECTING socket; probe+connectWS guards handle staleness)
       scheduleProbe();
     }
   }
@@ -385,13 +385,17 @@ async function handleWsExec(data) {
 }
 
 async function connectWS() {
-  if (connecting || (ws && ws.readyState <= 1)) return; // CONNECTING or OPEN
+  // Block reentry while any socket exists in CONNECTING/OPEN/CLOSING; stale-CLOSED refs and null fall through.
+  // (Old `readyState <= 1` guard let CLOSING sockets through → concurrent connectWS calls raced the global ws.)
+  if (connecting || (ws && ws.readyState !== WebSocket.CLOSED)) return;
   connecting = true;
   ws = null;
   await loadBridgeConfig();
   console.log('[TMWD-WS] Connecting to', bridgeWsUrl);
+  let sock;
   try {
-    ws = new WebSocket(bridgeWsUrl);
+    sock = new WebSocket(bridgeWsUrl);
+    ws = sock;
   } catch (e) {
     console.error('[TMWD-WS] Constructor error:', e);
     ws = null;
@@ -399,20 +403,23 @@ async function connectWS() {
     scheduleProbe();
     return;
   }
-  ws.onopen = async () => {
+  // All callbacks below close over `sock` (their own connection), never the global `ws`:
+  // async callbacks survive awaits during which reconnects may null/replace the global.
+  sock.onopen = async () => {
     connecting = false;
     console.log('[TMWD-WS] Connected!');
     scheduleKeepalive(); // Keep SW alive while connected
     const tabs = (await chrome.tabs.query({})).filter(t => isScriptable(t.url));
+    if (ws !== sock) return; // superseded by a newer connection during await
     const msg = {
       type: 'ext_ready',
       tabs: tabs.map(t => ({ id: t.id, url: t.url, title: t.title }))
     };
     if (bridgeConfig.bridgeToken) msg.token = bridgeConfig.bridgeToken;
-    ws.send(JSON.stringify(msg));
+    sock.send(JSON.stringify(msg));
     console.log('[TMWD-WS] Sent ext_ready with', tabs.length, 'tabs');
   };
-  ws.onmessage = async (event) => {
+  sock.onmessage = async (event) => {
     try {
       const data = JSON.parse(event.data);
       if (data.id && data.code) {
@@ -425,7 +432,8 @@ async function connectWS() {
           // Custom protocol message → route to handleExtMessage
           if (code.tabId === undefined && data.tabId !== undefined) code.tabId = data.tabId;
           const res = await handleExtMessage(code, {});
-          ws.send(JSON.stringify({ type: res.ok ? 'result' : 'error', id: data.id, result: res.data ?? res.results ?? res, error: res.error }));
+          if (ws !== sock) return; // superseded: result has nowhere to go
+          sock.send(JSON.stringify({ type: res.ok ? 'result' : 'error', id: data.id, result: res.data ?? res.results ?? res, error: res.error }));
         } else if (typeof code === 'string') {
           // Plain JS code
           await handleWsExec(data);
@@ -433,20 +441,25 @@ async function connectWS() {
           // Object without cmd → legacy extension message
           const msg = code.tabId === undefined && data.tabId !== undefined ? { ...code, tabId: data.tabId } : code;
           const res = await handleExtMessage(msg, {});
-          ws.send(JSON.stringify({ type: res.ok ? 'result' : 'error', id: data.id, result: res.data ?? res.results ?? res, error: res.error }));
+          if (ws !== sock) return; // superseded: result has nowhere to go
+          sock.send(JSON.stringify({ type: res.ok ? 'result' : 'error', id: data.id, result: res.data ?? res.results ?? res, error: res.error }));
         }
       }
     } catch (e) {
       console.error('[TMWD-WS] message parse error', e);
     }
   };
-  ws.onclose = () => {
+  sock.onclose = () => {
     console.log('[TMWD-WS] Disconnected');
-    connecting = false;
-    ws = null;
+    // Only clean up global state if this socket is still the current one;
+    // a stale socket's close event must not null out a newer connection.
+    if (ws === sock) {
+      ws = null;
+      connecting = false;
+    }
     scheduleProbe();
   };
-  ws.onerror = (e) => {
+  sock.onerror = (e) => {
     console.error('[TMWD-WS] Error:', e);
     // onclose will fire after this, which triggers reconnect
   };

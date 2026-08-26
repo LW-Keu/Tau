@@ -19,6 +19,20 @@ from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
 
+
+def _assert_canonical_json_input(path: str) -> str:
+    """R21 (2026-08-25) 防御性守卫。_check_output_dir 已白名单化产物侧 (D-4);
+    输入 json 侧再兜一层, 防操作者把 json 放进 temp/temp/ 嵌套残骸。
+    """
+    abs_p = os.path.abspath(path).replace("\\", "/")
+    if "/temp/temp/" in abs_p or abs_p.endswith("/temp/temp") or "/temp/temp/" in abs_p + "/":
+        sys.stderr.write(
+            f"[ERROR] json_path={path!r} 解析到 {abs_p!r}，含嵌套 `temp/temp/`。\n"
+            "        请把 json 直接放到 temp/<name>.json，不要嵌套。\n"
+        )
+        sys.exit(5)
+    return abs_p
+
 # 模块级 pt/cm 引用 (字体/段落 helper 使用)
 try:
     from docx.shared import Pt as _Pt, Cm as _Cm
@@ -1188,8 +1202,14 @@ _ALLOWED_OUTPUT_RE = _re_path.compile(r"^temp/output/daily_\d{8}$")
 
 
 def _check_output_dir(output_dir: str) -> None:
-    """D-4 白名单校验: 仅允许 temp/output/daily_<8位日期>/ (无尾斜杠)。
+    """D-4 白名单校验 + R23 cwd 嵌套守卫 (2026-08-26)。
+
+    仅允许 temp/output/daily_<8位日期>/ (无尾斜杠)。
     其它路径 (含 output/、./、绝对路径、漂到根目录) -> 抛 ValueError。
+    R23 (0826 实战): 即使 output_dir 字符串过白名单, 若调用方 cwd 已在 temp/ 内部,
+    相对路径会被 os.makedirs 解析为 <cwd>/temp/output/... = temp/temp/output/... 嵌套。
+    本守卫解析为绝对路径后再校验, 杜绝此情况。
+
     用途: render.py CLI 入口、fallback 模块、调度 prompt 统一调用。
     """
     if not output_dir:
@@ -1200,6 +1220,14 @@ def _check_output_dir(output_dir: str) -> None:
         raise ValueError(
             f"output_dir {output_dir!r} 不在白名单下;"
             f"日报三件套强制约束到 {_ALLOWED_OUTPUT_PREFIX!r}<YYYYMMDD>/"
+        )
+    # R23 守卫: 绝对路径解析后, 校验不含 /temp/temp/
+    import os as _os_for_r23
+    abs_norm = _os_for_r23.path.abspath(norm).replace("\\", "/")
+    if "/temp/temp/" in abs_norm or abs_norm.endswith("/temp/temp"):
+        raise ValueError(
+            f"output_dir {output_dir!r} 解析为绝对路径 {abs_norm!r} 含 /temp/temp/ 嵌套;"
+            f"cwd 疑似已在 temp/ 内, 请改用绝对路径调用或先 cd <project_root>"
         )
 
 
@@ -1225,6 +1253,8 @@ def main():
     parser.add_argument("--output-dir", default=None,
                         help="输出目录 (默认: temp/output/daily_<YYYYMMDD>/, 用户强制约束 D-4)")
     args = parser.parse_args()
+    # R21 (2026-08-25) 防御性: 输入 json 防嵌套 (产物侧 D-4 已白名单化)。
+    args.json_path = _assert_canonical_json_input(args.json_path)
     # 用户约束(2026-06-20起, D-4 升级): 默认指向 temp/output/daily_<YYYYMMDD>/ (北京时间)
     if args.output_dir is None:
         from datetime import datetime, timezone, timedelta

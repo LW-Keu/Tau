@@ -7,6 +7,18 @@
 >
 > **三件套渲染器**: `daily_report_render.py` — MD/DOCX/HTML 全量硬编码(F.1-F.5) + enforce_window 窗口守门员 + _check_output_dir 路径白名单
 > **交付自检**: `daily_report_validate.py` — E.4 内容14项 (E.4-07 严格 24h) + E.5 排版12项 | CLI: `validate.py <report_data.json> [--docx docx路径] [--strict]`
+>
+> **v3.3 经验 (R19 0825 实战)**: validator E.4-08 强制双源 lead body 含 `X月X日，X（Y）报道：` 前缀; render 会自动剥掉重建防重复。
+> **v3.4 经验 (R22 0826 实战, 18/18 PASS)**:
+> 1. **body 字数 180< ≤220** (非 150-200) — E.4-15 校验
+> 2. **S1 涉华要闻 3-5 条** (非 6-10) — E.4-03 校验
+> 3. **trends 三段每段 200-300, 总 600-900** — E.4-16 校验
+> 4. **段首动词白名单仅 4 词: 报道/表示/声明/发布** — E.4-08 校验; "宣布""宣称""指出""披露" 一律 FAIL。0826 S2#4 Hemerdon "宣布投入7100万" → "发布声明，将投入7100万" 即过
+> 5. **S1 必须 pub_date 倒序** — E.4-11 校验
+> **v3.6 经验 (R23 0826 实战, cwd 嵌套根因)**:
+> 1. **D-4 白名单只看字符串前缀, 易被 cwd 绕开**: 即使 `--output-dir temp/output/daily_<YYYYMMDD>` 字符串过白名单, 若调用方 cwd 已在 `temp/` 内部, os.makedirs 解析为 `<cwd>/temp/output/...` 即 `temp/temp/output/...` 嵌套 (0826 11:25 真实发生)。
+> 2. **修复**: `_check_output_dir` 已加 abspath 解析 + `/temp/temp/` 嵌套检测, 触发即 raise ValueError。fallback 模块、render CLI、调度 prompt 全部走该函数。
+> 3. **用户侧推荐**: 调用 render 前 `cd <project_root>` 或传绝对路径 `--output-dir $(pwd)/temp/output/daily_<YYYYMMDD>`。
 > **失败兜底**: `daily_report_render_fallback.py` — render/validate 任一非 0 时复制昨日报告加黄条 + `_FALLBACK` 后缀
 > **用户指令存档**: `daily_report_instruction.md` — v1.8 原文
 >
@@ -60,6 +72,9 @@ Phase 1 采集 → Phase 2 整编(输出 report_data.json) → render.py(三件�
 - 涉华政策类条目需 **≥2源交叉核验**（或标注"单源待确认"）
 - 禁止主观评价词（"令人震惊""不幸的是"）
 - 中文字数：正文 2000~3500 字
+
+### H5. 路径防嵌套 (v3.4 新, R21 2026-08-25)
+- 日报 json 直存 `temp/<name>.json`，产物直出 `temp/output/daily_<YYYYMMDD>/`；**禁止任何 `/temp/temp/` 嵌套**（fetch.py / render.py 已加 guard 拒绝并 exit 5）
 
 ---
 

@@ -5,12 +5,17 @@ set -e
 PORT="${SCHEDULER_PORT:-45762}"
 LOG_FILE="scripts/run/scheduler.log"
 PID_FILE="scripts/run/scheduler.pid"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+PYTHON_BIN="${PYTHON_BIN:-.venv/bin/python}"
 MODULE="tau_coding.taumain"
 REFLECT_MODULE="tau_coding.reflect.scheduler"
 # ========================================================
 
 cd "$(dirname "$0")/.."
+
+if [ ! -x "$PYTHON_BIN" ]; then
+    echo "error: $PYTHON_BIN not found; run 'uv venv && uv pip install -e .' first, or set PYTHON_BIN" >&2
+    exit 1
+fi
 
 # ---------- 颜色 ----------
 RED='\033[0;31m'

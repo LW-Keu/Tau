@@ -24,6 +24,22 @@ MIN_RECORDS = 20           # 低于此值视为数据稀薄 -> exit 3, 触发 SO
 RSS_TIMEOUT = 20
 
 
+def _assert_canonical_json_path(path: str, flag: str) -> str:
+    """R21 (2026-08-25) 嵌套路径守卫: 拒绝任何 `/temp/temp/` 形式的解析结果。
+    fetch.py 历史上因 --out 默认 `../temp/...` + CWD 在 temp/ 时相对路径写成
+    `temp/temp/output/...` 残骸。现强制: json 必须直存 temp/<name>.json。
+    返回 absolute 路径便于调用方后续 makedirs。
+    """
+    abs_p = os.path.abspath(path).replace("\\", "/")
+    if "/temp/temp/" in abs_p or abs_p.endswith("/temp/temp") or "/temp/temp/" in abs_p + "/":
+        sys.stderr.write(
+            f"[ERROR] {flag}={path!r} 解析到 {abs_p!r}，含嵌套 `temp/temp/`，违反 D-4 路径约束。\n"
+            "        日报 json 必须直存 temp/<name>.json 或 temp/output/daily_<YYYYMMDD>/ 之外。\n"
+        )
+        sys.exit(5)
+    return abs_p
+
+
 # ─── 纯函数 (可单测) ──────────────────────────────────────────
 
 def normalize_domain(hostname: str) -> str:
@@ -510,6 +526,11 @@ def main():
     ap.add_argument('--emit-template', metavar='PATH',
                     help='仅生成 report_data.json stub (B 路手工兜底起步), 不执行采集')
     args = ap.parse_args()
+    # R21 (2026-08-25): 入口处防嵌套路径, 否则 makedirs 会创建 temp/temp/ 残骸。
+    if args.emit_template:
+        args.emit_template = _assert_canonical_json_path(args.emit_template, '--emit-template')
+    elif args.out:
+        args.out = _assert_canonical_json_path(args.out, '--out')
     if args.emit_template:
         emit_template(args.emit_template, args.date)
         return
