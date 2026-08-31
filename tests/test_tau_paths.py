@@ -7,7 +7,7 @@ class TestTauPaths(unittest.TestCase):
         self.assertTrue(paths.ASSETS.is_dir())
         self.assertTrue(paths.MEMORY.is_dir())
         self.assertEqual(paths.ASSETS, paths.TAU_HOME / "assets")
-        self.assertEqual(paths.MEMORY, paths.TAU_HOME / "memory")
+        self.assertEqual(paths.MEMORY, paths.TAU_HOME / "memories")
 
     def test_tau_home_points_to_repo_root_not_src(self):
         # tau_paths.py 位于 src/ 下，parents[1] 应回溯到仓库根（含 pyproject.toml），

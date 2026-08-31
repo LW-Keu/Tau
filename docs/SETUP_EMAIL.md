@@ -4,15 +4,15 @@
 
 ## 一句话流程
 
-让 agent 按 [`memory/email_setup_sop.md`](../memory/email_setup_sop.md) 的阶段 1-5 走一遍。Agent 会问你 4 个必填项（发件邮箱 / 发件人显示名 / 收件人 / SMTP 授权码），自动推断 SMTP 服务器，然后发一封测试邮件验证。
+让 agent 按 [`memories/email_setup_sop.md`](../memories/email_setup_sop.md) 的阶段 1-5 走一遍。Agent 会问你 4 个必填项（发件邮箱 / 发件人显示名 / 收件人 / SMTP 授权码），自动推断 SMTP 服务器，然后发一封测试邮件验证。
 
 ## 仓库内相关文件
 
 | 文件 | 用途 |
 |---|---|
-| `memory/email_config.py` | 字段契约 + `save/load/validate/infer_provider` 库 API |
-| `memory/email_send.py` | 当日 docx 定位 + SMTP 发送 + 幂等（`__main__` 可手跑） |
-| `memory/email_setup_sop.md` | Agent 配置流程（SOP，L3 Skill） |
+| `memories/email_config.py` | 字段契约 + `save/load/validate/infer_provider` 库 API |
+| `memories/email_send.py` | 当日 docx 定位 + SMTP 发送 + 幂等（`__main__` 可手跑） |
+| `memories/email_setup_sop.md` | Agent 配置流程（SOP，L3 Skill） |
 | `setup/configure_tauchain.py` | 人类交互式配置向导（v2.2+，多账号入口） |
 | `assets/email_providers.json` | SMTP 推断表（按域名匹配） |
 | `examples/email_daily_report.task.json` | 调度任务定义（样例，需拷贝到 `sche_tasks/`） |
@@ -27,14 +27,14 @@
 agent 会：
 1. 阶段 1：确认意图（要配的是 Tau 日报发件邮箱）
 2. 阶段 2：问你 4 项（发件邮箱 / 显示名 / 收件人 / 授权码）
-3. 阶段 3：调 `memory.email_config.infer_provider(addr)` 推断 SMTP
-4. 阶段 4：调 `memory.email_config.save_email_config(cfg)` 写入 `.tau/tauchain.json`
-5. 阶段 5：跑 `python memory/email_send.py` 发一封测试邮件到收件人
+3. 阶段 3：调 `memories.email_config.infer_provider(addr)` 推断 SMTP
+4. 阶段 4：调 `memories.email_config.save_email_config(cfg)` 写入 `.tau/tauchain.json`
+5. 阶段 5：跑 `python memories/email_send.py` 发一封测试邮件到收件人
 
 ## 程序化写入（不通过 SOP）
 
 ```python
-from memory.email_config import save_email_config, infer_provider
+from memories.email_config import save_email_config, infer_provider
 
 info = infer_provider("you@qq.com")
 # info = {"host": "smtp.qq.com", "port": 465, "ssl": True, "note": ""}
@@ -81,7 +81,7 @@ agent 会读这些 env → 调 `save_email_config` → 跑测试邮件。
 | `subject` | | `Tau 日报 {date}` | 主题模板 |
 | `body` | | `今日日报见附件。` | 正文模板 |
 
-字段校验在 `memory.email_config.validate(cfg)`，保存前会先跑。
+字段校验在 `memories.email_config.validate(cfg)`，保存前会先跑。
 
 ## 路径 home 锚定
 
@@ -116,9 +116,9 @@ agent 会读这些 env → 调 `save_email_config` → 跑测试邮件。
 
 如果你有旧部署的 v1 凭据（keychain.py + `temp/email_report.json`），手动迁移：
 
-1. 读旧数据：`memory.keychain.get_smtp_pass()` + 读 `temp/email_report.json`
-2. 调 `memory.email_config.save_email_config({...})` 写新格式
+1. 读旧数据：`memories.keychain.get_smtp_pass()` + 读 `temp/email_report.json`
+2. 调 `memories.email_config.save_email_config({...})` 写新格式
 3. 删 `temp/email_report.json`（v1 兜底不再读）
-4. 跑 `python memory/email_send.py` 验证
+4. 跑 `python memories/email_send.py` 验证
 
 无 v1 残留：忽略本节。

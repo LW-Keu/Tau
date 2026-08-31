@@ -9,8 +9,8 @@
 import json, os, subprocess, sys, tempfile, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RENDER = os.path.join(ROOT, "memory", "daily_report_render.py")
-VALIDATE = os.path.join(ROOT, "memory", "daily_report_validate.py")
+RENDER = os.path.join(ROOT, "memories", "daily_report_render.py")
+VALIDATE = os.path.join(ROOT, "memories", "daily_report_validate.py")
 
 
 def _write_json(payload: dict) -> str:

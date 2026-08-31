@@ -1,4 +1,4 @@
-"""Tests for memory/email_send.send_email() — 5 条分支:
+"""Tests for memories/email_send.send_email() — 5 条分支:
 
   v2 发信 / 幂等跳过 / 未配置 / docx 缺失 / SKIP 不写审计。
 
@@ -23,11 +23,11 @@ class TestEmailSend(unittest.TestCase):
         # 模块级常量 (DONE/SENT/EMAIL_LOG/CONFIG_FILE) 只在 import 时求值一次。
         import tau_paths
         importlib.reload(tau_paths)
-        import memory.email_config
-        importlib.reload(memory.email_config)
-        import memory.email_send
-        importlib.reload(memory.email_send)
-        self.email_send = memory.email_send
+        import memories.email_config
+        importlib.reload(memories.email_config)
+        import memories.email_send
+        importlib.reload(memories.email_send)
+        self.email_send = memories.email_send
         # 建一份假"今日"日报 docx (DONE = SCHE_TASKS/done)
         today = date.today().isoformat()
         docx_dir = os.path.join(self.tmp, "sche_tasks", "done")
@@ -39,15 +39,15 @@ class TestEmailSend(unittest.TestCase):
         # 清 env + reload 回默认, 避免常量残留污染后续套件
         os.environ.pop("TAU_HOME", None)
         import tau_paths
-        import memory.email_config
-        import memory.email_send
+        import memories.email_config
+        import memories.email_send
         importlib.reload(tau_paths)
-        importlib.reload(memory.email_config)
-        importlib.reload(memory.email_send)
+        importlib.reload(memories.email_config)
+        importlib.reload(memories.email_send)
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _write_valid_cfg(self):
-        from memory.email_config import save_email_config
+        from memories.email_config import save_email_config
         save_email_config({
             "smtp_host": "smtp.qq.com",
             "smtp_port": 465,
@@ -92,7 +92,7 @@ class TestEmailSend(unittest.TestCase):
     def test_unconfigured_raises_value_error(self):
         """未配置 .tau/tauchain.json → ValueError。"""
         es = self.email_send
-        from memory.email_config import CONFIG_FILE
+        from memories.email_config import CONFIG_FILE
         self.assertFalse(os.path.exists(CONFIG_FILE))
         with self.assertRaises(ValueError) as ctx:
             es.send_email()

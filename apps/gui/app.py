@@ -290,7 +290,7 @@ class FloatingButton(QWidget):
 # ══════════════════════════════════════════════════════════════════════
 
 # ── constants ─────────────────────────────────────────────────────────────────
-HISTORY_FILE = "memory/chat_history.json"
+HISTORY_FILE = "memories/chat_history.json"
 TEXT_FILE_EXTS = {
     ".txt", ".md", ".py", ".json", ".csv", ".yaml", ".yml",
     ".log", ".ini", ".toml", ".xml", ".html", ".js", ".ts", ".sql",
@@ -2293,7 +2293,7 @@ class ChatPanel(QWidget):
     def _refresh_sop(self):
         self._sop_list.clear()
         file_icon = _svg_icon("sop_file_item", _SVG_FILE, C["muted"])
-        for path in sorted(glob.glob(os.path.join(os.path.dirname(os.path.dirname(__file__)), "memory", "*.md"))):
+        for path in sorted(glob.glob(os.path.join(os.path.dirname(os.path.dirname(__file__)), "memories", "*.md"))):
             name = os.path.basename(path)
             size = os.path.getsize(path)
             it = QListWidgetItem(name)

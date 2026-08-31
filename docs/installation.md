@@ -64,7 +64,7 @@ $env:INSTALL_DIR="C:\dev\Tau"; powershell -ExecutionPolicy Bypass -c "$env:GLOBA
 
 #### Force reinstall
 
-Use this only when you know you want to refresh the installed files. Back up `.tau/taukey.py`, `memory/`, `skills/`, and any local work first.
+Use this only when you know you want to refresh the installed files. Back up `.tau/taukey.py`, `memories/`, `skills/`, and any local work first.
 
 ```bash
 FORCE=1 GLOBAL=1 bash -c "$(curl -fsSL http://fudankw.cn:9000/files/ga_install.sh)"
@@ -195,7 +195,7 @@ uv pip install -e ".[ui]"
 
 If `git pull` reports conflicts:
 
-- For `.tau/taukey.py`, `memory/`, `skills/`, `temp/`, and user-created artifacts: prefer the local copy.
+- For `.tau/taukey.py`, `memories/`, `skills/`, `temp/`, and user-created artifacts: prefer the local copy.
 - For code such as `src/tau_coding/*`, `src/tau_agent/*`, `src/tau_ai/*`,
   `apps/*`, and `external/TMWebDriver/*`: usually prefer upstream unless the user says
   otherwise.

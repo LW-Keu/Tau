@@ -190,7 +190,7 @@ class TauHandler(BaseHandler):
         result = smart_format(result, max_str_len=maxlen, omit_str='\n\n[omitted long content]\n\n')
         next_prompt = self._get_anchor_prompt(skip=args.get('_index', 0) > 0)
         log_memory_access(path)
-        if 'memory' in path or 'sop' in path:
+        if 'memories' in path or 'sop' in path:
             next_prompt += "\n[SYSTEM TIPS] 正在读取记忆或SOP文件，若决定按sop执行请提取sop中的关键点（特别是靠后的）update working memory."
         return StepOutcome(result, next_prompt=next_prompt)
 

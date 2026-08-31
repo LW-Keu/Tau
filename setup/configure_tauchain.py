@@ -7,7 +7,7 @@
   python setup/configure_tauchain.py --non-interactive  # 读环境变量
   python setup/configure_tauchain.py --send-test    # 配置后立即发一封测试邮件
 
-写入与字段契约统一来自 memory.email_config（禁止自带 json.dump 绕开校验）。
+写入与字段契约统一来自 memories.email_config（禁止自带 json.dump 绕开校验）。
 """
 import argparse
 import getpass
@@ -19,7 +19,7 @@ REPO = Path(__file__).resolve().parent.parent
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from memory import email_config
+from memories import email_config
 
 
 DEFAULTS = {
@@ -129,8 +129,8 @@ def _non_interactive() -> dict:
 
 
 def _send_test() -> None:
-    """调 memory.email_send.send_email() 发一封测试邮件（复用库 API）。"""
-    sys.path.insert(0, str(REPO / "memory"))
+    """调 memories.email_send.send_email() 发一封测试邮件（复用库 API）。"""
+    sys.path.insert(0, str(REPO / "memories"))
     from email_send import send_email
     print("\n发送测试邮件...")
     try:

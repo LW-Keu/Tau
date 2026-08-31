@@ -9,7 +9,7 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "memory" / "L4_raw_sessions" / "compress_session.py"
+MODULE_PATH = ROOT / "memories" / "L4_raw_sessions" / "compress_session.py"
 SPEC = importlib.util.spec_from_file_location("compress_session", MODULE_PATH)
 compress_session = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(compress_session)

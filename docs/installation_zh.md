@@ -64,7 +64,7 @@ $env:INSTALL_DIR="C:\dev\Tau"; powershell -ExecutionPolicy Bypass -c "irm http:/
 
 #### 强制重新安装
 
-仅在明确想刷新已安装文件时使用。请先备份 `.tau/taukey.py`、`memory/`、`skills/` 和本地工作成果。
+仅在明确想刷新已安装文件时使用。请先备份 `.tau/taukey.py`、`memories/`、`skills/` 和本地工作成果。
 
 ```bash
 FORCE=1 bash -c "$(curl -fsSL http://fudankw.cn:9000/files/ga_install.sh)"
@@ -195,7 +195,7 @@ uv pip install -e ".[ui]"
 
 如果 `git pull` 报冲突：
 
-- `.tau/taukey.py`、`memory/`、`skills/`、`temp/` 和用户成果：本地优先。
+- `.tau/taukey.py`、`memories/`、`skills/`、`temp/` 和用户成果：本地优先。
 - `src/tau_coding/*`、`src/tau_agent/*`、`src/tau_ai/*`、`apps/*`、
   `external/TMWebDriver/*` 等代码：通常 upstream 优先，除非用户另有说明。
 - 明确解决冲突后，再 `git add` 并提交合并。

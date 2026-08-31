@@ -64,7 +64,7 @@ class TestTauCodingPackage(unittest.TestCase):
             "tau_coding.cli", "tau_coding.reflect.scheduler",
             "tau_agent", "tau_agent.plugins.hooks", "tau_ai",
             "external.TMWebDriver", "external.TMWebDriver.simphtml",
-            "memory.email_config",
+            "memories.email_config",
         ]
         code = "import " + ", ".join(toplevel)
         env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}

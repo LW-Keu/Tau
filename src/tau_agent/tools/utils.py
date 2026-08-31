@@ -28,7 +28,7 @@ def consume_file(dr, file):
 
 
 def log_memory_access(path):
-    if 'memory' not in path: return
+    if 'memories' not in path: return
     stats_file = str(MEMORY / 'file_access_stats.json')
     try:
         with open(stats_file, 'r', encoding='utf-8') as f: stats = json.load(f)
@@ -60,8 +60,8 @@ def get_global_memory():
         with open(str(MEMORY / 'global_mem_insight.txt'), 'r', encoding='utf-8', errors='replace') as f: insight = f.read()
         with open(str(ASSETS / f'template/insight_fixed_structure{suffix}.txt'), 'r', encoding='utf-8') as f: structure = f.read()
         prompt += f'cwd = {str(TEMP)} (./)\n'
-        prompt += f"\n[Memory] (../memory)\n"
-        prompt += structure + '\n../memory/global_mem_insight.txt:\n'
+        prompt += f"\n[Memory] (../memories)\n"
+        prompt += structure + '\n../memories/global_mem_insight.txt:\n'
         prompt += insight + "\n"
     except FileNotFoundError: pass
     return prompt

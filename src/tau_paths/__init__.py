@@ -8,7 +8,7 @@ from pathlib import Path
 TAU_HOME = Path(os.environ.get("TAU_HOME")
                 or Path(__file__).resolve().parents[2])
 ASSETS = TAU_HOME / "assets"
-MEMORY = TAU_HOME / "memory"
+MEMORY = TAU_HOME / "memories"
 TEMP = TAU_HOME / "temp"
 SCHE_TASKS = TAU_HOME / "sche_tasks"
 TAU = TAU_HOME / ".tau"

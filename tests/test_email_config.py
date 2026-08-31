@@ -1,6 +1,6 @@
 """test_email_config.py - T-04 库单元测试
 
-覆盖 memory.email_config 的所有公共 API:
+覆盖 memories.email_config 的所有公共 API:
   - 常量 (REQUIRED / DEFAULTS / CONFIG_DIR / CONFIG_FILE)
   - has_email_config / validate / save_email_config / load_email_config
   - infer_provider (5 域名 + 大小写不敏感 + 未知/null/空)
@@ -17,9 +17,9 @@ from pathlib import Path
 
 import pytest
 
-# memory/ 工具用裸名 import（sys.path 指向 memory/，与 daily_report_* 一致）
+# memories/ 工具用裸名 import（sys.path 指向 memories/，与 daily_report_* 一致）
 MEM_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "memory"
+    os.path.dirname(os.path.abspath(__file__)), "..", "memories"
 )
 if MEM_DIR not in sys.path:
     sys.path.insert(0, MEM_DIR)
@@ -216,7 +216,7 @@ def test_save_partial_raises():
 
 
 def main():
-    print("=== testing memory/email_config.py ===")
+    print("=== testing memories/email_config.py ===")
     tmp = tempfile.mkdtemp(prefix="email_cfg_test_")
     os.environ["TAU_HOME"] = tmp
     # infer_provider 读 ASSETS/email_providers.json, 拷一份进隔离环境

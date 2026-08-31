@@ -17,7 +17,7 @@
 
 ---
 
-Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`(路径锚点在 `src/tau_paths`),运行时资产位于 `assets/` 和 `memory/`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
+Tau 是一个**极简内核 + 越用越强**的自主智能体框架。运行时代码位于 `src/tau_coding`、`src/tau_agent` 和 `src/tau_ai`(路径锚点在 `src/tau_paths`),运行时资产位于 `assets/` 和 `memories/`,能驱动一个会读自己源码、自己装依赖、把每次成功经验固化成技能的 Agent。
 
 它不预设一长串功能,而是给你一个能**自我进化**的最小系统:跑起来之后,你只需用一句话告诉它要什么,它会自己读代码、找依赖、解锁能力,并把执行路径沉淀成可复用的 Skill——使用越久,它越懂你。
 
@@ -164,7 +164,7 @@ WorkBuddy 随请求提供，Tau 的内部工具调用记录不跨请求保存。
 Tau/
 ├── src/          # 可安装包:tau_coding(入口 · CLI · reflect) · tau_agent · tau_ai · tau_paths(仓库根锚点)
 ├── apps/         # 多前端/通道:common · api · tui · gui · web · pet · desktop · im · hub
-├── memory/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
+├── memories/       # 技能库:.py 是工具(Agent import 调用),.md 是 SOP(Agent 阅读执行)
 ├── external/     # 外部组件:TMWebDriver(浏览器自动化,保留登录态) · agent_bbs
 ├── setup/        # 设置向导,如 tau configure 调用的 taukey 配置器
 ├── examples/     # 示例配置、任务定义与接入样品
@@ -174,7 +174,7 @@ Tau/
 └── assets/       # 系统提示词 · 工具 schema · 模板 · 脚本
 ```
 
-**技能 = 记忆**:`memory/` 是 Tau 的成长所在。`.py` 文件是可被 Agent `import` 的工具,`.md` 文件是供 Agent 阅读执行的 SOP。Agent 在使用中不断向这里写入新技能。
+**技能 = 记忆**:`memories/` 是 Tau 的成长所在。`.py` 文件是可被 Agent `import` 的工具,`.md` 文件是供 Agent 阅读执行的 SOP。Agent 在使用中不断向这里写入新技能。
 
 ## 🤖 模型支持
 

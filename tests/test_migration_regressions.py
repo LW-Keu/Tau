@@ -203,7 +203,7 @@ class MigrationRegressionTests(unittest.TestCase):
                 "import os,pathlib,tau_coding.taumain;"
                 "root=pathlib.Path(os.environ['TAU_HOME']);"
                 "assert 'TAU_LANG' not in os.environ;"
-                "assert not (root/'memory').exists();"
+                "assert not (root/'memories').exists();"
                 "assert not (root/'external').exists()"
             )
             result = subprocess.run(

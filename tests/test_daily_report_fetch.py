@@ -1,4 +1,4 @@
-"""Tests for memory/daily_report_fetch.py pure functions + run() orchestration.
+"""Tests for memories/daily_report_fetch.py pure functions + run() orchestration.
 
 Migrated from scripts/smoke_daily_report_fetch.py. Network channels
 (_fetch_bing_dispatch / fetch_rss) are mocked; gnews is skipped via run()'s
@@ -13,7 +13,7 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-import memory.daily_report_fetch as f
+import memories.daily_report_fetch as f
 
 _AT = datetime(2026, 6, 20, 18, 0, tzinfo=timezone(timedelta(hours=8)))
 

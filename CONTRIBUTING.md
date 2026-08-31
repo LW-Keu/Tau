@@ -27,7 +27,7 @@ Tau evolves through skills. Not all skills belong in the core repo:
 
 | Type | Where it goes | Example |
 |---|---|---|
-| **Fundamental / universal** | Core repo (`memory/`) | File search, clipboard, basic web ops |
+| **Fundamental / universal** | Core repo (`memories/`) | File search, clipboard, basic web ops |
 | **Domain-specific / niche** | Skill Marketplace *(coming soon)* | Stock screening, food delivery, specific API integrations |
 
 If your skill only makes sense for a specific workflow, it's a marketplace candidate, not a core PR.
