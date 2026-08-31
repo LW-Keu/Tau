@@ -787,7 +787,10 @@ class TMWebDriver:
         }
 
     def _remote_cmd(self, cmd):
-        try: return requests.post(self.remote, headers={"Content-Type": "application/json"}, json=cmd, timeout=30).json()
+        # Explicit no-proxy: requests reads the macOS system proxy (scutil --proxy) by
+        # default, so a local proxy (e.g. Veee on 127.0.0.1:15236) hijacks the
+        # 127.0.0.1:18766 bridge call and hangs until ReadTimeout.
+        try: return requests.post(self.remote, headers={"Content-Type": "application/json"}, json=cmd, timeout=30, proxies={"http": None, "https": None}).json()
         except (ConnectionError, requests.exceptions.ConnectionError):
             raise ConnectionError("TMWebDriver master未运行，看tmwebdriver_sop启动master")
 

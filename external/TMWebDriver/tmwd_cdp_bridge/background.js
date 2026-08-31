@@ -466,9 +466,17 @@ async function connectWS() {
 }
 
 // Initial connect + wake-up hooks
-connectWS();
-chrome.runtime.onStartup.addListener(() => connectWS());
-chrome.runtime.onInstalled.addListener(() => connectWS());
+// Probe before connecting: a blind connectWS() logs a browser-native
+// ERR_CONNECTION_REFUSED whenever the Python bridge isn't up yet (Chrome
+// launched before the server, server restarting, SW waking after idle).
+// When the probe fails, the silent alarm-based probe loop takes over.
+async function initialConnect() {
+  if (await isServerAlive()) connectWS();
+  else scheduleProbe();
+}
+initialConnect();
+chrome.runtime.onStartup.addListener(initialConnect);
+chrome.runtime.onInstalled.addListener(initialConnect);
 
 // Sync tab list on changes
 async function sendTabsUpdate() {
