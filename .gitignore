@@ -13,6 +13,7 @@ venv/
 env/
 build/
 dist/
+node_modules/
 *.egg-info/
 
 .streamlit/

@@ -63,3 +63,5 @@
 - 活动归类是"用户在做什么"的知识表示，不是对话摘要
 - 写入产物前检查一致性：同一条目不能同时出现在"持续"和"已消失"中。如果阅读时收集到矛盾信号（频次高 vs 已停止），必须做最终裁决再写入
 - "持续"和"已消失"是两个独立分类，不能合并为一个列表用子状态（如"已消退"）规避。产物中必须有明确分开的两个区域或两个文件
+- **batch_process 会跳过最新 10 个 raw**：文件数少时全跳过。绕过：直接逐文件调用 `compress_session(fp)` + 自写 archive 流程
+- **extract_history 对 JSON 格式 raw 失效**：会把内容按字符逐行拆碎。JSON 格式 raw 的结构是 `=== Prompt ===\n{json}` + `=== Response ===\n[python list]`，需自写解析（用 `=== Prompt ===` / `=== Response ===` 分段，正则提取 json 与 ast.literal_eval）
