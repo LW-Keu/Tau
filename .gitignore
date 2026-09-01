@@ -59,15 +59,7 @@ memories/*
 !memories/autonomous_operation_sop/
 !memories/autonomous_operation_sop/**
 !memories/scheduled_task_sop.md
-!memories/daily_report_sop.md
-!memories/daily_report_render.py
-!memories/daily_report_validate.py
-!memories/daily_report_build_today.py
-!memories/daily_report_instruction.md
-!memories/daily_report_fetch.py
-!memories/daily_report_sources.json
-!memories/daily_report_reference_sources.md
-!memories/daily_report_render_fallback.py
+# 日报相关文件 (daily_report_*) 仅本地使用, 不入库
 memories/global_mem.txt
 memories/global_mem_insight.txt
 
