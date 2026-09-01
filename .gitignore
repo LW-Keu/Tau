@@ -49,9 +49,7 @@ memories/*
 !memories/__init__.py
 !memories/memory_management_sop.md
 !memories/memory_skill.md
-!memories/email_config.py
-!memories/email_send.py
-!memories/email_setup_sop.md
+# email 相关文件 (email_*) 仅本地使用, 不入库
 
 # Allow tracking of specific SOPs
 !memories/web_setup_sop.md
